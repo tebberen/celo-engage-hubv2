@@ -1,13 +1,16 @@
-// ========================= CELO ENGAGE HUB — WALLET SERVICE (FINAL FIXED VERSION) ========================= //
+// ========================= CELO ENGAGE HUB — WALLET SERVICE (SAFE FINAL VERSION) ========================= //
 // 💳 MetaMask bağlantısı, ağ geçişi ve bağlantı durumu yönetimi (Celo Mainnet + Alfajores)
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
-// ✅ Multi-provider MetaMask fix
+// ✅ Multi-provider MetaMask fix (getter hatası önlenmiş)
 if (typeof window !== "undefined") {
   window.addEventListener("DOMContentLoaded", () => {
     if (window.ethereum && window.ethereum.providers) {
       const metamaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
-      if (metamaskProvider) window.ethereum = metamaskProvider;
+      if (metamaskProvider && !Object.isFrozen(window.ethereum)) {
+        // Getter-only property fix: güvenli kopya oluştur
+        window.ethereum = Object.assign({}, metamaskProvider);
+      }
     }
   });
 }
@@ -40,12 +43,12 @@ const walletStatusEl = () => document.getElementById("walletStatus");
 const networkLabelEl = () => document.getElementById("networkLabel");
 const connectBtnEl = () => document.getElementById("walletActionBtn");
 
-// 🔹 MetaMask var mı?
+// 🔹 MetaMask kontrolü
 export function hasMetaMask() {
   return typeof window.ethereum !== "undefined";
 }
 
-// 🔹 CELO ağına geçiş yap
+// 🔹 CELO ağına geçiş
 export async function switchToCeloNetwork() {
   if (!window.ethereum) return false;
 
@@ -57,7 +60,6 @@ export async function switchToCeloNetwork() {
     return true;
   } catch (err) {
     if (err.code === 4902) {
-      // Ağ ekle
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
         params: [CELO_MAINNET_PARAMS]
@@ -65,7 +67,6 @@ export async function switchToCeloNetwork() {
       return true;
     }
 
-    // Alfajores fallback
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
@@ -94,13 +95,9 @@ export async function connectWalletMetaMask() {
   }
 
   try {
-    // 🚫 Eski adres cache’ini sıfırla
-    window.ethereum.selectedAddress = null;
-
-    provider = new ethers.providers.Web3Provider(window.ethereum);
+    provider = new ethers.providers.Web3Provider(window.ethereum, "any");
     await switchToCeloNetwork();
 
-    // MetaMask popup açar
     await window.ethereum.request({ method: "eth_requestAccounts" });
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
@@ -142,7 +139,7 @@ export async function updateNetworkLabel() {
   return true;
 }
 
-// 🔹 Bağlantıyı kes (tam sıfırlama)
+// 🔹 Bağlantıyı kes
 export function disconnectWallet() {
   provider = null;
   signer = null;
@@ -152,15 +149,9 @@ export function disconnectWallet() {
   if (walletStatusEl()) walletStatusEl().innerHTML = "<p>🔴 Not connected</p><span id='networkLabel'>—</span>";
   if (connectBtnEl()) connectBtnEl().textContent = "Connect Wallet";
 
-  // Event temizliği
   if (window.ethereum && window.ethereum.removeAllListeners) {
     window.ethereum.removeAllListeners("accountsChanged");
     window.ethereum.removeAllListeners("chainChanged");
-  }
-
-  // 🚀 Cache temizliği
-  if (window.ethereum && window.ethereum.selectedAddress) {
-    delete window.ethereum.selectedAddress;
   }
 
   localStorage.clear();
@@ -174,4 +165,4 @@ export function getProvider() { return provider; }
 export function getSigner() { return signer; }
 export function getUserAddress() { return userAddress; }
 
-console.log("🧩 Wallet service loaded — full clean mode active.");
+console.log("🧩 Wallet service loaded — safe final version active.");
