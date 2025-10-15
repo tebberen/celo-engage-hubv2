@@ -18,15 +18,28 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet integration active");
+console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
 
-// ✅ Sol paneldeki Celo Ecosystem linklerini otomatik doldur
+// ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
 window.addEventListener("DOMContentLoaded", () => {
+  // 🔹 Celo Ecosystem linkleri
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
   if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
     ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
       .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
       .join("");
+  }
+
+  // 🔹 Support Members (INITIAL_SUPPORT_LINKS)
+  const linkGrid = document.querySelector(".link-grid");
+  if (linkGrid && INITIAL_SUPPORT_LINKS.length) {
+    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link, index) => `
+      <div class="link-card">
+        <span class="icon">🌐</span> <b>Member ${index + 1}</b>
+        <p><a href="${link}" target="_blank">${link}</a></p>
+        <p>Supports <b>0/5</b></p>
+      </div>
+    `).join("");
   }
 });
 
