@@ -125,26 +125,7 @@
     </div>
   </div>
 
-  <script type="module">
-    import { connectWalletMetaMask, disconnectWallet, getUserAddress, updateNetworkLabel } from "./src/services/walletService.js";
-
-    const walletBtn = document.getElementById("walletActionBtn");
-    const walletStatus = document.getElementById("walletStatus");
-
-    walletBtn.addEventListener("click", async () => {
-      if (walletBtn.textContent.includes("Connect")) {
-        const result = await connectWalletMetaMask();
-        if (result && result.userAddress) {
-          walletStatus.innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p>`;
-          walletBtn.textContent = "Disconnect";
-          await updateNetworkLabel();
-        }
-      } else {
-        disconnectWallet();
-        walletStatus.innerHTML = "<p>🔴 Not connected</p><span id='networkLabel'>—</span>";
-        walletBtn.textContent = "Connect Wallet";
-      }
-    });
-  </script>
+  <!-- ✅ Tüm işlemleri yöneten ana modül -->
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
