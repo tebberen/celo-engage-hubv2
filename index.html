@@ -1,1 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Celo Engage Hub V2</title>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div class="centered-content">
+    <header>
+      <div>🌐 Celo Engage Hub V2</div>
+    </header>
 
+    <!-- 🔹 ÜST BAR -->
+    <nav class="top-bar">
+      <button id="gmBtn">GM</button>
+      <button id="deployBtn">Deploy</button>
+      <button id="governanceBtn">Governance</button>
+      <button id="badgeBtn">Badge</button>
+      <button id="profileBtn">Profile</button>
+    </nav>
+
+    <!-- 🔗 Connect Wallet -->
+    <button id="connectWalletBtn" class="connect-btn">🔗 Connect Wallet</button>
+  </div>
+
+  <div class="container">
+    <!-- 🔹 SOL PANEL -->
+    <aside class="sidebar">
+      <div id="walletInfo" class="wallet-address hidden">
+        ✅ Connected: <span id="walletAddress"></span>
+        <div id="networkInfo"></div>
+      </div>
+
+      <!-- 💛 DONATE SECTION -->
+      <div class="donate-section">
+        <h3>💛 Donate to Support Hub</h3>
+        <p class="donate-info">Choose an amount to support the community</p>
+        <div class="donate-buttons">
+          <button data-amount="0.5">0.5 CELO</button>
+          <button data-amount="1">1 CELO</button>
+          <button data-amount="5">5 CELO</button>
+          <button data-amount="10">10 CELO</button>
+        </div>
+      </div>
+
+      <!-- 🟡 CELO ECOSYSTEM LINKS -->
+      <div class="celo-ecosystem">
+        <h3>🟡 Celo Ecosystem</h3>
+        <a href="https://celo.org" target="_blank">🌐 Celo Official</a>
+        <a href="https://docs.celo.org" target="_blank">📚 Documentation</a>
+        <a href="https://developers.celo.org" target="_blank">💼 Developer Portal</a>
+        <a href="https://celoscan.io" target="_blank">🔍 Explorer</a>
+        <a href="https://forum.celo.org" target="_blank">💬 Forum</a>
+        <a href="https://x.com/Celo" target="_blank">🐦 Twitter</a>
+      </div>
+    </aside>
+
+    <!-- 🔹 ANA İÇERİK -->
+    <main class="main-content">
+      <section id="contentArea">
+        <h2>Welcome to Celo Engage Hub V2</h2>
+        <p>Select a feature from the top bar to get started!</p>
+
+        <div class="info-card">
+          <h3>📢 About</h3>
+          <p>
+            Celo Engage Hub V2 is a community-driven dApp where every action builds real on-chain value.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 📜 Ana script (modüler yapı) -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
