@@ -16,25 +16,31 @@
       <p class="description">If you want support, support first</p>
 
       <div class="nav-bar">
-        <button>Gm</button>
-        <button>Deploy</button>
-        <button>Governance</button>
-        <button>Badge</button>
-        <button>Profile</button>
+        <button id="gmBtn">Gm</button>
+        <button id="deployBtn">Deploy</button>
+        <button id="governanceBtn">Governance</button>
+        <button id="badgeBtn">Badge</button>
+        <button id="profileBtn">Profile</button>
       </div>
     </header>
 
     <div class="container">
       <!-- Sol panel -->
       <aside class="sidebar">
+        <!-- 🔹 Wallet bağlantı kutusu -->
         <div class="wallet-box">
-          <div class="wallet-status">
-            <p>✅ Connected: 0x09df...0DA5</p>
-            <span class="network">🌕 Celo Mainnet</span>
+          <div id="walletStatus" class="wallet-status">
+            <p>🔴 Not connected</p>
+            <span id="networkLabel">—</span>
           </div>
-          <button class="disconnect-btn">Disconnect</button>
+
+          <div class="wallet-buttons">
+            <button id="connectWalletBtn" class="connect-btn">🔗 Connect Wallet</button>
+            <button id="disconnectBtn" class="disconnect-btn hidden">🔌 Disconnect</button>
+          </div>
         </div>
 
+        <!-- 💛 Donate kutusu -->
         <div class="donate-box">
           <h3>💛 Donate to Support Hub</h3>
           <p>Choose an amount to support the community</p>
@@ -46,21 +52,22 @@
           </div>
         </div>
 
+        <!-- 🌕 Celo ekosistemi -->
         <div class="ecosystem-box">
           <h3>🟡 Celo Ecosystem</h3>
           <ul>
-            <li><a href="#">🌍 Celo Official</a></li>
-            <li><a href="#">📘 Celo Documentation</a></li>
-            <li><a href="#">💻 Developer Portal</a></li>
-            <li><a href="#">🔎 Celo Explorer</a></li>
-            <li><a href="#">💬 Celo Forum</a></li>
-            <li><a href="#">🐦 Celo Twitter</a></li>
+            <li><a href="https://celo.org" target="_blank">🌍 Celo Official</a></li>
+            <li><a href="https://docs.celo.org" target="_blank">📘 Celo Documentation</a></li>
+            <li><a href="https://developers.celo.org" target="_blank">💻 Developer Portal</a></li>
+            <li><a href="https://celoscan.io" target="_blank">🔎 Celo Explorer</a></li>
+            <li><a href="https://forum.celo.org" target="_blank">💬 Celo Forum</a></li>
+            <li><a href="https://twitter.com/CeloOrg" target="_blank">🐦 Celo Twitter</a></li>
           </ul>
         </div>
       </aside>
 
       <!-- Ana içerik -->
-      <main class="main-content">
+      <main class="main-content" id="contentArea">
         <section class="support-section">
           <h2>① Support Community Members</h2>
           <div class="support-header">
@@ -100,6 +107,7 @@
     </div>
   </div>
 
+  <!-- ✅ Modüler JS -->
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
