@@ -5,6 +5,13 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/const
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
+// ✅ Contract yükle
+function getContract() {
+  const signer = getSigner();
+  if (!signer) throw new Error("❌ Wallet not connected");
+  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+}
+
 // 🧩 Profil kontrolü
 export async function checkProfile() {
   try {
@@ -14,16 +21,14 @@ export async function checkProfile() {
 
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
-
     const isActive = profile.isActive || profile[5];
-    console.log("Profile check:", profile);
 
     if (isActive) {
       alert("👤 Profile detected on-chain. Welcome back!");
       return true;
     } else {
       alert("🆕 No profile found. Please create one.");
-      // Profil oluşturma alanını göster
+
       const contentArea = document.getElementById("contentArea");
       if (contentArea) {
         contentArea.innerHTML = `
@@ -34,8 +39,8 @@ export async function checkProfile() {
             <button id="setupProfileBtn">🚀 Setup Profile</button>
           </div>
         `;
-        const setupBtn = document.getElementById("setupProfileBtn");
-        setupBtn.addEventListener("click", async () => {
+
+        document.getElementById("setupProfileBtn").addEventListener("click", async () => {
           const username = document.getElementById("username").value.trim();
           const link = document.getElementById("link").value.trim();
           if (!username || !link) return alert("❌ Please fill all fields.");
@@ -57,7 +62,7 @@ export async function setupUserProfile(username, link) {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
 
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const contract = getContract();
     const tx = await contract.registerUser(username, link);
 
     alert("📡 Sending transaction to Celo...");
@@ -105,7 +110,7 @@ export async function createProposal(title, description) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const contract = getContract();
     const tx = await contract.createProposal(title, description, 3600); // 1 saat süresi
     alert("📡 Creating proposal...");
     await tx.wait();
@@ -121,7 +126,7 @@ export async function voteProposal(id, support) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const contract = getContract();
     const tx = await contract.voteProposal(id, support);
     alert("📡 Sending vote transaction...");
     await tx.wait();
@@ -181,64 +186,5 @@ export async function loadUserProfile() {
   } catch (err) {
     console.error("Load user profile error:", err);
     return null;
-  }
-}
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
-// ⚙️ Smart contract işlemleri (profil, governance, badge, donate)
-
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../utils/constants.js";
-import { getProvider, getSigner, getUserAddress } from "./walletService.js";
-
-// 🔹 Contract yükle
-function getContract() {
-  const signer = getSigner();
-  if (!signer) throw new Error("❌ Wallet not connected");
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-}
-
-// 🔹 Profil var mı kontrol et
-export async function checkProfile() {
-  try {
-    const user = getUserAddress();
-    const contract = getContract();
-    const profile = await contract.getUserProfile(user);
-
-    // profile[5] = isActive
-    if (!profile[5]) {
-      alert("🚀 You don't have a profile yet. Let's create one!");
-      const contentArea = document.getElementById("contentArea");
-      contentArea.innerHTML = `
-        <h2>👤 Setup Your Profile</h2>
-        <div class="info-card">
-          <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
-          <input type="text" id="link" placeholder="Enter your link (X, Farcaster, GitHub...)" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
-          <button id="setupProfileBtn">🚀 Create Profile On-Chain</button>
-        </div>
-      `;
-
-      document.getElementById("setupProfileBtn").addEventListener("click", async () => {
-        const username = document.getElementById("username").value.trim();
-        const link = document.getElementById("link").value.trim();
-        if (!username || !link) return alert("❌ Please fill all fields.");
-        await setupUserProfile(username, link);
-      });
-    }
-  } catch (err) {
-    console.error("Profile check error:", err);
-  }
-}
-
-// 🔹 Profil oluştur
-export async function setupUserProfile(username, link) {
-  try {
-    const contract = getContract();
-    const tx = await contract.registerUser(username, link);
-    alert("🟡 Transaction sent... please wait for confirmation");
-    await tx.wait();
-    alert("✅ Profile successfully created on-chain!");
-  } catch (err) {
-    console.error("Profile creation error:", err);
-    alert("❌ Failed to create profile: " + (err?.message || err));
   }
 }
