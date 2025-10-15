@@ -62,3 +62,5 @@ export const INITIAL_SUPPORT_LINKS = [
   "https://x.com/luckyfromnecef/status/1972371920290259437",
   "https://github.com/tebberen"
 ];
+// 💛 Donation address (Support Hub)
+export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
