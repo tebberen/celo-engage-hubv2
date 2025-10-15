@@ -1,186 +1,185 @@
 // ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
-// 💡 Akıllı kontrat fonksiyonlarını yönetir (register, update, proposal, vote, badges)
+// 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış vb.
 
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../utils/constants.js";
+import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
-// ✅ Kontrat bağlantısını oluştur
-function getContractInstance() {
-  const provider = getProvider();
-  if (!provider) throw new Error("Provider not initialized");
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-}
-
-// ✅ Kullanıcı profili yükle
-export async function loadUserProfile() {
-  const provider = getProvider();
-  const userAddress = getUserAddress();
-  if (!provider || !userAddress) return null;
-
+// 🧩 Profil kontrolü
+export async function checkProfile() {
   try {
-    const contract = getContractInstance();
+    const provider = getProvider();
+    const userAddress = getUserAddress();
+    if (!provider || !userAddress) return false;
+
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
 
-    return {
-      link: profile[0],
-      username: profile[1],
-      supportCount: profile[2].toString(),
-      reputation: profile[3].toString(),
-      badgeCount: profile[4].toString(),
-      isActive: profile[5],
-      timestamp: profile[6].toString()
-    };
-  } catch (err) {
-    console.error("Error loading profile:", err);
-    return null;
-  }
-}
+    const isActive = profile.isActive || profile[5];
+    console.log("Profile check:", profile);
 
-// ✅ Profil oluştur / güncelle
-export async function setupUserProfile(username, link) {
-  const signer = getSigner();
-  const userAddress = getUserAddress();
-  if (!signer || !userAddress) {
-    alert("Please connect your wallet first!");
-    return;
-  }
-
-  try {
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    const userProfile = await contract.getUserProfile(userAddress);
-    let tx;
-
-    if (userProfile.isActive) {
-      console.log("🔄 Updating existing profile...");
-      tx = await contract.updateProfile(username, link, { gasLimit: 300000 });
+    if (isActive) {
+      alert("👤 Profile detected on-chain. Welcome back!");
+      return true;
     } else {
-      console.log("🚀 Registering new user...");
-      tx = await contract.registerUser(username, link, { gasLimit: 500000 });
+      alert("🆕 No profile found. Please create one.");
+      // Profil oluşturma alanını göster
+      const contentArea = document.getElementById("contentArea");
+      if (contentArea) {
+        contentArea.innerHTML = `
+          <h2>🆔 Setup Your Profile</h2>
+          <div class="info-card">
+            <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
+            <input type="text" id="link" placeholder="Enter your link (e.g. https://x.com/...)" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
+            <button id="setupProfileBtn">🚀 Setup Profile</button>
+          </div>
+        `;
+        const setupBtn = document.getElementById("setupProfileBtn");
+        setupBtn.addEventListener("click", async () => {
+          const username = document.getElementById("username").value.trim();
+          const link = document.getElementById("link").value.trim();
+          if (!username || !link) return alert("❌ Please fill all fields.");
+          await setupUserProfile(username, link);
+        });
+      }
+      return false;
     }
-
-    alert("⏳ Transaction sent. Waiting for confirmation...");
-    await tx.wait();
-    alert("✅ Profile updated successfully!");
-    return true;
   } catch (err) {
-    console.error("Profile setup error:", err);
-    alert("❌ Error: " + err.message);
+    console.error("Profile check error:", err);
+    alert("⚠️ Profile check failed. Please try again.");
     return false;
   }
 }
 
-// ✅ Proposal oluşturma
-export async function createProposal(title, description) {
-  const signer = getSigner();
-  if (!signer) {
-    alert("Please connect your wallet first!");
-    return;
-  }
-
+// 🧾 Profil oluşturma (on-chain TX)
+export async function setupUserProfile(username, link) {
   try {
+    const signer = getSigner();
+    if (!signer) return alert("Please connect your wallet first.");
+
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    const duration = 3 * 24 * 60 * 60; // 3 gün
-    const tx = await contract.createProposal(title, description, duration, { gasLimit: 600000 });
+    const tx = await contract.registerUser(username, link);
 
-    alert("🗳️ Proposal submitted! TX Hash: " + tx.hash);
+    alert("📡 Sending transaction to Celo...");
     await tx.wait();
-    alert("✅ Proposal created successfully!");
+
+    alert("✅ Profile setup complete!");
     return true;
   } catch (err) {
-    console.error("Proposal creation error:", err);
-    alert("❌ Failed to create proposal: " + err.message);
+    console.error("Setup profile error:", err);
+    if (err.code === 4001) alert("❌ Transaction rejected by user.");
+    else alert("⚠️ Profile creation failed.");
     return false;
   }
 }
 
-// ✅ Oy verme
-export async function voteProposal(proposalId, support) {
-  const signer = getSigner();
-  if (!signer) {
-    alert("Please connect your wallet first!");
-    return;
-  }
-
-  try {
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-    const tx = await contract.voteProposal(proposalId, support, { gasLimit: 400000 });
-
-    alert("🗳️ Vote sent! TX Hash: " + tx.hash);
-    await tx.wait();
-    alert("✅ Vote successful!");
-    return true;
-  } catch (err) {
-    console.error("Voting error:", err);
-    alert("❌ Voting failed: " + err.message);
-    return false;
-  }
-}
-
-// ✅ Badge'leri yükle
-export async function loadUserBadges() {
-  const provider = getProvider();
-  const userAddress = getUserAddress();
-  if (!provider || !userAddress) return [];
-
-  try {
-    const contract = getContractInstance();
-    const badges = await contract.getUserBadges(userAddress);
-    return badges;
-  } catch (err) {
-    console.error("Error loading badges:", err);
-    return [];
-  }
-}
-
-// ✅ Aktif Proposal’ları listele
-export async function loadProposals() {
-  const provider = getProvider();
-  if (!provider) return [];
-
-  try {
-    const contract = getContractInstance();
-    const activeProposals = await contract.getActiveProposals();
-
-    const proposalDetails = [];
-    for (let id of activeProposals) {
-      const details = await contract.getProposalDetails(id);
-      proposalDetails.push({
-        id: id.toString(),
-        title: details.title,
-        description: details.description,
-        votesFor: details.votesFor.toString(),
-        votesAgainst: details.votesAgainst.toString()
-      });
-    }
-
-    return proposalDetails;
-  } catch (err) {
-    console.error("Error loading proposals:", err);
-    return [];
-  }
-}
-
-// ✅ Donate placeholder (gerçek işlem eklenecek)
+// 💛 Donate işlemi (CELO gönder)
 export async function donateCelo(amount) {
   const signer = getSigner();
   if (!signer) {
     alert("Please connect your wallet first!");
-    return;
+    return false;
   }
 
   try {
+    const value = ethers.utils.parseEther(String(amount));
     const tx = await signer.sendTransaction({
-      to: CONTRACT_ADDRESS,
-      value: ethers.utils.parseEther(amount.toString())
+      to: DONATION_ADDRESS,
+      value
     });
-    alert(`💛 Donating ${amount} CELO... TX Hash: ${tx.hash}`);
+    alert(`💛 Donating ${amount} CELO...\nTX: ${tx.hash}`);
     await tx.wait();
-    alert("✅ Donation successful!");
+    alert("✅ Donation successful! Thank you.");
     return true;
   } catch (err) {
-    console.error("Donation error:", err);
-    alert("❌ Donation failed: " + err.message);
+    console.error("Donate error:", err);
+    if (err.code === 4001) alert("❌ Transaction rejected by user.");
+    else if (String(err).includes("insufficient funds")) alert("❌ Insufficient funds.");
+    else alert("❌ Donation failed: " + (err?.message || err));
     return false;
+  }
+}
+
+// 🏛️ Governance (Proposal oluştur)
+export async function createProposal(title, description) {
+  try {
+    const signer = getSigner();
+    if (!signer) return alert("Please connect your wallet first.");
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const tx = await contract.createProposal(title, description, 3600); // 1 saat süresi
+    alert("📡 Creating proposal...");
+    await tx.wait();
+    alert("✅ Proposal created!");
+  } catch (err) {
+    console.error("Create proposal error:", err);
+    alert("⚠️ Failed to create proposal.");
+  }
+}
+
+// 🗳️ Vote Proposal
+export async function voteProposal(id, support) {
+  try {
+    const signer = getSigner();
+    if (!signer) return alert("Please connect your wallet first.");
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const tx = await contract.voteProposal(id, support);
+    alert("📡 Sending vote transaction...");
+    await tx.wait();
+    alert("✅ Vote recorded!");
+  } catch (err) {
+    console.error("Vote error:", err);
+    alert("⚠️ Vote failed.");
+  }
+}
+
+// 📜 Proposal listesi (read-only)
+export async function loadProposals() {
+  try {
+    const provider = getProvider();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    const count = await contract.getProposalCount();
+    const proposals = [];
+
+    for (let i = 0; i < count; i++) {
+      const p = await contract.proposals(i);
+      proposals.push({
+        id: i,
+        title: p.title,
+        description: p.description,
+        votesFor: p.votesFor.toString(),
+        votesAgainst: p.votesAgainst.toString(),
+      });
+    }
+
+    return proposals;
+  } catch (err) {
+    console.error("Load proposals error:", err);
+    return [];
+  }
+}
+
+// 🎖️ Badge listesi (placeholder)
+export async function loadUserBadges() {
+  return ["Early Supporter", "Governance Voter", "Community Builder"];
+}
+
+// 👤 Profil bilgisi (read-only)
+export async function loadUserProfile() {
+  try {
+    const provider = getProvider();
+    const userAddress = getUserAddress();
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    const profile = await contract.getUserProfile(userAddress);
+    return {
+      username: profile.username || profile[1],
+      link: profile.link || profile[0],
+      supportCount: profile.supportCount || profile[2],
+      reputation: profile.reputation || profile[3],
+      badgeCount: profile.badgeCount || profile[4],
+      isActive: profile.isActive || profile[5],
+    };
+  } catch (err) {
+    console.error("Load user profile error:", err);
+    return null;
   }
 }
