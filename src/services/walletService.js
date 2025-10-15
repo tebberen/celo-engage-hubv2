@@ -1,4 +1,4 @@
-// ========================= CELO ENGAGE HUB — WALLET SERVICE (FINAL VERSION) ========================= //
+// ========================= CELO ENGAGE HUB — WALLET SERVICE (FINAL FIXED VERSION) ========================= //
 // 💳 MetaMask bağlantısı, ağ geçişi ve bağlantı durumu yönetimi (Celo Mainnet + Alfajores)
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
@@ -94,10 +94,13 @@ export async function connectWalletMetaMask() {
   }
 
   try {
+    // 🚫 Eski adres cache’ini sıfırla
+    window.ethereum.selectedAddress = null;
+
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await switchToCeloNetwork();
 
-    // Popup aç
+    // MetaMask popup açar
     await window.ethereum.request({ method: "eth_requestAccounts" });
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
@@ -139,7 +142,7 @@ export async function updateNetworkLabel() {
   return true;
 }
 
-// 🔹 Bağlantıyı kes
+// 🔹 Bağlantıyı kes (tam sıfırlama)
 export function disconnectWallet() {
   provider = null;
   signer = null;
@@ -155,6 +158,11 @@ export function disconnectWallet() {
     window.ethereum.removeAllListeners("chainChanged");
   }
 
+  // 🚀 Cache temizliği
+  if (window.ethereum && window.ethereum.selectedAddress) {
+    delete window.ethereum.selectedAddress;
+  }
+
   localStorage.clear();
   sessionStorage.clear();
 
@@ -166,4 +174,4 @@ export function getProvider() { return provider; }
 export function getSigner() { return signer; }
 export function getUserAddress() { return userAddress; }
 
-console.log("🧩 Wallet service loaded — manual connection mode active.");
+console.log("🧩 Wallet service loaded — full clean mode active.");
