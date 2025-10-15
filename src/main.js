@@ -6,8 +6,7 @@ import { setupUserProfile, createProposal, voteProposal, loadUserProfile, loadUs
 import { INITIAL_SUPPORT_LINKS } from "./utils/constants.js";
 
 // ✅ DOM Elementleri
-const connectBtn = document.getElementById("connectWalletBtn");
-const disconnectBtn = document.getElementById("disconnectBtn");
+const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 
 const gmBtn = document.getElementById("gmBtn");
@@ -17,20 +16,24 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — manual wallet connection mode active");
+console.log("🚀 Celo Engage Hub V2 loaded — single wallet button mode active");
 
-// ✅ Wallet bağlantısı (MANUEL)
-connectBtn.addEventListener("click", async () => {
-  const result = await connectWalletMetaMask();
-  if (result) {
-    alert("✅ Wallet connected successfully!");
-    await checkProfile(); // profil kontrolü
+// ✅ Tek butonla bağlan / çıkış
+walletActionBtn.addEventListener("click", async () => {
+  const isConnected = walletActionBtn.textContent.includes("Disconnect");
+
+  if (isConnected) {
+    await disconnectWallet();
+    walletActionBtn.textContent = "Connect Wallet";
+    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span id="networkLabel">—</span>`;
+  } else {
+    const result = await connectWalletMetaMask();
+    if (result) {
+      walletActionBtn.textContent = "Disconnect";
+      document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
+      await checkProfile();
+    }
   }
-});
-
-// ✅ Disconnect (manuel)
-disconnectBtn.addEventListener("click", async () => {
-  await disconnectWallet();
 });
 
 // ✅ Donate işlemleri
