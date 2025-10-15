@@ -1,12 +1,13 @@
 // ========================= CELO ENGAGE HUB V2 - MAIN SCRIPT ========================= //
 // 🧠 Tüm UI etkileşimleri, olaylar ve modül bağlantılarını yönetir.
 
-import { connectWalletMetaMask, disconnectWallet, checkCurrentNetwork } from "./services/walletService.js";
+import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
 import { setupUserProfile, createProposal, voteProposal, loadUserProfile, loadUserBadges, loadProposals, donateCelo, checkProfile } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS } from "./utils/constants.js";
 
 // ✅ DOM Elementleri
 const connectBtn = document.getElementById("connectWalletBtn");
+const disconnectBtn = document.getElementById("disconnectBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 
 const gmBtn = document.getElementById("gmBtn");
@@ -16,25 +17,20 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-// ✅ Uygulama başlatıldığında
-window.addEventListener("load", async () => {
-  console.log("🚀 Celo Engage Hub V2 initialized (manual wallet connection mode)");
-  // ❌ Artık otomatik bağlantı yok!
-  // Sadece chain değişimi dinleniyor
-  if (typeof window.ethereum !== "undefined") {
-    window.ethereum.on("chainChanged", async () => {
-      await checkCurrentNetwork();
-    });
-  }
-});
+console.log("🚀 Celo Engage Hub V2 loaded — manual wallet connection mode active");
 
-// ✅ Wallet bağlantısı (manuel)
+// ✅ Wallet bağlantısı (MANUEL)
 connectBtn.addEventListener("click", async () => {
   const result = await connectWalletMetaMask();
   if (result) {
     alert("✅ Wallet connected successfully!");
-    await checkProfile(); // profil kontrolü eklendi
+    await checkProfile(); // profil kontrolü
   }
+});
+
+// ✅ Disconnect (manuel)
+disconnectBtn.addEventListener("click", async () => {
+  await disconnectWallet();
 });
 
 // ✅ Donate işlemleri
@@ -48,7 +44,6 @@ donateButtons.forEach((btn) => {
 // ✅ GM butonu
 gmBtn.addEventListener("click", async () => {
   alert("☀️ Sending GM transaction... (placeholder)");
-  await checkCurrentNetwork();
   alert("✅ GM sent successfully!");
 });
 
