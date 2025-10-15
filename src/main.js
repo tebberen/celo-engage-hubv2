@@ -2,13 +2,15 @@
 // 🧠 Tüm UI etkileşimleri, olaylar ve modül bağlantılarını yönetir.
 
 import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
-import { setupUserProfile, createProposal, voteProposal, loadUserProfile, loadUserBadges, loadProposals, donateCelo, checkProfile } from "./services/contractService.js";
-import { INITIAL_SUPPORT_LINKS } from "./utils/constants.js";
+import { 
+  setupUserProfile, createProposal, voteProposal, loadUserProfile,
+  loadUserBadges, loadProposals, donateCelo, checkProfile
+} from "./services/contractService.js";
+import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
 // ✅ DOM Elementleri
 const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
-
 const gmBtn = document.getElementById("gmBtn");
 const deployBtn = document.getElementById("deployBtn");
 const governanceBtn = document.getElementById("governanceBtn");
@@ -16,7 +18,17 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — single wallet button mode active");
+console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet integration active");
+
+// ✅ Sol paneldeki Celo Ecosystem linklerini otomatik doldur
+window.addEventListener("DOMContentLoaded", () => {
+  const ecosystemBox = document.querySelector(".ecosystem-box ul");
+  if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
+    ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
+      .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
+      .join("");
+  }
+});
 
 // ✅ Tek butonla bağlan / çıkış
 walletActionBtn.addEventListener("click", async () => {
