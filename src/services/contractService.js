@@ -1,4 +1,4 @@
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
+// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL FIXED) ========================= //
 // 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış vb.
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
@@ -17,7 +17,11 @@ export async function checkProfile() {
   try {
     const provider = getProvider();
     const userAddress = getUserAddress();
-    if (!provider || !userAddress) return false;
+
+    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+      alert("⚠️ Wallet not connected. Please reconnect MetaMask.");
+      return false;
+    }
 
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
@@ -39,7 +43,6 @@ export async function checkProfile() {
             <button id="setupProfileBtn">🚀 Setup Profile</button>
           </div>
         `;
-
         document.getElementById("setupProfileBtn").addEventListener("click", async () => {
           const username = document.getElementById("username").value.trim();
           const link = document.getElementById("link").value.trim();
@@ -81,8 +84,10 @@ export async function setupUserProfile(username, link) {
 // 💛 Donate işlemi (CELO gönder)
 export async function donateCelo(amount) {
   const signer = getSigner();
-  if (!signer) {
-    alert("Please connect your wallet first!");
+  const userAddress = getUserAddress();
+
+  if (!signer || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+    alert("⚠️ Please connect your wallet first!");
     return false;
   }
 
@@ -110,8 +115,10 @@ export async function createProposal(title, description) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
+
     const contract = getContract();
     const tx = await contract.createProposal(title, description, 3600); // 1 saat süresi
+
     alert("📡 Creating proposal...");
     await tx.wait();
     alert("✅ Proposal created!");
@@ -126,8 +133,10 @@ export async function voteProposal(id, support) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
+
     const contract = getContract();
     const tx = await contract.voteProposal(id, support);
+
     alert("📡 Sending vote transaction...");
     await tx.wait();
     alert("✅ Vote recorded!");
@@ -173,6 +182,10 @@ export async function loadUserProfile() {
   try {
     const provider = getProvider();
     const userAddress = getUserAddress();
+    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+      return null;
+    }
+
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
     return {
