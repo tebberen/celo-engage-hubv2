@@ -1,5 +1,5 @@
 // ========================= CELO ENGAGE HUB V2 - WALLET SERVICE ========================= //
-// 💼 MetaMask bağlantısı, ağ değiştirme ve cüzdan yönetimi işlemlerini içerir.
+// 💳 MetaMask bağlantısını, ağ geçişini ve cüzdan durumunu yönetir.
 
 import { CELO_MAINNET_PARAMS, CELO_ALFAJORES_PARAMS } from "../utils/constants.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
@@ -9,16 +9,18 @@ let signer = null;
 let userAddress = "";
 let currentChainId = null;
 
-// ✅ MetaMask kontrolü
-export function checkMetaMask() {
-  if (typeof window.ethereum === "undefined") {
-    alert("❌ MetaMask not detected. Please install MetaMask first.");
-    return false;
-  }
-  return true;
+// DOM elementleri
+const walletStatusEl = () => document.getElementById("walletStatus");
+const networkLabelEl = () => document.getElementById("networkLabel");
+const connectBtnEl = () => document.getElementById("connectWalletBtn");
+const disconnectBtnEl = () => document.getElementById("disconnectBtn");
+
+// 🔹 MetaMask var mı?
+export function hasMetaMask() {
+  return typeof window.ethereum !== "undefined";
 }
 
-// ✅ Celo ağına geçiş (önce mainnet, olmazsa testnet)
+// 🔹 Celo ağına geçiş yap
 export async function switchToCeloNetwork() {
   try {
     await window.ethereum.request({
@@ -26,39 +28,42 @@ export async function switchToCeloNetwork() {
       params: [{ chainId: CELO_MAINNET_PARAMS.chainId }]
     });
     return true;
-  } catch (switchError) {
-    if (switchError.code === 4902) {
-      // ✅ Ağ ekle (mainnet)
+  } catch (err) {
+    if (err.code === 4902) {
+      // Celo Mainnet ekle
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
         params: [CELO_MAINNET_PARAMS]
       });
       return true;
     }
-    console.warn("Mainnet'e geçilemedi, testnet deneniyor...");
+    // Alfajores fallback
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: CELO_ALFAJORES_PARAMS.chainId }]
       });
       return true;
-    } catch (testnetError) {
-      if (testnetError.code === 4902) {
+    } catch (e2) {
+      if (e2.code === 4902) {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
           params: [CELO_ALFAJORES_PARAMS]
         });
         return true;
       }
-      console.error("❌ Ağ geçişi başarısız:", testnetError);
+      console.error("Network switch failed:", e2);
       return false;
     }
   }
 }
 
-// ✅ Cüzdan bağlama işlemi
+// 🔹 Wallet bağla (MANUEL)
 export async function connectWalletMetaMask() {
-  if (!checkMetaMask()) return null;
+  if (!hasMetaMask()) {
+    alert("❌ MetaMask not detected. Please install it first.");
+    return null;
+  }
 
   try {
     provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -67,68 +72,61 @@ export async function connectWalletMetaMask() {
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
 
-    document.getElementById("walletAddress").textContent = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
-    document.getElementById("walletInfo").classList.remove("hidden");
-    document.getElementById("connectWalletBtn").style.display = "none";
+    await updateNetworkLabel();
 
-    await checkCurrentNetwork();
+    if (walletStatusEl())
+      walletStatusEl().textContent = `✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+    if (connectBtnEl()) connectBtnEl().classList.add("hidden");
+    if (disconnectBtnEl()) disconnectBtnEl().classList.remove("hidden");
 
     return { provider, signer, userAddress };
-  } catch (error) {
-    console.error("❌ Wallet connection error:", error);
-    if (error.code === 4001) {
-      alert("❌ Connection rejected by user.");
-    } else {
-      alert("⚠️ Connection failed: " + error.message);
-    }
+  } catch (err) {
+    console.error("connect error:", err);
+    if (err.code === 4001) alert("❌ Connection rejected by user.");
+    else alert("⚠️ Connection failed: " + (err?.message || err));
     return null;
   }
 }
 
-// ✅ Ağ kontrolü (Mainnet / Testnet)
-export async function checkCurrentNetwork() {
+// 🔹 Ağ etiketini güncelle
+export async function updateNetworkLabel() {
   if (!provider) return false;
-  try {
-    const network = await provider.getNetwork();
-    currentChainId = network.chainId.toString();
-    const networkInfo = document.getElementById("networkInfo");
-
+  const net = await provider.getNetwork();
+  currentChainId = String(net.chainId);
+  if (networkLabelEl()) {
     if (currentChainId === "42220") {
-      networkInfo.innerHTML = "🌍 Celo Mainnet";
-      networkInfo.style.color = "#35D07F";
+      networkLabelEl().textContent = "🌕 Celo Mainnet";
+      networkLabelEl().style.color = "#35D07F";
       return true;
     } else if (currentChainId === "44787") {
-      networkInfo.innerHTML = "🧪 Celo Alfajores Testnet";
-      networkInfo.style.color = "#FBBF24";
+      networkLabelEl().textContent = "🧪 Alfajores Testnet";
+      networkLabelEl().style.color = "#F59E0B";
       return true;
     } else {
-      networkInfo.innerHTML = "⚠️ Wrong Network - Switch to Celo";
-      networkInfo.style.color = "#EF4444";
+      networkLabelEl().textContent = "⚠️ Wrong Network";
+      networkLabelEl().style.color = "#EF4444";
       return false;
     }
-  } catch (error) {
-    console.error("Network check error:", error);
-    return false;
   }
+  return false;
 }
 
-// ✅ Cüzdan bağlantısını koparma
+// 🔹 Wallet bağlantısını kes
 export function disconnectWallet() {
   provider = null;
   signer = null;
   userAddress = "";
-  document.getElementById("walletAddress").textContent = "";
-  document.getElementById("walletInfo").classList.add("hidden");
-  document.getElementById("connectWalletBtn").style.display = "block";
+  if (walletStatusEl()) walletStatusEl().textContent = "🔴 Not connected";
+  if (networkLabelEl()) networkLabelEl().textContent = "—";
+  if (connectBtnEl()) connectBtnEl().classList.remove("hidden");
+  if (disconnectBtnEl()) disconnectBtnEl().classList.add("hidden");
+  console.log("🔌 Wallet disconnected manually.");
 }
 
-// ✅ Getters
-export function getProvider() {
-  return provider;
-}
-export function getSigner() {
-  return signer;
-}
-export function getUserAddress() {
-  return userAddress;
-}
+// Getter fonksiyonları
+export function getProvider() { return provider; }
+export function getSigner() { return signer; }
+export function getUserAddress() { return userAddress; }
+
+// 🚫 Sayfa açılışında otomatik bağlantı YOK
+console.log("🧩 Wallet service loaded — manual connection mode active.");
