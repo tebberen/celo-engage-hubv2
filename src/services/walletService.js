@@ -9,11 +9,10 @@ let signer = null;
 let userAddress = "";
 let currentChainId = null;
 
-// DOM elementleri
+// DOM elementleri (tek buton yapısına göre)
 const walletStatusEl = () => document.getElementById("walletStatus");
 const networkLabelEl = () => document.getElementById("networkLabel");
-const connectBtnEl = () => document.getElementById("connectWalletBtn");
-const disconnectBtnEl = () => document.getElementById("disconnectBtn");
+const walletActionBtn = () => document.getElementById("walletActionBtn");
 
 // 🔹 MetaMask var mı?
 export function hasMetaMask() {
@@ -57,7 +56,7 @@ export async function switchToCeloNetwork() {
   }
 }
 
-// 🔹 Wallet bağla (MANUEL)
+// 🔹 Wallet bağla (MetaMask popup ile)
 export async function connectWalletMetaMask() {
   if (!hasMetaMask()) {
     alert("❌ MetaMask not detected. Please install it first.");
@@ -67,6 +66,7 @@ export async function connectWalletMetaMask() {
   try {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     await switchToCeloNetwork();
+    // 🦊 MetaMask popup burada açılır
     await provider.send("eth_requestAccounts", []);
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
@@ -74,9 +74,8 @@ export async function connectWalletMetaMask() {
     await updateNetworkLabel();
 
     if (walletStatusEl())
-      walletStatusEl().textContent = `✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
-    if (connectBtnEl()) connectBtnEl().classList.add("hidden");
-    if (disconnectBtnEl()) disconnectBtnEl().classList.remove("hidden");
+      walletStatusEl().innerHTML = `<p>✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}</p><span id="networkLabel"></span>`;
+    if (walletActionBtn()) walletActionBtn().textContent = "Disconnect";
 
     console.log("🔗 Wallet connected manually:", userAddress);
     return { provider, signer, userAddress };
@@ -93,58 +92,29 @@ export async function updateNetworkLabel() {
   if (!provider) return false;
   const net = await provider.getNetwork();
   currentChainId = String(net.chainId);
-  if (networkLabelEl()) {
+  const label = networkLabelEl();
+  if (label) {
     if (currentChainId === "42220") {
-      networkLabelEl().textContent = "🌕 Celo Mainnet";
-      networkLabelEl().style.color = "#35D07F";
-      return true;
+      label.textContent = "🌕 Celo Mainnet";
+      label.style.color = "#35D07F";
     } else if (currentChainId === "44787") {
-      networkLabelEl().textContent = "🧪 Alfajores Testnet";
-      networkLabelEl().style.color = "#F59E0B";
-      return true;
+      label.textContent = "🧪 Alfajores Testnet";
+      label.style.color = "#F59E0B";
     } else {
-      networkLabelEl().textContent = "⚠️ Wrong Network";
-      networkLabelEl().style.color = "#EF4444";
-      return false;
+      label.textContent = "⚠️ Wrong Network";
+      label.style.color = "#EF4444";
     }
   }
-  return false;
 }
 
-// 🔹 Wallet bağlantısını kes (tam sıfırlama)
+// 🔹 Wallet bağlantısını kes
 export function disconnectWallet() {
-  try {
-    provider = null;
-    signer = null;
-    userAddress = "";
-
-    if (walletStatusEl()) walletStatusEl().textContent = "🔴 Not connected";
-    if (networkLabelEl()) networkLabelEl().textContent = "—";
-
-    if (connectBtnEl()) {
-      connectBtnEl().classList.remove("hidden");
-      connectBtnEl().disabled = false;
-    }
-    if (disconnectBtnEl()) {
-      disconnectBtnEl().classList.add("hidden");
-      disconnectBtnEl().disabled = true;
-    }
-
-    // 🔥 MetaMask event listener'larını temizle
-    if (window.ethereum && window.ethereum.removeAllListeners) {
-      window.ethereum.removeAllListeners("accountsChanged");
-      window.ethereum.removeAllListeners("chainChanged");
-    }
-
-    // 🔥 Tarayıcı cache'ini temizle
-    localStorage.clear();
-    sessionStorage.clear();
-
-    console.log("🔌 Wallet fully disconnected.");
-    alert("🔌 Wallet disconnected successfully!");
-  } catch (error) {
-    console.error("Disconnect error:", error);
-  }
+  provider = null;
+  signer = null;
+  userAddress = "";
+  if (walletStatusEl()) walletStatusEl().innerHTML = "<p>🔴 Not connected</p><span id='networkLabel'>—</span>";
+  if (walletActionBtn()) walletActionBtn().textContent = "Connect Wallet";
+  console.log("🔌 Wallet disconnected manually.");
 }
 
 // Getter fonksiyonları
@@ -152,5 +122,4 @@ export function getProvider() { return provider; }
 export function getSigner() { return signer; }
 export function getUserAddress() { return userAddress; }
 
-// 🚫 Sayfa açılışında otomatik bağlantı YOK
-console.log("🧩 Wallet service loaded — manual connection mode active.");
+console.log("🧩 Wallet service loaded — single button connection mode active.");
