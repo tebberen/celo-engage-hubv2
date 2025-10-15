@@ -30,7 +30,6 @@ export async function switchToCeloNetwork() {
     return true;
   } catch (err) {
     if (err.code === 4902) {
-      // Celo Mainnet ekle
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
         params: [CELO_MAINNET_PARAMS]
@@ -79,6 +78,7 @@ export async function connectWalletMetaMask() {
     if (connectBtnEl()) connectBtnEl().classList.add("hidden");
     if (disconnectBtnEl()) disconnectBtnEl().classList.remove("hidden");
 
+    console.log("🔗 Wallet connected manually:", userAddress);
     return { provider, signer, userAddress };
   } catch (err) {
     console.error("connect error:", err);
@@ -111,16 +111,40 @@ export async function updateNetworkLabel() {
   return false;
 }
 
-// 🔹 Wallet bağlantısını kes
+// 🔹 Wallet bağlantısını kes (tam sıfırlama)
 export function disconnectWallet() {
-  provider = null;
-  signer = null;
-  userAddress = "";
-  if (walletStatusEl()) walletStatusEl().textContent = "🔴 Not connected";
-  if (networkLabelEl()) networkLabelEl().textContent = "—";
-  if (connectBtnEl()) connectBtnEl().classList.remove("hidden");
-  if (disconnectBtnEl()) disconnectBtnEl().classList.add("hidden");
-  console.log("🔌 Wallet disconnected manually.");
+  try {
+    provider = null;
+    signer = null;
+    userAddress = "";
+
+    if (walletStatusEl()) walletStatusEl().textContent = "🔴 Not connected";
+    if (networkLabelEl()) networkLabelEl().textContent = "—";
+
+    if (connectBtnEl()) {
+      connectBtnEl().classList.remove("hidden");
+      connectBtnEl().disabled = false;
+    }
+    if (disconnectBtnEl()) {
+      disconnectBtnEl().classList.add("hidden");
+      disconnectBtnEl().disabled = true;
+    }
+
+    // 🔥 MetaMask event listener'larını temizle
+    if (window.ethereum && window.ethereum.removeAllListeners) {
+      window.ethereum.removeAllListeners("accountsChanged");
+      window.ethereum.removeAllListeners("chainChanged");
+    }
+
+    // 🔥 Tarayıcı cache'ini temizle
+    localStorage.clear();
+    sessionStorage.clear();
+
+    console.log("🔌 Wallet fully disconnected.");
+    alert("🔌 Wallet disconnected successfully!");
+  } catch (error) {
+    console.error("Disconnect error:", error);
+  }
 }
 
 // Getter fonksiyonları
