@@ -27,17 +27,30 @@
     <div class="container">
       <!-- Sol panel -->
       <aside class="sidebar">
-        <!-- 🔹 Wallet bağlantı kutusu -->
-        <div class="wallet-box">
+        <!-- 🔹 Wallet kutusu (tek butonlu sürüm) -->
+        <div class="wallet-box" style="text-align:center;">
           <div id="walletStatus" class="wallet-status">
             <p>🔴 Not connected</p>
             <span id="networkLabel">—</span>
           </div>
 
-          <div class="wallet-buttons">
-            <button id="connectWalletBtn" class="connect-btn">🔗 Connect Wallet</button>
-            <button id="disconnectBtn" class="disconnect-btn hidden">🔌 Disconnect</button>
-          </div>
+          <button 
+            id="walletActionBtn" 
+            class="wallet-btn" 
+            style="
+              background-color:#35D07F;
+              color:#000;
+              font-weight:bold;
+              border:none;
+              border-radius:8px;
+              padding:10px 20px;
+              margin-top:10px;
+              cursor:pointer;
+              font-size:15px;
+              transition:all 0.3s ease;
+            ">
+            Connect Wallet
+          </button>
         </div>
 
         <!-- 💛 Donate kutusu -->
@@ -107,7 +120,6 @@
     </div>
   </div>
 
-  <!-- ✅ Modüler JS -->
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
