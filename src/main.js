@@ -2,7 +2,7 @@
 // 🧠 Tüm UI etkileşimleri, olaylar ve modül bağlantılarını yönetir.
 
 import { connectWalletMetaMask, disconnectWallet, checkCurrentNetwork } from "./services/walletService.js";
-import { setupUserProfile, createProposal, voteProposal, loadUserProfile, loadUserBadges, loadProposals, donateCelo } from "./services/contractService.js";
+import { setupUserProfile, createProposal, voteProposal, loadUserProfile, loadUserBadges, loadProposals, donateCelo, checkProfile } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS } from "./utils/constants.js";
 
 // ✅ DOM Elementleri
@@ -18,7 +18,9 @@ const contentArea = document.getElementById("contentArea");
 
 // ✅ Uygulama başlatıldığında
 window.addEventListener("load", async () => {
-  console.log("🚀 Celo Engage Hub V2 initialized");
+  console.log("🚀 Celo Engage Hub V2 initialized (manual wallet connection mode)");
+  // ❌ Artık otomatik bağlantı yok!
+  // Sadece chain değişimi dinleniyor
   if (typeof window.ethereum !== "undefined") {
     window.ethereum.on("chainChanged", async () => {
       await checkCurrentNetwork();
@@ -26,11 +28,12 @@ window.addEventListener("load", async () => {
   }
 });
 
-// ✅ Wallet bağlantısı
+// ✅ Wallet bağlantısı (manuel)
 connectBtn.addEventListener("click", async () => {
   const result = await connectWalletMetaMask();
   if (result) {
     alert("✅ Wallet connected successfully!");
+    await checkProfile(); // profil kontrolü eklendi
   }
 });
 
@@ -42,14 +45,14 @@ donateButtons.forEach((btn) => {
   });
 });
 
-// ✅ GM butonu (placeholder on-chain işlem)
+// ✅ GM butonu
 gmBtn.addEventListener("click", async () => {
   alert("☀️ Sending GM transaction... (placeholder)");
   await checkCurrentNetwork();
   alert("✅ GM sent successfully!");
 });
 
-// ✅ Deploy butonu (örnek kontrat deploy)
+// ✅ Deploy butonu
 deployBtn.addEventListener("click", async () => {
   alert("🧱 Deploy feature coming soon!");
 });
