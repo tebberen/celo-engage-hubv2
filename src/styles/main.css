@@ -282,3 +282,98 @@ header {
   display: block;
   margin-bottom: 5px;
 }
+
+/* === PLATFORM BADGES === */
+.platform-badge {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 14px;
+  padding: 4px 12px;
+  margin-bottom: 8px;
+  text-align: center;
+  background-color: #fdfcf9;
+  border: 1.5px solid #e0dfd9;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transition: all 0.25s ease;
+}
+
+/* 🟣 Farcaster */
+.badge-farcaster {
+  border-color: #b48ef5;
+  color: #7b4dff;
+  background-color: #f8f4ff;
+}
+.badge-farcaster:hover { background-color: #e7dbff; }
+
+/* 🐦 X */
+.badge-x {
+  border-color: #1d9bf0;
+  color: #1d9bf0;
+  background-color: #f0f8ff;
+}
+.badge-x:hover { background-color: #d4edff; }
+
+/* 🌐 Website */
+.badge-website {
+  border-color: #f5cc5c;
+  color: #d4a800;
+  background-color: #fffbea;
+}
+.badge-website:hover { background-color: #fff2c9; }
+
+/* 💻 GitHub */
+.badge-github {
+  border-color: #444;
+  color: #333;
+  background-color: #f5f5f5;
+}
+.badge-github:hover { background-color: #e6e6e6; }
+
+/* ✍️ Mirror */
+.badge-mirror {
+  border-color: #ffb347;
+  color: #e38b00;
+  background-color: #fff6e9;
+}
+.badge-mirror:hover { background-color: #ffeac9; }
+
+/* 🌌 Galxe */
+.badge-galxe {
+  border-color: #8a2be2;
+  color: #782ce7;
+  background-color: #f4e8ff;
+}
+.badge-galxe:hover { background-color: #ebdbff; }
+
+/* 🧬 Warpcast */
+.badge-warpcast {
+  border-color: #6a5acd;
+  color: #4b3ec7;
+  background-color: #f1f0ff;
+}
+.badge-warpcast:hover { background-color: #e3e2ff; }
+
+/* 🟠 Inflynce */
+.badge-inflynce {
+  border-color: #ff7f32;
+  color: #ff6600;
+  background-color: #fff1e5;
+}
+.badge-inflynce:hover { background-color: #ffe3cc; }
+
+/* 💎 Layer3 */
+.badge-layer3 {
+  border-color: #00bcd4;
+  color: #0097a7;
+  background-color: #e0f7fa;
+}
+.badge-layer3:hover { background-color: #ccf2f5; }
+
+/* 👷 Talent */
+.badge-talent {
+  border-color: #6ecf68;
+  color: #459f3e;
+  background-color: #edf9ed;
+}
+.badge-talent:hover { background-color: #dff5df; }
