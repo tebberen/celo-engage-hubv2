@@ -20,6 +20,34 @@ const contentArea = document.getElementById("contentArea");
 
 console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
 
+// 🧩 Platforma göre emoji ve rozet belirleme
+function getPlatformBadge(url) {
+  const lower = url.toLowerCase();
+
+  if (lower.includes("farcaster"))
+    return { emoji: "🟣", name: "Farcaster", cssClass: "badge-farcaster" };
+  if (lower.includes("x.com") || lower.includes("twitter"))
+    return { emoji: "🐦", name: "X", cssClass: "badge-x" };
+  if (lower.includes("mirror.xyz"))
+    return { emoji: "✍️", name: "Mirror", cssClass: "badge-mirror" };
+  if (lower.includes("galxe.com"))
+    return { emoji: "🌌", name: "Galxe", cssClass: "badge-galxe" };
+  if (lower.includes("warpcast.com"))
+    return { emoji: "🧬", name: "Warpcast", cssClass: "badge-warpcast" };
+  if (lower.includes("inflynce.xyz"))
+    return { emoji: "🟠", name: "Inflynce", cssClass: "badge-inflynce" };
+  if (lower.includes("layer3.xyz"))
+    return { emoji: "💎", name: "Layer3", cssClass: "badge-layer3" };
+  if (lower.includes("talentprotocol.com"))
+    return { emoji: "👷", name: "Talent", cssClass: "badge-talent" };
+  if (lower.includes("github"))
+    return { emoji: "💻", name: "GitHub", cssClass: "badge-github" };
+  if (lower.includes("celo") || lower.includes("website"))
+    return { emoji: "🌐", name: "Website", cssClass: "badge-website" };
+
+  return { emoji: "🔗", name: "Link", cssClass: "" };
+}
+
 // ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
 window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Celo Ecosystem linkleri
@@ -33,13 +61,16 @@ window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Support Members (INITIAL_SUPPORT_LINKS)
   const linkGrid = document.querySelector(".link-grid");
   if (linkGrid && INITIAL_SUPPORT_LINKS.length) {
-    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link, index) => `
-      <div class="link-card">
-        <span class="icon">🌐</span> <b>Member ${index + 1}</b>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>Supports <b>0/5</b></p>
-      </div>
-    `).join("");
+    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link) => {
+      const { emoji, name, cssClass } = getPlatformBadge(link);
+      return `
+        <div class="link-card">
+          <div class="platform-badge ${cssClass}">${emoji} ${name}</div>
+          <p><a href="${link}" target="_blank">${link}</a></p>
+          <p>Supports <b>0/5</b></p>
+        </div>
+      `;
+    }).join("");
   }
 });
 
