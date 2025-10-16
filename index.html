@@ -4,8 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Celo Engage Hub</title>
-  <link rel="stylesheet" href="./src/styles/main.css" />
+  <link rel="stylesheet" href="src/styles/main.css" />
   <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background-color: #fafafa;
+      color: #000;
+    }
+
+    header {
+      background: linear-gradient(135deg, #fbcc5c 0%, #000 100%);
+      color: #fff;
+      padding: 25px;
+      text-align: center;
+      border-radius: 0 0 15px 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .title-bar {
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .nav-bar {
+      margin-top: 10px;
+    }
+
+    .nav-bar button {
+      background-color: #fbcc5c;
+      border: 2px solid #fbcc5c;
+      color: #000;
+      font-weight: bold;
+      font-size: 15px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      margin: 3px;
+    }
+
+    .nav-bar button:hover {
+      background-color: #000;
+      color: #fbcc5c;
+      transform: translateY(-2px);
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      padding: 25px;
+      max-width: 1400px;
+      margin: auto;
+    }
+
+    .sidebar {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .wallet-box, .donate-box, .ecosystem-box {
+      background: #fff;
+      border: 2px solid #fbcc5c;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
     .wallet-btn {
       background-color: #35D07F;
       color: #000;
@@ -18,9 +91,11 @@
       margin-top: 10px;
       transition: background 0.3s ease;
     }
+
     .wallet-btn:hover {
       background-color: #2fb46d;
     }
+
     #walletStatus {
       background: #fff;
       padding: 8px;
@@ -29,13 +104,51 @@
       font-size: 14px;
       border: 1px solid #ddd;
     }
+
+    .main-content {
+      flex: 1;
+      background: #fffdf6;
+      border: 2px solid #fbcc5c;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .link-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .link-card {
+      background: #fff9e6;
+      border: 2px solid #fbcc5c;
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .link-card:hover {
+      background: #fbcc5c;
+      color: #000;
+      transform: translateY(-2px);
+    }
+
+    .icon {
+      font-size: 22px;
+      display: block;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
+
 <body>
   <div class="centered-content">
     <header>
       <div class="title-bar">
-        <span class="emoji">🌐</span> <span>Celo Engage Hub</span>
+        🌐 Celo Engage Hub
       </div>
       <p class="subtitle"><i>Social TX – Where Every Interaction Builds Real Value</i></p>
       <p class="description">If you want support, support first</p>
@@ -86,14 +199,14 @@
             <p>To submit your link, you must first support at least one community member</p>
           </div>
 
-          <!-- ✅ Linkler JavaScript tarafından eklenecek -->
+          <!-- ✅ JS burayı otomatik dolduracak -->
           <div class="link-grid"></div>
         </section>
       </main>
     </div>
   </div>
 
-  <!-- ✅ Ana modül (JS) -->
-  <script type="module" src="./src/main.js"></script>
+  <!-- ✅ Ana modül -->
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
