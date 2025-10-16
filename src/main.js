@@ -7,21 +7,7 @@ import {
   loadUserBadges, loadProposals, donateCelo, checkProfile
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
-
-// ✅ Platform rozetlerini tanımlayan yardımcı fonksiyon
-function getPlatformBadge(url) {
-  if (url.includes("mirror.xyz")) return { emoji: "✍️", name: "Mirror", cssClass: "badge-mirror" };
-  if (url.includes("galxe.com")) return { emoji: "🌌", name: "Galxe", cssClass: "badge-galxe" };
-  if (url.includes("warpcast.com")) return { emoji: "🧬", name: "Warpcast", cssClass: "badge-warpcast" };
-  if (url.includes("inflynce.xyz")) return { emoji: "🟠", name: "Inflynce", cssClass: "badge-inflynce" };
-  if (url.includes("layer3.xyz")) return { emoji: "💎", name: "Layer3", cssClass: "badge-layer3" };
-  if (url.includes("talentprotocol.com")) return { emoji: "👷", name: "Talent", cssClass: "badge-talent" };
-  if (url.includes("farcaster")) return { emoji: "🟣", name: "Farcaster", cssClass: "badge-farcaster" };
-  if (url.includes("x.com")) return { emoji: "🐦", name: "X", cssClass: "badge-x" };
-  if (url.includes("github.com")) return { emoji: "💻", name: "GitHub", cssClass: "badge-github" };
-  if (url.includes("http")) return { emoji: "🌐", name: "Website", cssClass: "badge-website" };
-  return { emoji: "🔗", name: "Link", cssClass: "badge-default" };
-}
+import { addSupport, getSupportCount, getCompletedLinks } from "./services/localSupportStore.js";
 
 // ✅ DOM Elementleri
 const walletActionBtn = document.getElementById("walletActionBtn");
@@ -33,9 +19,9 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
+console.log("🚀 Celo Engage Hub V2 loaded — localStorage support system active");
 
-// ✅ Sayfa yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
+// ✅ DOM yüklendiğinde Celo Ecosystem + Support bölümlerini doldur
 window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Celo Ecosystem linkleri
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
@@ -48,20 +34,62 @@ window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Support Members (INITIAL_SUPPORT_LINKS)
   const linkGrid = document.querySelector(".link-grid");
   if (linkGrid && INITIAL_SUPPORT_LINKS.length) {
-    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link) => {
-      const { emoji, name, cssClass } = getPlatformBadge(link);
-      return `
-        <div class="link-card">
-          <div class="platform-badge ${cssClass}">${emoji} ${name}</div>
-          <p><a href="${link}" target="_blank">${link}</a></p>
-          <p>Supports <b>0/5</b></p>
+    const completed = getCompletedLinks();
+
+    // Aktif linkler (henüz 5 destek almamış)
+    const activeLinks = INITIAL_SUPPORT_LINKS.filter((link) => !completed.includes(link));
+
+    linkGrid.innerHTML = activeLinks
+      .map((link) => {
+        const count = getSupportCount(link);
+        return `
+          <div class="link-card">
+            <span class="icon">🌐</span>
+            <p><a href="${link}" target="_blank" class="support-link">${link}</a></p>
+            <p>Supports <b>${count}/5</b></p>
+          </div>
+        `;
+      })
+      .join("");
+
+    // ✅ “Completed” bölümü (en alta ekleniyor)
+    const completedLinks = getCompletedLinks();
+    if (completedLinks.length > 0) {
+      const completedSection = document.createElement("section");
+      completedSection.innerHTML = `
+        <h3>✅ Completed Links</h3>
+        <div class="link-grid">
+          ${completedLinks
+            .map(
+              (link) => `
+            <div class="link-card" style="opacity: 0.6;">
+              <p><a href="${link}" target="_blank">${link}</a></p>
+              <p>✅ Completed (5/5)</p>
+            </div>`
+            )
+            .join("")}
         </div>
       `;
-    }).join("");
+      document.querySelector(".main-content").appendChild(completedSection);
+    }
+
+    // 🔸 Tıklama olayları
+    document.querySelectorAll(".support-link").forEach((linkEl) => {
+      linkEl.addEventListener("click", () => {
+        const link = linkEl.getAttribute("href");
+        const newCount = addSupport(link);
+        linkEl.parentElement.nextElementSibling.innerHTML = `Supports <b>${newCount}/5</b>`;
+
+        if (newCount >= 5) {
+          alert(`🎉 ${link} completed!`);
+          location.reload(); // Sayfayı yenileyerek completed’a taşır
+        }
+      });
+    });
   }
 });
 
-// ✅ Wallet Connect / Disconnect
+// ✅ Tek butonla bağlan / çıkış
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
 
