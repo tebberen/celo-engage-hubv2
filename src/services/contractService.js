@@ -1,5 +1,5 @@
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL FIXED) ========================= //
-// 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış vb.
+// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL ON-CHAIN) ========================= //
+// 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış, on-chain link submit
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
@@ -77,6 +77,50 @@ export async function setupUserProfile(username, link) {
     console.error("Setup profile error:", err);
     if (err.code === 4001) alert("❌ Transaction rejected by user.");
     else alert("⚠️ Profile creation failed.");
+    return false;
+  }
+}
+
+// 🔗 Kullanıcı linkini zincire kaydet (register/update)
+export async function submitLinkOnChain(link) {
+  try {
+    const signer = getSigner();
+    const userAddress = getUserAddress();
+
+    if (!signer || !userAddress) {
+      alert("⚠️ Please connect your wallet first!");
+      return false;
+    }
+
+    if (!link || !link.startsWith("http")) {
+      alert("❌ Please enter a valid link starting with http/https");
+      return false;
+    }
+
+    const contract = getContract();
+    const profile = await contract.getUserProfile(userAddress);
+    const isActive = profile.isActive || profile[5];
+
+    let tx;
+    if (isActive) {
+      // Zaten kayıtlı kullanıcı → profilini güncelle
+      tx = await contract.updateProfile("User", link, { gasLimit: 300000 });
+      console.log("🔄 Updating profile on-chain:", tx.hash);
+    } else {
+      // Yeni kullanıcı → registerUser
+      tx = await contract.registerUser("User", link, { gasLimit: 500000 });
+      console.log("🆕 Registering new user on-chain:", tx.hash);
+    }
+
+    alert("📡 Sending transaction to Celo...");
+    const receipt = await tx.wait();
+    alert(`✅ Link submitted successfully!\nTX: https://celoscan.io/tx/${receipt.transactionHash}`);
+    return true;
+
+  } catch (err) {
+    console.error("Submit link error:", err);
+    if (err.code === 4001) alert("❌ Transaction rejected by user.");
+    else alert("⚠️ Link submission failed.");
     return false;
   }
 }
