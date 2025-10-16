@@ -8,6 +8,21 @@ import {
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
+// ✅ Platform rozetlerini tanımlayan yardımcı fonksiyon
+function getPlatformBadge(url) {
+  if (url.includes("mirror.xyz")) return { emoji: "✍️", name: "Mirror", cssClass: "badge-mirror" };
+  if (url.includes("galxe.com")) return { emoji: "🌌", name: "Galxe", cssClass: "badge-galxe" };
+  if (url.includes("warpcast.com")) return { emoji: "🧬", name: "Warpcast", cssClass: "badge-warpcast" };
+  if (url.includes("inflynce.xyz")) return { emoji: "🟠", name: "Inflynce", cssClass: "badge-inflynce" };
+  if (url.includes("layer3.xyz")) return { emoji: "💎", name: "Layer3", cssClass: "badge-layer3" };
+  if (url.includes("talentprotocol.com")) return { emoji: "👷", name: "Talent", cssClass: "badge-talent" };
+  if (url.includes("farcaster")) return { emoji: "🟣", name: "Farcaster", cssClass: "badge-farcaster" };
+  if (url.includes("x.com")) return { emoji: "🐦", name: "X", cssClass: "badge-x" };
+  if (url.includes("github.com")) return { emoji: "💻", name: "GitHub", cssClass: "badge-github" };
+  if (url.includes("http")) return { emoji: "🌐", name: "Website", cssClass: "badge-website" };
+  return { emoji: "🔗", name: "Link", cssClass: "badge-default" };
+}
+
 // ✅ DOM Elementleri
 const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
@@ -20,35 +35,7 @@ const contentArea = document.getElementById("contentArea");
 
 console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
 
-// 🧩 Platforma göre emoji ve rozet belirleme
-function getPlatformBadge(url) {
-  const lower = url.toLowerCase();
-
-  if (lower.includes("farcaster"))
-    return { emoji: "🟣", name: "Farcaster", cssClass: "badge-farcaster" };
-  if (lower.includes("x.com") || lower.includes("twitter"))
-    return { emoji: "🐦", name: "X", cssClass: "badge-x" };
-  if (lower.includes("mirror.xyz"))
-    return { emoji: "✍️", name: "Mirror", cssClass: "badge-mirror" };
-  if (lower.includes("galxe.com"))
-    return { emoji: "🌌", name: "Galxe", cssClass: "badge-galxe" };
-  if (lower.includes("warpcast.com"))
-    return { emoji: "🧬", name: "Warpcast", cssClass: "badge-warpcast" };
-  if (lower.includes("inflynce.xyz"))
-    return { emoji: "🟠", name: "Inflynce", cssClass: "badge-inflynce" };
-  if (lower.includes("layer3.xyz"))
-    return { emoji: "💎", name: "Layer3", cssClass: "badge-layer3" };
-  if (lower.includes("talentprotocol.com"))
-    return { emoji: "👷", name: "Talent", cssClass: "badge-talent" };
-  if (lower.includes("github"))
-    return { emoji: "💻", name: "GitHub", cssClass: "badge-github" };
-  if (lower.includes("celo") || lower.includes("website"))
-    return { emoji: "🌐", name: "Website", cssClass: "badge-website" };
-
-  return { emoji: "🔗", name: "Link", cssClass: "" };
-}
-
-// ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
+// ✅ Sayfa yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
 window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Celo Ecosystem linkleri
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
@@ -74,7 +61,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// ✅ Tek butonla bağlan / çıkış
+// ✅ Wallet Connect / Disconnect
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
 
