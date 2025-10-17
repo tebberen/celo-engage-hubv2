@@ -1,6 +1,4 @@
 // ========================= CELO ENGAGE HUB V2 - MAIN SCRIPT ========================= //
-// 🧠 Tüm UI etkileşimleri, olaylar ve modül bağlantılarını yönetir.
-
 import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
 import { 
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
@@ -8,7 +6,6 @@ import {
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
-// ✅ DOM Elementleri
 const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 const gmBtn = document.getElementById("gmBtn");
@@ -18,11 +15,45 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
+// localStorage fonksiyonları
+function supportLinkInLocalStorage(link, userAddress) {
+  const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  const linkIndex = links.findIndex(l => l.link === link);
+  if (linkIndex !== -1) {
+    links[linkIndex].supportCount++;
+    localStorage.setItem('celoEngageLinks', JSON.stringify(links));
+    return true;
+  }
+  return false;
+}
 
-// ✅ YENİ EKLENEN FONKSİYONLAR
+function saveLinkToLocalStorage(link, userAddress) {
+  const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  const newLink = {
+    link: link,
+    submitter: userAddress,
+    supportCount: 0,
+    timestamp: Date.now()
+  };
+  links.push(newLink);
+  localStorage.setItem('celoEngageLinks', JSON.stringify(links));
+}
 
-// Platform ismini belirleme fonksiyonu
+function getLinksFromLocalStorage() {
+  const storedLinks = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  if (storedLinks.length === 0) {
+    const initialLinks = INITIAL_SUPPORT_LINKS.map(link => ({
+      link: link,
+      submitter: "community",
+      supportCount: 0,
+      timestamp: Date.now()
+    }));
+    localStorage.setItem('celoEngageLinks', JSON.stringify(initialLinks));
+    return initialLinks;
+  }
+  return storedLinks;
+}
+
 function getPlatformName(url) {
   if (url.includes('x.com') || url.includes('twitter.com')) return '🐦 X';
   if (url.includes('farcaster.xyz') || url.includes('warpcast.com')) return '🔮 Farcaster';
@@ -32,61 +63,92 @@ function getPlatformName(url) {
   return '🌐 Website';
 }
 
-// Support linklerini göster
 function displaySupportLinks() {
   const container = document.getElementById('linksContainer');
   if (!container) return;
-
+  const links = getLinksFromLocalStorage();
   container.innerHTML = '';
-  
-  INITIAL_SUPPORT_LINKS.forEach((link, index) => {
-    const platform = getPlatformName(link);
+  links.forEach((linkData) => {
+    const platform = getPlatformName(linkData.link);
     const linkCard = document.createElement('div');
     linkCard.innerHTML = `
       <div class="link-card">
         <div>
           <div class="link-platform">${platform}</div>
-          <a href="${link}" target="_blank" class="support-link">
-            ${link}
+          <a href="${linkData.link}" target="_blank" class="support-link">
+            ${linkData.link}
           </a>
         </div>
         <div class="link-stats">
           <div class="stat-item">
             <div>Supports</div>
-            <div class="stat-value">0/5</div>
+            <div class="stat-value">${linkData.supportCount}/5</div>
           </div>
         </div>
-        <button class="supportBtn" onclick="handleSupportClick('${link}')">👍 Support This Content</button>
+        <button class="supportBtn" onclick="handleSupportClick('${linkData.link}')">👍 Support This Content</button>
       </div>
     `;
     container.appendChild(linkCard);
   });
 }
 
-// Support butonu tıklama
 function handleSupportClick(linkUrl) {
-  alert(`✅ Supported: ${linkUrl}`);
-  // Burada daha sonra blockchain işlemleri ekleyebiliriz
+  const userAddress = getUserAddress();
+  if (!userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+    alert("Lütfen önce wallet bağlayın!");
+    return;
+  }
+  const success = supportLinkInLocalStorage(linkUrl, userAddress);
+  if (success) {
+    showLinkSubmitForm();
+  }
 }
 
-// ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
+function showLinkSubmitForm() {
+  const contentArea = document.getElementById('contentArea');
+  contentArea.innerHTML = `
+    <div class="step-indicator">
+      <span class="step-number">2</span> Your Turn to Share!
+    </div>
+    <div class="step-container">
+      <h3>🎉 Share Your Own Link</h3>
+      <p>You supported a community member. Now share your own link!</p>
+      <input type="text" id="userLinkInput" placeholder="Paste your X, Farcaster, GitHub link..." 
+             style="width: 80%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 2px solid #FBCC5C;" />
+      <button onclick="submitUserLink()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+        ✍️ Submit Your Link
+      </button>
+      <br>
+      <button onclick="displaySupportLinks()" style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin: 5px;">
+        ← Back to Support List
+      </button>
+    </div>
+  `;
+}
+
+async function submitUserLink() {
+  const userLink = document.getElementById('userLinkInput').value.trim();
+  if (!userLink) return alert("Please enter your link!");
+  const userAddress = getUserAddress();
+  saveLinkToLocalStorage(userLink, userAddress);
+  alert("✅ Thank you! Your link is now in the community list.");
+  displaySupportLinks();
+}
+
+// DOM yüklendiğinde
 window.addEventListener("DOMContentLoaded", () => {
-  // 🔹 Celo Ecosystem linkleri
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
   if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
     ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
       .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
       .join("");
   }
-
-  // 🔹 Support Members (YENİ TASARIM)
   displaySupportLinks();
 });
 
-// ✅ Tek butonla bağlan / çıkış
+// Wallet bağlantısı
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
-
   if (isConnected) {
     await disconnectWallet();
     walletActionBtn.textContent = "Connect Wallet";
@@ -101,7 +163,7 @@ walletActionBtn.addEventListener("click", async () => {
   }
 });
 
-// ✅ Donate işlemleri
+// Diğer event listener'lar
 donateButtons.forEach((btn) => {
   btn.addEventListener("click", async () => {
     const amount = btn.getAttribute("data-amount");
@@ -109,18 +171,14 @@ donateButtons.forEach((btn) => {
   });
 });
 
-// ✅ GM butonu
 gmBtn.addEventListener("click", async () => {
   alert("☀️ Sending GM transaction... (placeholder)");
-  alert("✅ GM sent successfully!");
 });
 
-// ✅ Deploy butonu
 deployBtn.addEventListener("click", async () => {
   alert("🧱 Deploy feature coming soon!");
 });
 
-// ✅ Governance butonu
 governanceBtn.addEventListener("click", async () => {
   contentArea.innerHTML = `
     <h2>🏛️ Community Governance</h2>
@@ -132,7 +190,6 @@ governanceBtn.addEventListener("click", async () => {
     </div>
     <div id="proposalList"></div>
   `;
-
   document.getElementById("createProposalBtn").addEventListener("click", async () => {
     const title = document.getElementById("proposalTitle").value.trim();
     const desc = document.getElementById("proposalDescription").value.trim();
@@ -140,21 +197,17 @@ governanceBtn.addEventListener("click", async () => {
     await createProposal(title, desc);
     await showProposals();
   });
-
   await showProposals();
 });
 
-// ✅ Proposal'ları göster
 async function showProposals() {
   const proposals = await loadProposals();
   const list = document.getElementById("proposalList");
   list.innerHTML = "";
-
   if (!proposals.length) {
     list.innerHTML = "<p>No active proposals yet.</p>";
     return;
   }
-
   proposals.forEach((p) => {
     const card = document.createElement("div");
     card.className = "info-card";
@@ -167,7 +220,6 @@ async function showProposals() {
     `;
     list.appendChild(card);
   });
-
   document.querySelectorAll(".voteForBtn").forEach((btn) =>
     btn.addEventListener("click", async () => {
       await voteProposal(btn.getAttribute("data-id"), true);
@@ -180,7 +232,6 @@ async function showProposals() {
   );
 }
 
-// ✅ Badge butonu
 badgeBtn.addEventListener("click", async () => {
   const badges = await loadUserBadges();
   contentArea.innerHTML = `
@@ -191,7 +242,6 @@ badgeBtn.addEventListener("click", async () => {
   `;
 });
 
-// ✅ Profile butonu
 profileBtn.addEventListener("click", async () => {
   const profile = await loadUserProfile();
   contentArea.innerHTML = `
@@ -214,7 +264,6 @@ profileBtn.addEventListener("click", async () => {
       }
     </div>
   `;
-
   const setupBtn = document.getElementById("setupProfileBtn");
   if (setupBtn) {
     setupBtn.addEventListener("click", async () => {
@@ -227,5 +276,7 @@ profileBtn.addEventListener("click", async () => {
   }
 });
 
-// handleSupportClick fonksiyonunu global yapıyoruz ki HTML'de onclick ile erişilebilsin
+// Global functions
 window.handleSupportClick = handleSupportClick;
+window.submitUserLink = submitUserLink;
+window.displaySupportLinks = displaySupportLinks;
