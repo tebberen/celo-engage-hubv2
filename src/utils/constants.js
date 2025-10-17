@@ -1,10 +1,11 @@
-// ========================= CELO ENGAGE HUB V2 — CONSTANTS =========================
+// ========================= CELO ENGAGE HUB V2 — CONSTANTS ========================= //
+// Bu dosya proje genelinde kullanılan sabitleri tutar.
 
 // ✅ On-chain adresler
 export const CONTRACT_ADDRESS  = "0x22eA49c074098931a478F381f971C77486d185b2";
 export const DONATION_ADDRESS  = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
 
-// ✅ Contract ABI (senin sağladığın sürüm)
+// ✅ Contract ABI (senin paylaştığın sürüm)
 export const CONTRACT_ABI = [
   "function registerUser(string memory _username, string memory _link) public",
   "function updateProfile(string memory _username, string memory _link) public",
@@ -30,7 +31,7 @@ export const CONTRACT_ABI = [
   "error AlreadyVoted()"
 ];
 
-// ✅ Celo ağ parametreleri
+// ✅ Celo ağ parametreleri (walletService bunları import ediyor)
 export const CELO_MAINNET_PARAMS = {
   chainId: "0xA4EC", // 42220
   chainName: "Celo Mainnet",
@@ -38,6 +39,7 @@ export const CELO_MAINNET_PARAMS = {
   rpcUrls: ["https://forno.celo.org"],
   blockExplorerUrls: ["https://celoscan.io/"]
 };
+
 export const CELO_ALFAJORES_PARAMS = {
   chainId: "0xAEF3", // 44787
   chainName: "Celo Alfajores Testnet",
@@ -46,7 +48,7 @@ export const CELO_ALFAJORES_PARAMS = {
   blockExplorerUrls: ["https://alfajores.celoscan.io/"]
 };
 
-// 🌍 Support linkleri (orijinal liste)
+// 🌍 Ana sayfadaki destek linkleri (orijinal liste geri yüklendi)
 export const INITIAL_SUPPORT_LINKS = [
   "https://farcaster.xyz/teberen/0x391c5713",
   "https://farcaster.xyz/ertu",
@@ -59,7 +61,7 @@ export const INITIAL_SUPPORT_LINKS = [
   "https://github.com/tebberen"
 ];
 
-// 🟡 Celo Ecosystem geniş liste
+// 🟡 Sol paneldeki Celo Ecosystem bağlantıları (geniş liste)
 export const CELO_ECOSYSTEM_LINKS = [
   { name: "🌍 Celo Official",       url: "https://celo.org" },
   { name: "📘 Celo Documentation",  url: "https://docs.celo.org" },
