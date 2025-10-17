@@ -6,6 +6,14 @@ import {
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
+// ✅ EKSİK FONKSİYONU EKLİYORUZ
+let userAddress = "";
+
+function getUserAddress() {
+    return userAddress || "0x0000000000000000000000000000000000000000";
+}
+
+// DOM Elementleri
 const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 const gmBtn = document.getElementById("gmBtn");
@@ -15,10 +23,13 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
+console.log("🚀 Celo Engage Hub V2 loaded — localStorage support system active");
+
 // localStorage fonksiyonları
 function supportLinkInLocalStorage(link, userAddress) {
   const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
   const linkIndex = links.findIndex(l => l.link === link);
+  
   if (linkIndex !== -1) {
     links[linkIndex].supportCount++;
     localStorage.setItem('celoEngageLinks', JSON.stringify(links));
@@ -41,6 +52,7 @@ function saveLinkToLocalStorage(link, userAddress) {
 
 function getLinksFromLocalStorage() {
   const storedLinks = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  
   if (storedLinks.length === 0) {
     const initialLinks = INITIAL_SUPPORT_LINKS.map(link => ({
       link: link,
@@ -51,6 +63,7 @@ function getLinksFromLocalStorage() {
     localStorage.setItem('celoEngageLinks', JSON.stringify(initialLinks));
     return initialLinks;
   }
+  
   return storedLinks;
 }
 
@@ -66,8 +79,10 @@ function getPlatformName(url) {
 function displaySupportLinks() {
   const container = document.getElementById('linksContainer');
   if (!container) return;
+
   const links = getLinksFromLocalStorage();
   container.innerHTML = '';
+  
   links.forEach((linkData) => {
     const platform = getPlatformName(linkData.link);
     const linkCard = document.createElement('div');
@@ -93,12 +108,13 @@ function displaySupportLinks() {
 }
 
 function handleSupportClick(linkUrl) {
-  const userAddress = getUserAddress();
-  if (!userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+  const currentUserAddress = getUserAddress();
+  if (!currentUserAddress || currentUserAddress === "0x0000000000000000000000000000000000000000") {
     alert("Lütfen önce wallet bağlayın!");
     return;
   }
-  const success = supportLinkInLocalStorage(linkUrl, userAddress);
+  
+  const success = supportLinkInLocalStorage(linkUrl, currentUserAddress);
   if (success) {
     showLinkSubmitForm();
   }
@@ -129,8 +145,10 @@ function showLinkSubmitForm() {
 async function submitUserLink() {
   const userLink = document.getElementById('userLinkInput').value.trim();
   if (!userLink) return alert("Please enter your link!");
-  const userAddress = getUserAddress();
-  saveLinkToLocalStorage(userLink, userAddress);
+  
+  const currentUserAddress = getUserAddress();
+  saveLinkToLocalStorage(userLink, currentUserAddress);
+  
   alert("✅ Thank you! Your link is now in the community list.");
   displaySupportLinks();
 }
@@ -143,19 +161,23 @@ window.addEventListener("DOMContentLoaded", () => {
       .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
       .join("");
   }
+
   displaySupportLinks();
 });
 
 // Wallet bağlantısı
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
+
   if (isConnected) {
     await disconnectWallet();
+    userAddress = "";
     walletActionBtn.textContent = "Connect Wallet";
     document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span id="networkLabel">—</span>`;
   } else {
     const result = await connectWalletMetaMask();
     if (result) {
+      userAddress = result.userAddress;
       walletActionBtn.textContent = "Disconnect";
       document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
       await checkProfile();
@@ -163,7 +185,7 @@ walletActionBtn.addEventListener("click", async () => {
   }
 });
 
-// Diğer event listener'lar
+// Donate işlemleri
 donateButtons.forEach((btn) => {
   btn.addEventListener("click", async () => {
     const amount = btn.getAttribute("data-amount");
@@ -171,14 +193,17 @@ donateButtons.forEach((btn) => {
   });
 });
 
+// GM butonu
 gmBtn.addEventListener("click", async () => {
   alert("☀️ Sending GM transaction... (placeholder)");
 });
 
+// Deploy butonu
 deployBtn.addEventListener("click", async () => {
   alert("🧱 Deploy feature coming soon!");
 });
 
+// Governance butonu
 governanceBtn.addEventListener("click", async () => {
   contentArea.innerHTML = `
     <h2>🏛️ Community Governance</h2>
@@ -190,6 +215,7 @@ governanceBtn.addEventListener("click", async () => {
     </div>
     <div id="proposalList"></div>
   `;
+
   document.getElementById("createProposalBtn").addEventListener("click", async () => {
     const title = document.getElementById("proposalTitle").value.trim();
     const desc = document.getElementById("proposalDescription").value.trim();
@@ -197,17 +223,21 @@ governanceBtn.addEventListener("click", async () => {
     await createProposal(title, desc);
     await showProposals();
   });
+
   await showProposals();
 });
 
+// Proposal'ları göster
 async function showProposals() {
   const proposals = await loadProposals();
   const list = document.getElementById("proposalList");
   list.innerHTML = "";
+
   if (!proposals.length) {
     list.innerHTML = "<p>No active proposals yet.</p>";
     return;
   }
+
   proposals.forEach((p) => {
     const card = document.createElement("div");
     card.className = "info-card";
@@ -220,6 +250,7 @@ async function showProposals() {
     `;
     list.appendChild(card);
   });
+
   document.querySelectorAll(".voteForBtn").forEach((btn) =>
     btn.addEventListener("click", async () => {
       await voteProposal(btn.getAttribute("data-id"), true);
@@ -232,6 +263,7 @@ async function showProposals() {
   );
 }
 
+// Badge butonu
 badgeBtn.addEventListener("click", async () => {
   const badges = await loadUserBadges();
   contentArea.innerHTML = `
@@ -242,6 +274,7 @@ badgeBtn.addEventListener("click", async () => {
   `;
 });
 
+// Profile butonu
 profileBtn.addEventListener("click", async () => {
   const profile = await loadUserProfile();
   contentArea.innerHTML = `
@@ -264,6 +297,7 @@ profileBtn.addEventListener("click", async () => {
       }
     </div>
   `;
+
   const setupBtn = document.getElementById("setupProfileBtn");
   if (setupBtn) {
     setupBtn.addEventListener("click", async () => {
