@@ -95,4 +95,4 @@ Contract functions include:
 ---
 
 ### 💫 “If you want support, support first.”  
-_Celo Engage Hub — Social TX for builders and dreamers..._
+_Celo Engage Hub — Social TX for builders and dreamers.._
