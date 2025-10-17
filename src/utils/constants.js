@@ -48,7 +48,7 @@ export const CELO_ALFAJORES_PARAMS = {
   blockExplorerUrls: ["https://alfajores.celoscan.io/"]
 };
 
-// 🌍 Ana sayfadaki destek linkleri (orijinal liste geri yüklendi)
+// 🌍 GÜNCELLENMİŞ Support Community Links (örnek kodunuzdaki gibi)
 export const INITIAL_SUPPORT_LINKS = [
   "https://farcaster.xyz/teberen/0x391c5713",
   "https://farcaster.xyz/ertu",
