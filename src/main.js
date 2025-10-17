@@ -2,7 +2,8 @@
 import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
 import { 
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
-  loadUserBadges, loadProposals, donateCelo, checkProfile
+  loadUserBadges, loadProposals, donateCelo, checkProfile,
+  submitEmptyTransaction  // ✅ Yeni fonksiyonu ekledik
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -23,7 +24,7 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — localStorage support system active");
+console.log("🚀 Celo Engage Hub V2 loaded — transaction system active");
 
 // localStorage fonksiyonları
 function supportLinkInLocalStorage(link, userAddress) {
@@ -142,15 +143,26 @@ function showLinkSubmitForm() {
   `;
 }
 
+// ✅ GÜNCELLENMİŞ: Transaction ile link gönderme
 async function submitUserLink() {
   const userLink = document.getElementById('userLinkInput').value.trim();
-  if (!userLink) return alert("Please enter your link!");
+  if (!userLink) return alert("Lütfen linkinizi girin!");
   
-  const currentUserAddress = getUserAddress();
-  saveLinkToLocalStorage(userLink, currentUserAddress);
-  
-  alert("✅ Thank you! Your link is now in the community list.");
-  displaySupportLinks();
+  try {
+    // ✅ Önce Celo ağında transaction at
+    const txSuccess = await submitEmptyTransaction();
+    
+    // ✅ Transaction başarılıysa localStorage'a kaydet
+    if (txSuccess) {
+      const currentUserAddress = getUserAddress();
+      saveLinkToLocalStorage(userLink, currentUserAddress);
+      alert("✅ Teşekkürler! Linkiniz topluluk listesine eklendi.");
+      displaySupportLinks();
+    }
+  } catch (error) {
+    console.error("Submit error:", error);
+    alert("❌ Link gönderilemedi.");
+  }
 }
 
 // DOM yüklendiğinde
