@@ -1,112 +1,284 @@
 /* === GLOBAL === */
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
 body {
   background-color: #ffffff;
   font-family: "Inter", Arial, sans-serif;
-  color: #000; margin: 0; padding: 0;
-  display: flex; flex-direction: column; align-items: center;
+  color: #000;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.centered-content { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+.centered-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
 
 /* === HEADER === */
 header {
   background: linear-gradient(135deg, #fbcc5c 0%, #000000 100%);
-  color: white; padding: 25px; border-radius: 0 0 15px 15px; text-align: center;
-  width: 100%; max-width: 1400px; box-shadow: 0 4px 10px rgba(0,0,0,.1);
+  color: white;
+  padding: 25px;
+  border-radius: 0 0 15px 15px;
+  text-align: center;
+  width: 100%;
+  max-width: 1400px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-.title-bar { font-size: 30px; font-weight: bold; letter-spacing: .5px; }
-.subtitle { font-size: 20px; margin: 10px 0 5px 0; color: #fff; opacity: .9; }
-.description { font-size: 16px; font-weight: bold; color: #f4f4f4; margin-bottom: 15px; }
+
+.title-bar {
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.subtitle {
+  font-size: 20px;
+  margin: 10px 0 5px 0;
+  color: #fff;
+  opacity: 0.9;
+}
+
+.description {
+  font-size: 16px;
+  font-weight: bold;
+  color: #f4f4f4;
+  margin-bottom: 15px;
+}
 
 /* === TOP NAV BAR === */
 .nav-bar {
-  display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
 }
+
 .nav-bar button {
-  background-color: rgba(251,204,92,.9); border: 2px solid #fbcc5c; color: #000;
-  font-weight: bold; font-size: 15px; padding: 10px 20px; border-radius: 10px;
-  cursor: pointer; transition: all .2s ease;
+  background-color: rgba(251, 204, 92, 0.9);
+  border: 2px solid #fbcc5c;
+  color: #000;
+  font-weight: bold;
+  font-size: 15px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.nav-bar button:hover { background-color: #000; color: #fbcc5c; transform: translateY(-2px); }
+
+.nav-bar button:hover {
+  background-color: #000;
+  color: #fbcc5c;
+  transform: translateY(-2px);
+}
 
 /* === MAIN LAYOUT === */
-.container { display: flex; justify-content: center; gap: 25px; padding: 25px; width: 100%; max-width: 1400px; }
+.container {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  padding: 25px;
+  width: 100%;
+  max-width: 1400px;
+}
 
 /* === SIDEBAR === */
-.sidebar { width: 320px; display: flex; flex-direction: column; gap: 25px; }
+.sidebar {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
 
 /* === WALLET BOX === */
 .wallet-box {
-  background: #fff8dc; border: 2px solid #fbcc5c; border-radius: 12px; padding: 15px; text-align: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,.08);
+  background: #fff8dc;
+  border: 2px solid #fbcc5c;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
-.wallet-status p { margin: 0; font-weight: bold; color: #000; }
-.network { font-size: 14px; color: #555; }
+
+.wallet-status p {
+  margin: 0;
+  font-weight: bold;
+  color: #000;
+}
+
+.network {
+  font-size: 14px;
+  color: #555;
+}
+
 .disconnect-btn {
-  margin-top: 10px; padding: 8px 15px; border-radius: 8px; background: #35d07f; color: #000; border: none;
-  cursor: pointer; font-weight: bold;
+  margin-top: 10px;
+  padding: 8px 15px;
+  border-radius: 8px;
+  background: #35d07f;
+  color: #000;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
 }
-.disconnect-btn:hover { background: #000; color: #35d07f; }
+
+.disconnect-btn:hover {
+  background: #000;
+  color: #35d07f;
+}
 
 /* === DONATE BOX === */
 .donate-box {
-  background: #fffbe8; border: 2px solid #fbcc5c; border-radius: 12px; padding: 20px; text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  background: #fffbe8;
+  border: 2px solid #fbcc5c;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-.donate-box h3 { color: #000; margin-bottom: 8px; font-size: 18px; }
-.donate-box p { font-size: 14px; color: #444; margin-bottom: 15px; }
-.donate-buttons { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+.donate-box h3 {
+  color: #000;
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+.donate-box p {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 15px;
+}
+
+.donate-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .donate-buttons button {
-  background-color: #fbcc5c; border: 2px solid #e0b94c; color: #000; font-weight: bold; font-size: 15px;
-  border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: all .2s ease;
+  background-color: #fbcc5c;
+  border: 2px solid #e0b94c;
+  color: #000;
+  font-weight: bold;
+  font-size: 15px;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
-.donate-buttons button:hover { background: #000; color: #fbcc5c; transform: translateY(-2px); }
+
+.donate-buttons button:hover {
+  background: #000;
+  color: #fbcc5c;
+  transform: translateY(-2px);
+}
 
 /* === CELO ECOSYSTEM BOX === */
-.ecosystem-box { background: #fffdf6; border: 2px solid #fbcc5c; border-radius: 12px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,.05); }
-.ecosystem-box h3 { color: #000; font-size: 18px; text-align: center; margin-bottom: 10px; }
-.ecosystem-box ul { list-style: none; padding: 0; margin: 0; }
-.ecosystem-box li { margin: 8px 0; }
-.ecosystem-box a {
-  text-decoration: none; color: #000; font-weight: bold; background: rgba(251,204,92,.2); padding: 6px 10px;
-  border-radius: 8px; display: block; transition: .2s;
+.ecosystem-box {
+  background: #fffdf6;
+  border: 2px solid #fbcc5c;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.ecosystem-box a:hover { background: #fbcc5c; color: #000; transform: translateX(4px); }
+
+.ecosystem-box h3 {
+  color: #000;
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.ecosystem-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ecosystem-box li {
+  margin: 8px 0;
+}
+
+.ecosystem-box a {
+  text-decoration: none;
+  color: #000;
+  font-weight: bold;
+  background: rgba(251, 204, 92, 0.2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: block;
+  transition: 0.2s;
+}
+
+.ecosystem-box a:hover {
+  background: #fbcc5c;
+  color: #000;
+  transform: translateX(4px);
+}
 
 /* === MAIN CONTENT === */
 .main-content {
-  flex: 1; background: #fffdf6; border: 2px solid #fbcc5c; border-radius: 12px; padding: 25px;
-  box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  flex: 1;
+  background: #fffdf6;
+  border: 2px solid #fbcc5c;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
-.support-section h2 { text-align: center; color: #000; margin-bottom: 20px; font-size: 22px; }
-.support-header h3 { color: #000; margin-bottom: 5px; text-align: center; }
-.support-header p { color: #444; font-size: 14px; text-align: center; }
+
+.support-section h2 {
+  text-align: center;
+  color: #000;
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+
+.support-header h3 {
+  color: #000;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.support-header p {
+  color: #444;
+  font-size: 14px;
+  text-align: center;
+}
 
 /* === LINK CARDS === */
 .link-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px; margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
 }
-.link-card {
-  background: #fff9e6; border: 2px solid #fbcc5c; border-radius: 10px; padding: 15px; text-align: center;
-  transition: all .3s ease;
-}
-.link-card:hover { background: #fbcc5c; color: #000; transform: translateY(-2px); }
-.link-card .icon { font-size: 22px; display: block; margin-bottom: 5px; }
 
-/* === PLATFORM BADGES === */
-.platform-badge {
-  display: inline-block; font-weight: 600; font-size: 13px; border-radius: 14px; padding: 4px 12px; margin-bottom: 8px;
-  text-align: center; background-color: #fdfcf9; border: 1.5px solid #e0dfd9; box-shadow: inset 0 1px 1px rgba(255,255,255,.3);
-  transition: all .25s ease;
+.link-card {
+  background: #fff9e6;
+  border: 2px solid #fbcc5c;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.3s ease;
 }
-/* 🟣 Farcaster */ .badge-farcaster{border-color:#b48ef5;color:#7b4dff;background:#f8f4ff;} .badge-farcaster:hover{background:#e7dbff;}
-/* 🐦 X */         .badge-x{border-color:#1d9bf0;color:#1d9bf0;background:#f0f8ff;} .badge-x:hover{background:#d4edff;}
-/* 🌐 Website */   .badge-website{border-color:#f5cc5c;color:#d4a800;background:#fffbea;} .badge-website:hover{background:#fff2c9;}
-/* 💻 GitHub */    .badge-github{border-color:#444;color:#333;background:#f5f5f5;} .badge-github:hover{background:#e6e6e6;}
-/* ✍️ Mirror */    .badge-mirror{border-color:#ffb347;color:#e38b00;background:#fff6e9;} .badge-mirror:hover{background:#ffeac9;}
-/* 🌌 Galxe */     .badge-galxe{border-color:#8a2be2;color:#782ce7;background:#f4e8ff;} .badge-galxe:hover{background:#ebdbff;}
-/* 🧬 Warpcast */  .badge-warpcast{border-color:#6a5acd;color:#4b3ec7;background:#f1f0ff;} .badge-warpcast:hover{background:#e3e2ff;}
-/* 🟠 Inflynce */  .badge-inflynce{border-color:#ff7f32;color:#ff6600;background:#fff1e5;} .badge-inflynce:hover{background:#ffe3cc;}
-/* 💎 Layer3 */    .badge-layer3{border-color:#00bcd4;color:#0097a7;background:#e0f7fa;} .badge-layer3:hover{background:#ccf2f5;}
-/* 👷 Talent */    .badge-talent{border-color:#6ecf68;color:#459f3e;background:#edf9ed;} .badge-talent:hover{background:#dff5df;}
+
+.link-card:hover {
+  background: #fbcc5c;
+  color: #000;
+  transform: translateY(-2px);
+}
+
+.link-card .icon {
+  font-size: 22px;
+  display: block;
+  margin-bottom: 5px;
+}
