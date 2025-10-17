@@ -1,8 +1,11 @@
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL FIXED) =========================
+// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL FIXED) ========================= //
+// 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış vb.
+
 import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
+// ✅ Contract yükle
 function getContract() {
   const signer = getSigner();
   if (!signer) throw new Error("❌ Wallet not connected");
@@ -14,7 +17,11 @@ export async function checkProfile() {
   try {
     const provider = getProvider();
     const userAddress = getUserAddress();
-    if (!provider || !userAddress) return false;
+
+    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+      alert("⚠️ Wallet not connected. Please reconnect MetaMask.");
+      return false;
+    }
 
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
@@ -25,6 +32,7 @@ export async function checkProfile() {
       return true;
     } else {
       alert("🆕 No profile found. Please create one.");
+
       const contentArea = document.getElementById("contentArea");
       if (contentArea) {
         contentArea.innerHTML = `
@@ -51,14 +59,18 @@ export async function checkProfile() {
   }
 }
 
+// 🧾 Profil oluşturma (on-chain TX)
 export async function setupUserProfile(username, link) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
+
     const contract = getContract();
     const tx = await contract.registerUser(username, link);
+
     alert("📡 Sending transaction to Celo...");
     await tx.wait();
+
     alert("✅ Profile setup complete!");
     return true;
   } catch (err) {
@@ -69,12 +81,22 @@ export async function setupUserProfile(username, link) {
   }
 }
 
+// 💛 Donate işlemi (CELO gönder)
 export async function donateCelo(amount) {
   const signer = getSigner();
-  if (!signer) { alert("⚠️ Please connect your wallet first!"); return false; }
+  const userAddress = getUserAddress();
+
+  if (!signer || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+    alert("⚠️ Please connect your wallet first!");
+    return false;
+  }
+
   try {
     const value = ethers.utils.parseEther(String(amount));
-    const tx = await signer.sendTransaction({ to: DONATION_ADDRESS, value });
+    const tx = await signer.sendTransaction({
+      to: DONATION_ADDRESS,
+      value
+    });
     alert(`💛 Donating ${amount} CELO...\nTX: ${tx.hash}`);
     await tx.wait();
     alert("✅ Donation successful! Thank you.");
@@ -88,12 +110,15 @@ export async function donateCelo(amount) {
   }
 }
 
+// 🏛️ Governance (Proposal oluştur)
 export async function createProposal(title, description) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
+
     const contract = getContract();
-    const tx = await contract.createProposal(title, description, 3600);
+    const tx = await contract.createProposal(title, description, 3600); // 1 saat süresi
+
     alert("📡 Creating proposal...");
     await tx.wait();
     alert("✅ Proposal created!");
@@ -103,12 +128,15 @@ export async function createProposal(title, description) {
   }
 }
 
+// 🗳️ Vote Proposal
 export async function voteProposal(id, support) {
   try {
     const signer = getSigner();
     if (!signer) return alert("Please connect your wallet first.");
+
     const contract = getContract();
     const tx = await contract.voteProposal(id, support);
+
     alert("📡 Sending vote transaction...");
     await tx.wait();
     alert("✅ Vote recorded!");
@@ -118,24 +146,25 @@ export async function voteProposal(id, support) {
   }
 }
 
+// 📜 Proposal listesi (read-only)
 export async function loadProposals() {
   try {
     const provider = getProvider();
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const count = await contract.proposalCount?.() ?? await contract.getProposalCount?.();
+    const count = await contract.getProposalCount();
     const proposals = [];
-    const total = Number(count?.toString?.() ?? 0);
 
-    for (let i = 0; i < total; i++) {
-      const p = await contract.getProposalDetails?.(i) ?? (await contract.proposals?.(i));
+    for (let i = 0; i < count; i++) {
+      const p = await contract.proposals(i);
       proposals.push({
         id: i,
-        title: p.title ?? p[1],
-        description: p.description ?? p[2],
-        votesFor: (p.votesFor ?? p[4])?.toString?.() ?? "0",
-        votesAgainst: (p.votesAgainst ?? p[5])?.toString?.() ?? "0",
+        title: p.title,
+        description: p.description,
+        votesFor: p.votesFor.toString(),
+        votesAgainst: p.votesAgainst.toString(),
       });
     }
+
     return proposals;
   } catch (err) {
     console.error("Load proposals error:", err);
@@ -143,17 +172,22 @@ export async function loadProposals() {
   }
 }
 
+// 🎖️ Badge listesi (placeholder)
 export async function loadUserBadges() {
   return ["Early Supporter", "Governance Voter", "Community Builder"];
 }
 
+// 👤 Profil bilgisi (read-only)
 export async function loadUserProfile() {
   try {
     const provider = getProvider();
-    const user = getUserAddress();
-    if (!provider || !user) return null;
+    const userAddress = getUserAddress();
+    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
+      return null;
+    }
+
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const profile = await contract.getUserProfile(user);
+    const profile = await contract.getUserProfile(userAddress);
     return {
       username: profile.username || profile[1],
       link: profile.link || profile[0],
