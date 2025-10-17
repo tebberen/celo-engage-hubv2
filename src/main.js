@@ -20,6 +20,55 @@ const contentArea = document.getElementById("contentArea");
 
 console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
 
+// ✅ YENİ EKLENEN FONKSİYONLAR
+
+// Platform ismini belirleme fonksiyonu
+function getPlatformName(url) {
+  if (url.includes('x.com') || url.includes('twitter.com')) return '🐦 X';
+  if (url.includes('farcaster.xyz') || url.includes('warpcast.com')) return '🔮 Farcaster';
+  if (url.includes('github.com')) return '💻 GitHub';
+  if (url.includes('youtube.com')) return '📺 YouTube';
+  if (url.includes('discord.com')) return '💬 Discord';
+  return '🌐 Website';
+}
+
+// Support linklerini göster
+function displaySupportLinks() {
+  const container = document.getElementById('linksContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+  
+  INITIAL_SUPPORT_LINKS.forEach((link, index) => {
+    const platform = getPlatformName(link);
+    const linkCard = document.createElement('div');
+    linkCard.innerHTML = `
+      <div class="link-card">
+        <div>
+          <div class="link-platform">${platform}</div>
+          <a href="${link}" target="_blank" class="support-link">
+            ${link}
+          </a>
+        </div>
+        <div class="link-stats">
+          <div class="stat-item">
+            <div>Supports</div>
+            <div class="stat-value">0/5</div>
+          </div>
+        </div>
+        <button class="supportBtn" onclick="handleSupportClick('${link}')">👍 Support This Content</button>
+      </div>
+    `;
+    container.appendChild(linkCard);
+  });
+}
+
+// Support butonu tıklama
+function handleSupportClick(linkUrl) {
+  alert(`✅ Supported: ${linkUrl}`);
+  // Burada daha sonra blockchain işlemleri ekleyebiliriz
+}
+
 // ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
 window.addEventListener("DOMContentLoaded", () => {
   // 🔹 Celo Ecosystem linkleri
@@ -30,17 +79,8 @@ window.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  // 🔹 Support Members (INITIAL_SUPPORT_LINKS)
-  const linkGrid = document.querySelector(".link-grid");
-  if (linkGrid && INITIAL_SUPPORT_LINKS.length) {
-    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link, index) => `
-      <div class="link-card">
-        <span class="icon">🌐</span> <b>Member ${index + 1}</b>
-        <p><a href="${link}" target="_blank">${link}</a></p>
-        <p>Supports <b>0/5</b></p>
-      </div>
-    `).join("");
-  }
+  // 🔹 Support Members (YENİ TASARIM)
+  displaySupportLinks();
 });
 
 // ✅ Tek butonla bağlan / çıkış
@@ -104,7 +144,7 @@ governanceBtn.addEventListener("click", async () => {
   await showProposals();
 });
 
-// ✅ Proposal’ları göster
+// ✅ Proposal'ları göster
 async function showProposals() {
   const proposals = await loadProposals();
   const list = document.getElementById("proposalList");
@@ -186,3 +226,6 @@ profileBtn.addEventListener("click", async () => {
     });
   }
 });
+
+// handleSupportClick fonksiyonunu global yapıyoruz ki HTML'de onclick ile erişilebilsin
+window.handleSupportClick = handleSupportClick;
