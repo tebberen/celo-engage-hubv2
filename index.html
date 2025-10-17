@@ -1,61 +1,131 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="1894.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 30.0px Arial; color: #ffffff; -webkit-text-stroke: #ffffff}
-    p.p2 {margin: 0.0px 0.0px 5.0px 0.0px; text-align: center; font: 20.0px Arial; color: #ffffff; -webkit-text-stroke: #ffffff}
-    p.p3 {margin: 0.0px 0.0px 15.0px 0.0px; text-align: center; font: 16.0px Arial; color: #f1f1f1; -webkit-text-stroke: #f1f1f1}
-    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 15.0px 'Helvetica Neue'; color: #000000; -webkit-text-stroke: #000000; background-color: #f9c24b; background-color: rgba(249, 194, 75, 0.9)}
-    p.p5 {margin: 0.0px 0.0px 14.0px 0.0px; text-align: center; font: 14.0px Arial; color: #000000; -webkit-text-stroke: #000000}
-    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 14.0px Arial; color: #000000; -webkit-text-stroke: #000000; background-color: #ffffff}
-    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 11.0px 'Helvetica Neue'; color: #000000; -webkit-text-stroke: #000000; background-color: #31ca6c}
-    p.p9 {margin: 0.0px 0.0px 15.0px 0.0px; text-align: center; font: 14.0px Arial; color: #343434; -webkit-text-stroke: #343434}
-    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 15.0px 'Helvetica Neue'; color: #000000; -webkit-text-stroke: #000000; background-color: #f9c24b}
-    p.p15 {margin: 0.0px 0.0px 14.0px 0.0px; text-align: center; font: 14.0px Arial; color: #343434; -webkit-text-stroke: #343434}
-    li.li12 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Arial; color: #000000; min-height: 14.0px}
-    span.s1 {font: 30.0px 'Apple Color Emoji'; font-kerning: none; background-color: #ffffff}
-    span.s2 {font-kerning: none; background-color: #ffffff}
-    span.s3 {font-kerning: none}
-    span.s4 {font: 14.0px 'Apple Color Emoji'; font-kerning: none; background-color: #ffffff}
-    span.s5 {font: 12.0px Arial; font-kerning: none; background-color: #fff7d4}
-    span.s6 {font: 18.0px 'Apple Color Emoji'; font-kerning: none; background-color: #fffbe2}
-    span.s7 {font-kerning: none; background-color: #fffbe2}
-    span.s8 {font: 18.0px 'Apple Color Emoji'; font-kerning: none; background-color: #fffdf4}
-    span.s9 {font-kerning: none; background-color: #fffdf4}
-    span.s10 {font: 22.0px 'PingFang SC'; font-kerning: none; background-color: #fffdf4}
-    span.s11 {font: 14.0px 'Apple Color Emoji'; font-kerning: none; background-color: #fffdf4}
-    ul.ul1 {list-style-type: none}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Celo Engage Hub</title>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <style>
+    .wallet-btn {
+      background-color: #35D07F;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      transition: background 0.3s ease;
+    }
+    .wallet-btn:hover {
+      background-color: #2fb46d;
+    }
+    #walletStatus {
+      background: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+      border: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1">🌐</span><span class="s2"><b> Celo Engage Hub<span class="Apple-converted-space"> </span></b></span></p>
-<p class="p2"><span class="s2"><i>Social TX – Where Every Interaction Builds Real Value</i></span></p>
-<p class="p3"><span class="s2"><b>If you want support, support first</b></span></p>
-<p class="p4"><span class="s3"><b>Gm</b></span></p>
-<p class="p4"><span class="s3"><b>Deploy</b></span></p>
-<p class="p4"><span class="s3"><b>Governance</b></span></p>
-<p class="p4"><span class="s3"><b>Badge</b></span></p>
-<p class="p4"><span class="s3"><b>Profile</b></span></p>
-<p class="p5"><span class="s4">🔴</span><span class="s2"> Not connected</span></p>
-<p class="p6"><span class="s3">—<span class="Apple-converted-space"> </span></span></p>
-<p class="p7"><span class="s3"><b>Connect Wallet</b></span><span class="s5"><span class="Apple-converted-space"> </span></span></p>
-<h3 style="margin: 0.0px 0.0px 8.0px 0.0px; text-align: center; font: 18.0px Arial; color: #000000; -webkit-text-stroke: #000000"><span class="s6">💛</span><span class="s7"><b> Donate to Support Hub</b></span></h3>
-<p class="p9"><span class="s7">Choose an amount to support the community</span></p>
-<p class="p10"><span class="s3"><b>0.5 CELO</b></span></p>
-<p class="p10"><span class="s3"><b>1 CELO</b></span></p>
-<p class="p10"><span class="s3"><b>5 CELO</b></span></p>
-<p class="p10"><span class="s3"><b>10 CELO</b></span></p>
-<h3 style="margin: 0.0px 0.0px 10.0px 0.0px; text-align: center; font: 18.0px Arial; color: #000000; -webkit-text-stroke: #000000"><span class="s8">🟡</span><span class="s9"><b> Celo Ecosystem</b></span></h3>
-<ul class="ul1">
-  <li class="li12"></li>
-</ul>
-<h2 style="margin: 0.0px 0.0px 20.0px 0.0px; text-align: center; font: 22.0px Arial; color: #000000; -webkit-text-stroke: #000000"><span class="s10"><b>①</b></span><span class="s9"><b> Support Community Members</b></span></h2>
-<h3 style="margin: 0.0px 0.0px 5.0px 0.0px; text-align: center; font: 14.0px Arial; color: #000000; -webkit-text-stroke: #000000"><span class="s11">🤝</span><span class="s9"><b> Support Others First</b></span></h3>
-<p class="p15"><span class="s9">To submit your link, you must first support at least one community member</span></p>
+  <div class="centered-content">
+    <header>
+      <div class="title-bar">
+        <span class="emoji">🌐</span> <span>Celo Engage Hub</span>
+      </div>
+      <p class="subtitle"><i>Social TX – Where Every Interaction Builds Real Value</i></p>
+      <p class="description">If you want support, support first</p>
+
+      <div class="nav-bar">
+        <button id="gmBtn">Gm</button>
+        <button id="deployBtn">Deploy</button>
+        <button id="governanceBtn">Governance</button>
+        <button id="badgeBtn">Badge</button>
+        <button id="profileBtn">Profile</button>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Sol panel -->
+      <aside class="sidebar">
+        <div class="wallet-box">
+          <div id="walletStatus">
+            <p>🔴 Not connected</p>
+            <span id="networkLabel">—</span>
+          </div>
+          <button id="walletActionBtn" class="wallet-btn">Connect Wallet</button>
+        </div>
+
+        <div class="donate-box">
+          <h3>💛 Donate to Support Hub</h3>
+          <p>Choose an amount to support the community</p>
+          <div class="donate-buttons">
+            <button data-amount="0.5">0.5 CELO</button>
+            <button data-amount="1">1 CELO</button>
+            <button data-amount="5">5 CELO</button>
+            <button data-amount="10">10 CELO</button>
+          </div>
+        </div>
+
+        <div class="ecosystem-box">
+          <h3>🟡 Celo Ecosystem</h3>
+          <ul>
+            <li><a href="#">🌍 Celo Official</a></li>
+            <li><a href="#">📘 Celo Documentation</a></li>
+            <li><a href="#">💻 Developer Portal</a></li>
+            <li><a href="#">🔎 Celo Explorer</a></li>
+            <li><a href="#">💬 Celo Forum</a></li>
+            <li><a href="#">🐦 Celo Twitter</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Ana içerik -->
+      <main class="main-content">
+        <section class="support-section" id="contentArea">
+          <h2>① Support Community Members</h2>
+          <div class="support-header">
+            <h3>🤝 Support Others First</h3>
+            <p>To submit your link, you must first support at least one community member</p>
+          </div>
+
+          <div class="link-grid">
+            <div class="link-card">
+              <span class="icon">🐙</span> <b>GitHub</b>
+              <p>https://github.com/tebberen</p>
+              <p>Supports <b>0/5</b></p>
+            </div>
+            <div class="link-card">
+              <span class="icon">🌐</span> <b>Website</b>
+              <p>https://tebberen.github.io/celo-engage-hub-moduler</p>
+              <p>Supports <b>0/5</b></p>
+            </div>
+            <div class="link-card">
+              <span class="icon">🌐</span> <b>Website</b>
+              <p>https://pass.celo.org</p>
+              <p>Supports <b>0/5</b></p>
+            </div>
+            <div class="link-card">
+              <span class="icon">🎯</span> <b>Farcaster</b>
+              <p>Celo</p>
+              <p>Supports <b>0/5</b></p>
+            </div>
+            <div class="link-card">
+              <span class="icon">👤</span> <b>Profile</b>
+              <p>https://jass.celo.org</p>
+              <p>Supports <b>0/5</b></p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ✅ Tüm işlemleri yöneten ana modül -->
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
