@@ -1,5 +1,4 @@
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE (FINAL FIXED) ========================= //
-// 🔗 Akıllı kontrat ile etkileşimleri yönetir: profil, governance, bağış vb.
+// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
 
 import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
@@ -10,6 +9,40 @@ function getContract() {
   const signer = getSigner();
   if (!signer) throw new Error("❌ Wallet not connected");
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+}
+
+// ✅ BOŞ TRANSACTION (Kontrat üzerinden - registerUser boş string ile)
+export async function submitEmptyTransaction() {
+  try {
+    const signer = getSigner();
+    if (!signer) {
+      alert("⚠️ Lütfen önce wallet bağlayın!");
+      return false;
+    }
+
+    const contract = getContract();
+    
+    // Mevcut registerUser fonksiyonunu boş stringlerle çağırıyoruz
+    // Bu, kontrat üzerinde bir transaction oluşturacak ve gas harcanacak
+    const tx = await contract.registerUser("", "", {
+      gasLimit: 100000
+    });
+    
+    alert("⏳ Celo ağına transaction gönderiliyor...\nTX: " + tx.hash);
+    await tx.wait();
+    alert("✅ Transaction onaylandı! Linkiniz yayınlandı.");
+    return true;
+  } catch (err) {
+    console.error("Transaction error:", err);
+    if (err.code === 4001) {
+      alert("❌ Transaction kullanıcı tarafından reddedildi.");
+    } else if (err.code === 'INSUFFICIENT_FUNDS') {
+      alert("❌ Gas ücreti için yeterli CELO yok. Lütfen CELO ekleyin.");
+    } else {
+      alert("⚠️ Transaction başarısız: " + (err?.message || err));
+    }
+    return false;
+  }
 }
 
 // 🧩 Profil kontrolü
@@ -117,7 +150,7 @@ export async function createProposal(title, description) {
     if (!signer) return alert("Please connect your wallet first.");
 
     const contract = getContract();
-    const tx = await contract.createProposal(title, description, 3600); // 1 saat süresi
+    const tx = await contract.createProposal(title, description, 3600);
 
     alert("📡 Creating proposal...");
     await tx.wait();
