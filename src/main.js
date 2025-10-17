@@ -1,284 +1,188 @@
-/* === GLOBAL === */
-* {
-  box-sizing: border-box;
+// ========================= CELO ENGAGE HUB V2 - MAIN SCRIPT ========================= //
+// 🧠 Tüm UI etkileşimleri, olaylar ve modül bağlantılarını yönetir.
+
+import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
+import { 
+  setupUserProfile, createProposal, voteProposal, loadUserProfile,
+  loadUserBadges, loadProposals, donateCelo, checkProfile
+} from "./services/contractService.js";
+import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
+
+// ✅ DOM Elementleri
+const walletActionBtn = document.getElementById("walletActionBtn");
+const donateButtons = document.querySelectorAll(".donate-buttons button");
+const gmBtn = document.getElementById("gmBtn");
+const deployBtn = document.getElementById("deployBtn");
+const governanceBtn = document.getElementById("governanceBtn");
+const badgeBtn = document.getElementById("badgeBtn");
+const profileBtn = document.getElementById("profileBtn");
+const contentArea = document.getElementById("contentArea");
+
+console.log("🚀 Celo Engage Hub V2 loaded — ecosystem + wallet + support integration active");
+
+// ✅ DOM yüklendiğinde Celo Ecosystem ve Support Members bölümlerini doldur
+window.addEventListener("DOMContentLoaded", () => {
+  // 🔹 Celo Ecosystem linkleri
+  const ecosystemBox = document.querySelector(".ecosystem-box ul");
+  if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
+    ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
+      .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
+      .join("");
+  }
+
+  // 🔹 Support Members (INITIAL_SUPPORT_LINKS)
+  const linkGrid = document.querySelector(".link-grid");
+  if (linkGrid && INITIAL_SUPPORT_LINKS.length) {
+    linkGrid.innerHTML = INITIAL_SUPPORT_LINKS.map((link, index) => `
+      <div class="link-card">
+        <span class="icon">🌐</span> <b>Member ${index + 1}</b>
+        <p><a href="${link}" target="_blank">${link}</a></p>
+        <p>Supports <b>0/5</b></p>
+      </div>
+    `).join("");
+  }
+});
+
+// ✅ Tek butonla bağlan / çıkış
+walletActionBtn.addEventListener("click", async () => {
+  const isConnected = walletActionBtn.textContent.includes("Disconnect");
+
+  if (isConnected) {
+    await disconnectWallet();
+    walletActionBtn.textContent = "Connect Wallet";
+    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span id="networkLabel">—</span>`;
+  } else {
+    const result = await connectWalletMetaMask();
+    if (result) {
+      walletActionBtn.textContent = "Disconnect";
+      document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
+      await checkProfile();
+    }
+  }
+});
+
+// ✅ Donate işlemleri
+donateButtons.forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const amount = btn.getAttribute("data-amount");
+    await donateCelo(amount);
+  });
+});
+
+// ✅ GM butonu
+gmBtn.addEventListener("click", async () => {
+  alert("☀️ Sending GM transaction... (placeholder)");
+  alert("✅ GM sent successfully!");
+});
+
+// ✅ Deploy butonu
+deployBtn.addEventListener("click", async () => {
+  alert("🧱 Deploy feature coming soon!");
+});
+
+// ✅ Governance butonu
+governanceBtn.addEventListener("click", async () => {
+  contentArea.innerHTML = `
+    <h2>🏛️ Community Governance</h2>
+    <div class="info-card">
+      <h3>Create New Proposal</h3>
+      <input type="text" id="proposalTitle" placeholder="Proposal title" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
+      <textarea id="proposalDescription" rows="3" placeholder="Proposal description" style="width:80%;padding:8px;border-radius:6px;border:1px solid #ccc;"></textarea>
+      <button id="createProposalBtn">📝 Submit Proposal</button>
+    </div>
+    <div id="proposalList"></div>
+  `;
+
+  document.getElementById("createProposalBtn").addEventListener("click", async () => {
+    const title = document.getElementById("proposalTitle").value.trim();
+    const desc = document.getElementById("proposalDescription").value.trim();
+    if (!title || !desc) return alert("❌ Please fill all fields.");
+    await createProposal(title, desc);
+    await showProposals();
+  });
+
+  await showProposals();
+});
+
+// ✅ Proposal’ları göster
+async function showProposals() {
+  const proposals = await loadProposals();
+  const list = document.getElementById("proposalList");
+  list.innerHTML = "";
+
+  if (!proposals.length) {
+    list.innerHTML = "<p>No active proposals yet.</p>";
+    return;
+  }
+
+  proposals.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "info-card";
+    card.innerHTML = `
+      <h4>${p.title}</h4>
+      <p>${p.description}</p>
+      <p>👍 ${p.votesFor} | 👎 ${p.votesAgainst}</p>
+      <button class="voteForBtn" data-id="${p.id}">👍 Support</button>
+      <button class="voteAgainstBtn" data-id="${p.id}">👎 Oppose</button>
+    `;
+    list.appendChild(card);
+  });
+
+  document.querySelectorAll(".voteForBtn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      await voteProposal(btn.getAttribute("data-id"), true);
+    })
+  );
+  document.querySelectorAll(".voteAgainstBtn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      await voteProposal(btn.getAttribute("data-id"), false);
+    })
+  );
 }
 
-body {
-  background-color: #ffffff;
-  font-family: "Inter", Arial, sans-serif;
-  color: #000;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+// ✅ Badge butonu
+badgeBtn.addEventListener("click", async () => {
+  const badges = await loadUserBadges();
+  contentArea.innerHTML = `
+    <h2>🎖️ Your Badges</h2>
+    <div class="info-card">
+      ${badges.length ? badges.map((b) => `<p>🏅 ${b}</p>`).join("") : "<p>No badges yet.</p>"}
+    </div>
+  `;
+});
 
-.centered-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
+// ✅ Profile butonu
+profileBtn.addEventListener("click", async () => {
+  const profile = await loadUserProfile();
+  contentArea.innerHTML = `
+    <h2>👤 Your Profile</h2>
+    <div class="info-card">
+      ${
+        profile && profile.isActive
+          ? `
+        <p><strong>Username:</strong> ${profile.username}</p>
+        <p><strong>Link:</strong> <a href="${profile.link}" target="_blank">${profile.link}</a></p>
+        <p><strong>Supports:</strong> ${profile.supportCount}</p>
+        <p><strong>Badges:</strong> ${profile.badgeCount}</p>
+      `
+          : `
+        <p>Setup your profile</p>
+        <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
+        <input type="text" id="link" placeholder="Enter your link" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
+        <button id="setupProfileBtn">🚀 Setup Profile</button>
+      `
+      }
+    </div>
+  `;
 
-/* === HEADER === */
-header {
-  background: linear-gradient(135deg, #fbcc5c 0%, #000000 100%);
-  color: white;
-  padding: 25px;
-  border-radius: 0 0 15px 15px;
-  text-align: center;
-  width: 100%;
-  max-width: 1400px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.title-bar {
-  font-size: 30px;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-}
-
-.subtitle {
-  font-size: 20px;
-  margin: 10px 0 5px 0;
-  color: #fff;
-  opacity: 0.9;
-}
-
-.description {
-  font-size: 16px;
-  font-weight: bold;
-  color: #f4f4f4;
-  margin-bottom: 15px;
-}
-
-/* === TOP NAV BAR === */
-.nav-bar {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.nav-bar button {
-  background-color: rgba(251, 204, 92, 0.9);
-  border: 2px solid #fbcc5c;
-  color: #000;
-  font-weight: bold;
-  font-size: 15px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.nav-bar button:hover {
-  background-color: #000;
-  color: #fbcc5c;
-  transform: translateY(-2px);
-}
-
-/* === MAIN LAYOUT === */
-.container {
-  display: flex;
-  justify-content: center;
-  gap: 25px;
-  padding: 25px;
-  width: 100%;
-  max-width: 1400px;
-}
-
-/* === SIDEBAR === */
-.sidebar {
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
-/* === WALLET BOX === */
-.wallet-box {
-  background: #fff8dc;
-  border: 2px solid #fbcc5c;
-  border-radius: 12px;
-  padding: 15px;
-  text-align: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.wallet-status p {
-  margin: 0;
-  font-weight: bold;
-  color: #000;
-}
-
-.network {
-  font-size: 14px;
-  color: #555;
-}
-
-.disconnect-btn {
-  margin-top: 10px;
-  padding: 8px 15px;
-  border-radius: 8px;
-  background: #35d07f;
-  color: #000;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.disconnect-btn:hover {
-  background: #000;
-  color: #35d07f;
-}
-
-/* === DONATE BOX === */
-.donate-box {
-  background: #fffbe8;
-  border: 2px solid #fbcc5c;
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.donate-box h3 {
-  color: #000;
-  margin-bottom: 8px;
-  font-size: 18px;
-}
-
-.donate-box p {
-  font-size: 14px;
-  color: #444;
-  margin-bottom: 15px;
-}
-
-.donate-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.donate-buttons button {
-  background-color: #fbcc5c;
-  border: 2px solid #e0b94c;
-  color: #000;
-  font-weight: bold;
-  font-size: 15px;
-  border-radius: 10px;
-  padding: 10px 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.donate-buttons button:hover {
-  background: #000;
-  color: #fbcc5c;
-  transform: translateY(-2px);
-}
-
-/* === CELO ECOSYSTEM BOX === */
-.ecosystem-box {
-  background: #fffdf6;
-  border: 2px solid #fbcc5c;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.ecosystem-box h3 {
-  color: #000;
-  font-size: 18px;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.ecosystem-box ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.ecosystem-box li {
-  margin: 8px 0;
-}
-
-.ecosystem-box a {
-  text-decoration: none;
-  color: #000;
-  font-weight: bold;
-  background: rgba(251, 204, 92, 0.2);
-  padding: 6px 10px;
-  border-radius: 8px;
-  display: block;
-  transition: 0.2s;
-}
-
-.ecosystem-box a:hover {
-  background: #fbcc5c;
-  color: #000;
-  transform: translateX(4px);
-}
-
-/* === MAIN CONTENT === */
-.main-content {
-  flex: 1;
-  background: #fffdf6;
-  border: 2px solid #fbcc5c;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-}
-
-.support-section h2 {
-  text-align: center;
-  color: #000;
-  margin-bottom: 20px;
-  font-size: 22px;
-}
-
-.support-header h3 {
-  color: #000;
-  margin-bottom: 5px;
-  text-align: center;
-}
-
-.support-header p {
-  color: #444;
-  font-size: 14px;
-  text-align: center;
-}
-
-/* === LINK CARDS === */
-.link-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.link-card {
-  background: #fff9e6;
-  border: 2px solid #fbcc5c;
-  border-radius: 10px;
-  padding: 15px;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.link-card:hover {
-  background: #fbcc5c;
-  color: #000;
-  transform: translateY(-2px);
-}
-
-.link-card .icon {
-  font-size: 22px;
-  display: block;
-  margin-bottom: 5px;
-}
+  const setupBtn = document.getElementById("setupProfileBtn");
+  if (setupBtn) {
+    setupBtn.addEventListener("click", async () => {
+      const username = document.getElementById("username").value.trim();
+      const link = document.getElementById("link").value.trim();
+      if (!username || !link) return alert("❌ Please fill all fields.");
+      await setupUserProfile(username, link);
+      alert("✅ Profile setup complete!");
+    });
+  }
+});
