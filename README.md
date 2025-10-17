@@ -1,7 +1,7 @@
 # 🌐 Celo Engage Hub V2
 
 > **Community-driven Web3 dApp** built on the **Celo blockchain**, where every interaction creates on-chain value.  
-> Designed, built and deployed by [@luckyfromnecef](https://x.com/luckyfromnecef) 💛
+> Designed, built and deployed by [@luckyfromnecef](https://x.com/luckyfromnecef) 💛 
 
 ---
 
@@ -95,4 +95,4 @@ Contract functions include:
 ---
 
 ### 💫 “If you want support, support first.”  
-_Celo Engage Hub — Social TX for builders and dreamers._
+_Celo Engage Hub — Social TX for builders and dreamers..._
