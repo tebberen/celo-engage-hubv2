@@ -1,44 +1,114 @@
-// ========================= CELO ENGAGE HUB V2 — CONSTANTS ========================= //
+// ========================= CELO ENGAGE HUB V2 - CONSTANTS ========================= //
 
-// ✅ ESKİ KONTART (diğer işlemler için)
-export const CONTRACT_ADDRESS = "0x22eA49c074098931a478F381f971C77486d185b2";
-export const CONTRACT_ABI = [
-  "function registerUser(string memory _username, string memory _link) public",
-  "function updateProfile(string memory _username, string memory _link) public",
-  "function createProposal(string memory _title, string memory _description, uint256 _duration) public",
-  "function voteProposal(uint256 _proposalId, bool _support) public",
-  "function awardBadge(address _user, string memory _badge) public",
-  "function getUserProfile(address _user) public view returns (string memory link, string memory username, uint256 supportCount, uint256 reputation, uint256 badgeCount, bool isActive, uint256 timestamp)",
-  "function getUserBadges(address _user) public view returns (string[] memory)",
-  "function getActiveProposals() public view returns (uint256[] memory)",
-  "function getProposalDetails(uint256 _proposalId) public view returns (uint256 id, string memory title, string memory description, address creator, uint256 votesFor, uint256 votesAgainst, uint256 deadline, bool executed)",
-  "function totalUsers() public view returns (uint256)",
-  "function proposalCount() public view returns (uint256)",
-  "function getAllUsers() public view returns (address[] memory)",
-  "event UserRegistered(address indexed user, string username)",
-  "event ProposalCreated(uint256 indexed proposalId, string title, address creator)",
-  "event Voted(uint256 indexed proposalId, address indexed voter, bool support)",
-  "event BadgeAwarded(address indexed user, string badge)",
-  "error AlreadyRegistered()",
-  "error UserNotActive()",
-  "error InvalidProposal()",
-  "error NotOwner()",
-  "error VotingEnded()",
-  "error AlreadyVoted()"
-];
-
-// ✅ YENİ KONTART (sadece link göndermek için)
-export const LINK_CONTRACT_ADDRESS = "0x1e729b498bffa316c9cb9cc1f32b2789bc45fc1a";
-export const LINK_CONTRACT_ABI = [
+// ✅ YENİ V3 KONTART (tüm profil, istatistik ve badge'ler için)
+export const V3_CONTRACT_ADDRESS = "0x5a3ddc1c12338bbbadd24469b3b01b236fc5761a";
+export const V3_CONTRACT_ABI = [
 	{
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "_url",
+				"name": "_badge",
 				"type": "string"
 			}
 		],
-		"name": "leaveMyLink",
+		"name": "awardBadge",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "badge",
+				"type": "string"
+			}
+		],
+		"name": "BadgeAwarded",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newCount",
+				"type": "uint256"
+			}
+		],
+		"name": "ContractDeployed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newCount",
+				"type": "uint256"
+			}
+		],
+		"name": "GmSent",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "incrementDeployCount",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "incrementGmCount",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "incrementLinkCount",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "incrementProposalCount",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "incrementVoteCount",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -55,7 +125,7 @@ export const LINK_CONTRACT_ABI = [
 			{
 				"indexed": false,
 				"internalType": "string",
-				"name": "url",
+				"name": "link",
 				"type": "string"
 			}
 		],
@@ -65,12 +135,17 @@ export const LINK_CONTRACT_ABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
+				"internalType": "string",
+				"name": "_username",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_link",
+				"type": "string"
 			}
 		],
-		"name": "markAsSupporter",
+		"name": "registerUser",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -83,30 +158,50 @@ export const LINK_CONTRACT_ABI = [
 				"internalType": "address",
 				"name": "user",
 				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalPoints",
+				"type": "uint256"
 			}
 		],
-		"name": "MarkedAsSupporter",
+		"name": "StatsUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			}
+		],
+		"name": "UserRegistered",
 		"type": "event"
 	},
 	{
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "user",
+				"name": "_user",
 				"type": "address"
 			}
 		],
-		"name": "getLink",
+		"name": "checkBadgeEligibility",
 		"outputs": [
 			{
-				"internalType": "string",
-				"name": "url",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "time",
-				"type": "uint256"
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
 			}
 		],
 		"stateMutability": "view",
@@ -116,157 +211,64 @@ export const LINK_CONTRACT_ABI = [
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "",
+				"name": "_user",
 				"type": "address"
 			}
 		],
-		"name": "hasSupported",
+		"name": "getUserBadges",
 		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getUserProfile",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "username",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "link",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "supportCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "reputation",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "badgeCount",
+				"type": "uint256"
+			},
 			{
 				"internalType": "bool",
-				"name": "",
+				"name": "isActive",
 				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "userLinks",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "url",
-				"type": "string"
 			},
 			{
 				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
-];
-
-// ✅ GM KONTARTI
-export const GM_CONTRACT_ADDRESS = "0x2a3b04e460f93bf0964125c694af66838c5dabf0";
-export const GM_CONTRACT_ABI = [
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "message",
-				"type": "string"
-			}
-		],
-		"name": "GmSent",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_message",
-				"type": "string"
-			}
-		],
-		"name": "sendGm",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getGmCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "pure",
-		"type": "function"
-	}
-];
-
-// ✅ FACTORY KONTARTI (Kullanıcıların kontrat deploy etmesi için)
-export const FACTORY_CONTRACT_ADDRESS = "0x6a904452740b392b10ad9e409b69e32f0c125a15";
-export const FACTORY_CONTRACT_ABI = [
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "contractAddress",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "timestamp",
-				"type": "uint256"
-			}
-		],
-		"name": "ContractDeployed",
-		"type": "event"
-	},
-	{
-		"inputs": [],
-		"name": "deployGmContract",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_user",
-				"type": "address"
-			}
-		],
-		"name": "getContractCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
+				"name": "createdAt",
 				"type": "uint256"
 			}
 		],
@@ -281,36 +283,37 @@ export const FACTORY_CONTRACT_ABI = [
 				"type": "address"
 			}
 		],
-		"name": "getUserContracts",
+		"name": "getUserStats",
 		"outputs": [
 			{
-				"internalType": "address[]",
-				"name": "",
-				"type": "address[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
+				"internalType": "uint256",
+				"name": "gmCount",
+				"type": "uint256"
 			},
 			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "deployCount",
 				"type": "uint256"
-			}
-		],
-		"name": "userContracts",
-		"outputs": [
+			},
 			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
+				"internalType": "uint256",
+				"name": "proposalCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "voteCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "linkCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalPoints",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -318,6 +321,21 @@ export const FACTORY_CONTRACT_ABI = [
 	}
 ];
 
+// ESKİ KONTARTLARI KALDIRIYORUZ - ARTIK SADECE V3 KULLANACAĞIZ
+export const CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
+export const CONTRACT_ABI = V3_CONTRACT_ABI;
+
+// Diğer kontratları da kaldırıyoruz çünkü V3'te tüm fonksiyonlar var
+export const LINK_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
+export const LINK_CONTRACT_ABI = V3_CONTRACT_ABI;
+
+export const GM_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS; 
+export const GM_CONTRACT_ABI = V3_CONTRACT_ABI;
+
+export const FACTORY_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
+export const FACTORY_CONTRACT_ABI = V3_CONTRACT_ABI;
+
+// Diğer sabitler aynı kalabilir
 export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
 
 // ✅ Celo ağ parametreleri
@@ -331,7 +349,7 @@ export const CELO_MAINNET_PARAMS = {
 
 export const CELO_ALFAJORES_PARAMS = {
   chainId: "0xAEF3",
-  chainName: "Celo Alfajores Testnet",
+  chainName: "Celo Alfajores Testnet", 
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: ["https://alfajores-forno.celo-testnet.org"],
   blockExplorerUrls: ["https://alfajores.celoscan.io/"]
@@ -341,7 +359,7 @@ export const CELO_ALFAJORES_PARAMS = {
 export const INITIAL_SUPPORT_LINKS = [
   "https://farcaster.xyz/teberen/0x391c5713",
   "https://farcaster.xyz/ertu",
-  "https://farcaster.xyz/ratmubaba",
+  "https://farcaster.xyz/ratmubaba", 
   "https://x.com/erturulsezar13",
   "https://x.com/egldmvx",
   "https://tebberen.github.io/celo-engage-hub/",
@@ -362,5 +380,5 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "📰 Celo Blog",           url: "https://blog.celo.org" },
   { name: "💻 Celo GitHub",         url: "https://github.com/celo-org" },
   { name: "📺 YouTube Channel",     url: "https://www.youtube.com/@CeloOrg" },
-  { name: "✈️ Telegram Global",     url: "https://t.me/CeloOrg" }
+  { name: "📲 Telegram Global",     url: "https://t.me/CeloOrg" }
 ];
