@@ -157,7 +157,7 @@ export const LINK_CONTRACT_ABI = [
 	}
 ];
 
-// ✅ YENİ GM KONTARTI
+// ✅ GM KONTARTI
 export const GM_CONTRACT_ADDRESS = "0x2a3b04e460f93bf0964125c694af66838c5dabf0";
 export const GM_CONTRACT_ABI = [
 	{
@@ -209,6 +209,111 @@ export const GM_CONTRACT_ABI = [
 			}
 		],
 		"stateMutability": "pure",
+		"type": "function"
+	}
+];
+
+// ✅ FACTORY KONTARTI (Kullanıcıların kontrat deploy etmesi için)
+export const FACTORY_CONTRACT_ADDRESS = "0x6a904452740b392b10ad9e409b69e32f0c125a15";
+export const FACTORY_CONTRACT_ABI = [
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "ContractDeployed",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "deployGmContract",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getContractCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getUserContracts",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "userContracts",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	}
 ];
