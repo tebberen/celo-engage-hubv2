@@ -34,7 +34,7 @@ async function handleProfileAfterConnect() {
   }
 }
 
-// ✅ YENİ: Profil oluşturma formu
+// ✅ YENİ: Profil oluşturma formu - GÜNCELLENDİ (link kaldırıldı)
 function showProfileSetupForm() {
   const contentArea = document.getElementById("contentArea");
   contentArea.innerHTML = `
@@ -46,15 +46,9 @@ function showProfileSetupForm() {
       <p>To get started, please create your profile on the Celo network.</p>
       
       <div style="text-align: left; max-width: 400px; margin: 0 auto;">
-        <div style="margin-bottom: 15px;">
+        <div style="margin-bottom: 20px;">
           <label style="display: block; margin-bottom: 5px; font-weight: bold;">Username:</label>
           <input type="text" id="usernameInput" placeholder="Enter your username" 
-                 style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #FBCC5C;" />
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 5px; font-weight: bold;">Profile Link (optional):</label>
-          <input type="text" id="linkInput" placeholder="https://x.com/yourprofile" 
                  style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #FBCC5C;" />
         </div>
       </div>
@@ -71,13 +65,11 @@ function showProfileSetupForm() {
   `;
 }
 
-// ✅ YENİ: Profil oluşturma fonksiyonu (global)
+// ✅ YENİ: Profil oluşturma fonksiyonu (global) - GÜNCELLENDİ (link kaldırıldı)
 window.createProfile = async function() {
   const usernameInput = document.getElementById("usernameInput");
-  const linkInput = document.getElementById("linkInput");
   
   const usernameValue = usernameInput.value.trim();
-  const linkValue = linkInput.value.trim() || `https://celo.org/u/${usernameValue}`;
   
   if (!usernameValue) {
     alert("Please enter a username");
@@ -90,7 +82,8 @@ window.createProfile = async function() {
     button.innerHTML = "⏳ Creating Profile...";
     button.disabled = true;
     
-    const success = await setupUserProfile(usernameValue, linkValue);
+    // ✅ DEĞİŞTİ: Sadece kullanıcı adı gönder, boş link
+    const success = await setupUserProfile(usernameValue, "");
     
     if (success) {
       username = usernameValue;
@@ -416,7 +409,6 @@ profileBtn.addEventListener("click", async () => {
           : `
         <p>Setup your profile</p>
         <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
-        <input type="text" id="link" placeholder="Enter your link" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
         <button id="setupProfileBtn">🚀 Setup Profile</button>
       `
       }
@@ -427,9 +419,8 @@ profileBtn.addEventListener("click", async () => {
   if (setupBtn) {
     setupBtn.addEventListener("click", async () => {
       const username = document.getElementById("username").value.trim();
-      const link = document.getElementById("link").value.trim();
-      if (!username || !link) return;
-      await setupUserProfile(username, link);
+      if (!username) return;
+      await setupUserProfile(username, "");
     });
   }
 });
