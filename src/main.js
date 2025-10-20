@@ -4,18 +4,18 @@ import {
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
   loadUserBadges, loadProposals, donateCelo, checkProfile,
   submitEmptyTransaction, sendGmTransaction,
-  deployUserContract, getUserDeployedContracts  // ✅ Yeni fonksiyonlar eklendi
+  deployUserContract, getUserDeployedContracts
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
-// ✅ EKSİK FONKSİYONU EKLİYORUZ
+// ✅ MISSING FUNCTION WE ADDED
 let userAddress = "";
 
 function getUserAddress() {
     return userAddress || "0x0000000000000000000000000000000000000000";
 }
 
-// DOM Elementleri
+// DOM Elements
 const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 const gmBtn = document.getElementById("gmBtn");
@@ -27,7 +27,7 @@ const contentArea = document.getElementById("contentArea");
 
 console.log("🚀 Celo Engage Hub V2 loaded — GM & Deploy transaction system active");
 
-// localStorage fonksiyonları
+// localStorage functions
 function supportLinkInLocalStorage(link, userAddress) {
   const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
   const linkIndex = links.findIndex(l => l.link === link);
@@ -112,7 +112,7 @@ function displaySupportLinks() {
 function handleSupportClick(linkUrl) {
   const currentUserAddress = getUserAddress();
   if (!currentUserAddress || currentUserAddress === "0x0000000000000000000000000000000000000000") {
-    alert("Lütfen önce wallet bağlayın!");
+    alert("Please connect your wallet first!");
     return;
   }
   
@@ -144,29 +144,29 @@ function showLinkSubmitForm() {
   `;
 }
 
-// ✅ GÜNCELLENMİŞ: Yeni kontrat ile link gönderme
+// ✅ UPDATED: Send link with new contract
 async function submitUserLink() {
   const userLink = document.getElementById('userLinkInput').value.trim();
-  if (!userLink) return alert("Lütfen linkinizi girin!");
+  if (!userLink) return alert("Please enter your link!");
   
   try {
-    // ✅ Yeni kontrat ile transaction at (userLink parametresi eklendi)
+    // ✅ New contract transaction (userLink parameter added)
     const txSuccess = await submitEmptyTransaction(userLink);
     
-    // ✅ Transaction başarılıysa hem blockchain'e kaydedildi hem de localStorage'a
+    // ✅ If transaction successful, saved to both blockchain and localStorage
     if (txSuccess) {
       const currentUserAddress = getUserAddress();
       saveLinkToLocalStorage(userLink, currentUserAddress);
-      alert("✅ Teşekkürler! Linkiniz hem blockchain'de hem de topluluk listesinde yayınlandı.");
+      alert("✅ Thank you! Your link has been published on both blockchain and community list.");
       displaySupportLinks();
     }
   } catch (error) {
     console.error("Submit error:", error);
-    alert("❌ Link gönderilemedi.");
+    alert("❌ Link could not be submitted.");
   }
 }
 
-// DOM yüklendiğinde
+// DOM loaded
 window.addEventListener("DOMContentLoaded", () => {
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
   if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
@@ -178,7 +178,7 @@ window.addEventListener("DOMContentLoaded", () => {
   displaySupportLinks();
 });
 
-// Wallet bağlantısı
+// Wallet connection
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
 
@@ -198,7 +198,7 @@ walletActionBtn.addEventListener("click", async () => {
   }
 });
 
-// Donate işlemleri
+// Donate operations
 donateButtons.forEach((btn) => {
   btn.addEventListener("click", async () => {
     const amount = btn.getAttribute("data-amount");
@@ -206,38 +206,37 @@ donateButtons.forEach((btn) => {
   });
 });
 
-// ✅ GÜNCELLENMİŞ: GM butonu - Artık gerçek transaction atacak!
+// ✅ UPDATED: GM button - Now sends real transaction!
 gmBtn.addEventListener("click", async () => {
   await sendGmTransaction();
 });
 
-// ✅ GÜNCELLENMİŞ: Deploy butonu - Artık gerçek kontrat deploy edecek!
+// ✅ UPDATED: Deploy button - Now deploys real contract!
 deployBtn.addEventListener("click", async () => {
   const deployedAddress = await deployUserContract();
   if (deployedAddress) {
-    // Başarılı deploy sonrası kullanıcıya kontrat bilgilerini göster
+    // Show contract info after successful deploy
     const userContracts = await getUserDeployedContracts();
     contentArea.innerHTML = `
       <div class="step-indicator">
-        <span class="step-number">🎉</span> Kontratınız Deploy Edildi!
+        <span class="step-number">🎉</span> Your Contract Has Been Deployed!
       </div>
       <div class="step-container">
-        <h3>🚀 Smart Contract'ınız Hazır!</h3>
-        <p>Artık kendi Gm kontratınızı kullanabilirsiniz.</p>
+        <h3>🚀 Your Smart Contract is Ready!</h3>
         <div class="info-card">
-          <p><strong>Kontrat Adresi:</strong> ${deployedAddress !== "deployed" ? deployedAddress : "Event'ten alınamadı"}</p>
-          <p><strong>Toplam Kontrat Sayınız:</strong> ${userContracts.length}</p>
+          <p><strong>Contract Address:</strong> ${deployedAddress !== "deployed" ? deployedAddress : "Could not retrieve from event"}</p>
+          <p><strong>Your Total Contracts:</strong> ${userContracts.length}</p>
           <p><strong>Network:</strong> Celo Mainnet</p>
         </div>
         <button onclick="displaySupportLinks()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
-          📋 Destek Listesine Dön
+          📋 Back to Support List
         </button>
       </div>
     `;
   }
 });
 
-// Governance butonu
+// Governance button
 governanceBtn.addEventListener("click", async () => {
   contentArea.innerHTML = `
     <h2>🏛️ Community Governance</h2>
@@ -261,7 +260,7 @@ governanceBtn.addEventListener("click", async () => {
   await showProposals();
 });
 
-// Proposal'ları göster
+// Show proposals
 async function showProposals() {
   const proposals = await loadProposals();
   const list = document.getElementById("proposalList");
@@ -297,7 +296,7 @@ async function showProposals() {
   );
 }
 
-// Badge butonu
+// Badge button
 badgeBtn.addEventListener("click", async () => {
   const badges = await loadUserBadges();
   contentArea.innerHTML = `
@@ -308,7 +307,7 @@ badgeBtn.addEventListener("click", async () => {
   `;
 });
 
-// Profile butonu
+// Profile button
 profileBtn.addEventListener("click", async () => {
   const profile = await loadUserProfile();
   contentArea.innerHTML = `
