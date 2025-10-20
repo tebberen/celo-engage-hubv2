@@ -8,12 +8,107 @@ import {
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
-// ✅ MISSING FUNCTION WE ADDED
+// ✅ GÜNCELLENDİ: Kullanıcı adı state'i eklendi
 let userAddress = "";
+let username = "";
 
 function getUserAddress() {
     return userAddress || "0x0000000000000000000000000000000000000000";
 }
+
+// ✅ YENİ: Otomatik profil kontrolü ve oluşturma
+async function handleProfileAfterConnect() {
+  const hasProfile = await checkProfile();
+  
+  if (!hasProfile) {
+    // Profil yoksa, otomatik olarak profil oluşturma formunu göster
+    showProfileSetupForm();
+  } else {
+    // Profil varsa, ana sayfayı göster
+    displaySupportLinks();
+    // Profil bilgilerini yükle
+    const profile = await loadUserProfile();
+    if (profile) {
+      username = profile.username;
+    }
+  }
+}
+
+// ✅ YENİ: Profil oluşturma formu
+function showProfileSetupForm() {
+  const contentArea = document.getElementById("contentArea");
+  contentArea.innerHTML = `
+    <div class="step-indicator">
+      <span class="step-number">👤</span> Create Your Profile
+    </div>
+    <div class="step-container">
+      <h3>🚀 Welcome to Celo Engage Hub!</h3>
+      <p>To get started, please create your profile on the Celo network.</p>
+      
+      <div style="text-align: left; max-width: 400px; margin: 0 auto;">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold;">Username:</label>
+          <input type="text" id="usernameInput" placeholder="Enter your username" 
+                 style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #FBCC5C;" />
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold;">Profile Link (optional):</label>
+          <input type="text" id="linkInput" placeholder="https://x.com/yourprofile" 
+                 style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #FBCC5C;" />
+        </div>
+      </div>
+
+      <button onclick="createProfile()" 
+              style="background: #35D07F; color: black; padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin: 10px;">
+        ✅ Create Profile on Celo
+      </button>
+      
+      <p style="font-size: 12px; color: #666; margin-top: 15px;">
+        This will create your profile on the Celo blockchain. Gas fees may apply.
+      </p>
+    </div>
+  `;
+}
+
+// ✅ YENİ: Profil oluşturma fonksiyonu (global)
+window.createProfile = async function() {
+  const usernameInput = document.getElementById("usernameInput");
+  const linkInput = document.getElementById("linkInput");
+  
+  const usernameValue = usernameInput.value.trim();
+  const linkValue = linkInput.value.trim() || `https://celo.org/u/${usernameValue}`;
+  
+  if (!usernameValue) {
+    alert("Please enter a username");
+    return;
+  }
+  
+  try {
+    // Butonu devre dışı bırak ve yükleme durumunu göster
+    const button = document.querySelector('button[onclick="createProfile()"]');
+    button.innerHTML = "⏳ Creating Profile...";
+    button.disabled = true;
+    
+    const success = await setupUserProfile(usernameValue, linkValue);
+    
+    if (success) {
+      username = usernameValue;
+      button.innerHTML = "✅ Profile Created!";
+      setTimeout(() => {
+        displaySupportLinks();
+      }, 1500);
+    } else {
+      button.innerHTML = "❌ Failed - Try Again";
+      button.disabled = false;
+    }
+  } catch (error) {
+    console.error("Profile creation error:", error);
+    const button = document.querySelector('button[onclick="createProfile()"]');
+    button.innerHTML = "❌ Error - Try Again";
+    button.disabled = false;
+  }
+};
 
 // DOM Elements
 const walletActionBtn = document.getElementById("walletActionBtn");
@@ -173,13 +268,14 @@ window.addEventListener("DOMContentLoaded", () => {
   displaySupportLinks();
 });
 
-// Wallet connection
+// Wallet connection - GÜNCELLENDİ
 walletActionBtn.addEventListener("click", async () => {
   const isConnected = walletActionBtn.textContent.includes("Disconnect");
 
   if (isConnected) {
     await disconnectWallet();
     userAddress = "";
+    username = "";
     walletActionBtn.textContent = "Connect Wallet";
     document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span id="networkLabel">—</span>`;
   } else {
@@ -188,7 +284,9 @@ walletActionBtn.addEventListener("click", async () => {
       userAddress = result.userAddress;
       walletActionBtn.textContent = "Disconnect";
       document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
-      await checkProfile();
+      
+      // ✅ YENİ: Cüzdan bağlandıktan sonra profil kontrolü
+      await handleProfileAfterConnect();
     }
   }
 });
