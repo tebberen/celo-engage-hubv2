@@ -3,7 +3,7 @@ import { connectWalletMetaMask, disconnectWallet } from "./services/walletServic
 import { 
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
   loadUserBadges, loadProposals, donateCelo, checkProfile,
-  submitEmptyTransaction  // ✅ Yeni fonksiyonu ekledik
+  submitEmptyTransaction  // ✅ Yeni kontrat ile link gönderme
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -143,20 +143,20 @@ function showLinkSubmitForm() {
   `;
 }
 
-// ✅ GÜNCELLENMİŞ: Transaction ile link gönderme
+// ✅ GÜNCELLENMİŞ: Yeni kontrat ile link gönderme
 async function submitUserLink() {
   const userLink = document.getElementById('userLinkInput').value.trim();
   if (!userLink) return alert("Lütfen linkinizi girin!");
   
   try {
-    // ✅ Önce Celo ağında transaction at
-    const txSuccess = await submitEmptyTransaction();
+    // ✅ Yeni kontrat ile transaction at (userLink parametresi eklendi)
+    const txSuccess = await submitEmptyTransaction(userLink);
     
-    // ✅ Transaction başarılıysa localStorage'a kaydet
+    // ✅ Transaction başarılıysa hem blockchain'e kaydedildi hem de localStorage'a
     if (txSuccess) {
       const currentUserAddress = getUserAddress();
       saveLinkToLocalStorage(userLink, currentUserAddress);
-      alert("✅ Teşekkürler! Linkiniz topluluk listesine eklendi.");
+      alert("✅ Teşekkürler! Linkiniz hem blockchain'de hem de topluluk listesinde yayınlandı.");
       displaySupportLinks();
     }
   } catch (error) {
