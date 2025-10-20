@@ -112,7 +112,6 @@ function displaySupportLinks() {
 function handleSupportClick(linkUrl) {
   const currentUserAddress = getUserAddress();
   if (!currentUserAddress || currentUserAddress === "0x0000000000000000000000000000000000000000") {
-    alert("Please connect your wallet first!");
     return;
   }
   
@@ -144,25 +143,21 @@ function showLinkSubmitForm() {
   `;
 }
 
-// ✅ UPDATED: Send link with new contract
+// ✅ UPDATED: Send link with new contract (no alerts)
 async function submitUserLink() {
   const userLink = document.getElementById('userLinkInput').value.trim();
-  if (!userLink) return alert("Please enter your link!");
+  if (!userLink) return;
   
   try {
-    // ✅ New contract transaction (userLink parameter added)
     const txSuccess = await submitEmptyTransaction(userLink);
     
-    // ✅ If transaction successful, saved to both blockchain and localStorage
     if (txSuccess) {
       const currentUserAddress = getUserAddress();
       saveLinkToLocalStorage(userLink, currentUserAddress);
-      alert("✅ Thank you! Your link has been published on both blockchain and community list.");
       displaySupportLinks();
     }
   } catch (error) {
     console.error("Submit error:", error);
-    alert("❌ Link could not be submitted.");
   }
 }
 
@@ -206,16 +201,15 @@ donateButtons.forEach((btn) => {
   });
 });
 
-// ✅ UPDATED: GM button - Now sends real transaction!
+// ✅ UPDATED: GM button - No alerts
 gmBtn.addEventListener("click", async () => {
   await sendGmTransaction();
 });
 
-// ✅ UPDATED: Deploy button - Now deploys real contract!
+// ✅ UPDATED: Deploy button - No alerts
 deployBtn.addEventListener("click", async () => {
   const deployedAddress = await deployUserContract();
   if (deployedAddress) {
-    // Show contract info after successful deploy
     const userContracts = await getUserDeployedContracts();
     contentArea.innerHTML = `
       <div class="step-indicator">
@@ -252,7 +246,7 @@ governanceBtn.addEventListener("click", async () => {
   document.getElementById("createProposalBtn").addEventListener("click", async () => {
     const title = document.getElementById("proposalTitle").value.trim();
     const desc = document.getElementById("proposalDescription").value.trim();
-    if (!title || !desc) return alert("❌ Please fill all fields.");
+    if (!title || !desc) return;
     await createProposal(title, desc);
     await showProposals();
   });
@@ -336,9 +330,8 @@ profileBtn.addEventListener("click", async () => {
     setupBtn.addEventListener("click", async () => {
       const username = document.getElementById("username").value.trim();
       const link = document.getElementById("link").value.trim();
-      if (!username || !link) return alert("❌ Please fill all fields.");
+      if (!username || !link) return;
       await setupUserProfile(username, link);
-      alert("✅ Profile setup complete!");
     });
   }
 });
