@@ -3,17 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- ✅ CSP GÜNCELLENDİ: img-src eklendi -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self'; 
-    script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; 
-    style-src 'self' 'unsafe-inline'; 
-    connect-src *;
-    img-src 'self' data:;
-  ">
+  <!-- ✅ BASİT CSP - Tüm güvenlik kısıtlamalarını kaldır (geliştirme için) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src * 'unsafe-inline';">
   <title>Celo Engage Hub</title>
   <link rel="stylesheet" href="src/styles/main.css" />
-  <!-- ✅ FAVICON EKLENDİ -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
   <style>
     .wallet-btn {
@@ -40,7 +33,6 @@
       border: 1px solid #ddd;
     }
     
-    /* Yeni eklenen stiller */
     .step-indicator {
       margin: 0 0 20px 0;
       font-weight: bold;
@@ -152,7 +144,6 @@
     </header>
 
     <div class="container">
-      <!-- Sol panel -->
       <aside class="sidebar">
         <div class="wallet-box">
           <div id="walletStatus">
@@ -176,7 +167,6 @@
         <div class="ecosystem-box">
           <h3>🟡 Celo Ecosystem</h3>
           <ul>
-            <!-- ✅ SABİT LINKLER - JavaScript hatasından kurtulmak için -->
             <li><a href="https://celo.org" target="_blank">🌍 Celo Official</a></li>
             <li><a href="https://docs.celo.org" target="_blank">📘 Celo Documentation</a></li>
             <li><a href="https://developers.celo.org" target="_blank">💻 Developer Portal</a></li>
@@ -190,7 +180,6 @@
         </div>
       </aside>
 
-      <!-- Ana içerik -->
       <main class="main-content">
         <section class="support-section" id="contentArea">
           <div class="step-indicator">
@@ -212,28 +201,12 @@
     </div>
   </div>
 
-  <!-- ✅ Ethers.js global olarak yüklendi - GÜVENLİ VERSİYON -->
-  <script>
-    // Ethers.js yükleme kontrolü
-    if (typeof window.ethers === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js';
-      script.onload = function() {
-        console.log('✅ Ethers.js loaded successfully');
-        // Ethers yüklendikten sonra uygulamayı başlat
-        if (typeof startApp === 'function') {
-          startApp();
-        }
-      };
-      script.onerror = function() {
-        console.error('❌ Failed to load Ethers.js');
-        alert('Ethers.js yüklenemedi. Lütfen sayfayı yenileyin.');
-      };
-      document.head.appendChild(script);
-    }
-  </script>
-
-  <!-- ✅ Tüm işlemleri yöneten ana modül -->
+  <!-- ✅ Ethers.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  
+  <!-- ✅ Tüm JavaScript dosyaları -->
+  <script type="module" src="src/services/walletService.js"></script>
+  <script type="module" src="src/services/contractService.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
