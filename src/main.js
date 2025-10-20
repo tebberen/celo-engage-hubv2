@@ -3,7 +3,7 @@ import { connectWalletMetaMask, disconnectWallet } from "./services/walletServic
 import { 
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
   loadUserBadges, loadProposals, donateCelo, checkProfile,
-  submitEmptyTransaction  // ✅ Yeni kontrat ile link gönderme
+  submitEmptyTransaction, sendGmTransaction  // ✅ GM fonksiyonu eklendi
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -24,7 +24,7 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — transaction system active");
+console.log("🚀 Celo Engage Hub V2 loaded — GM transaction system active");
 
 // localStorage fonksiyonları
 function supportLinkInLocalStorage(link, userAddress) {
@@ -205,9 +205,9 @@ donateButtons.forEach((btn) => {
   });
 });
 
-// GM butonu
+// ✅ GÜNCELLENMİŞ: GM butonu - Artık gerçek transaction atacak!
 gmBtn.addEventListener("click", async () => {
-  alert("☀️ Sending GM transaction... (placeholder)");
+  await sendGmTransaction();
 });
 
 // Deploy butonu
