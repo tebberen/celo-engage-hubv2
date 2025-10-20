@@ -3,7 +3,8 @@ import { connectWalletMetaMask, disconnectWallet } from "./services/walletServic
 import { 
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
   loadUserBadges, loadProposals, donateCelo, checkProfile,
-  submitEmptyTransaction, sendGmTransaction  // ✅ GM fonksiyonu eklendi
+  submitEmptyTransaction, sendGmTransaction,
+  deployUserContract, getUserDeployedContracts  // ✅ Yeni fonksiyonlar eklendi
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -24,7 +25,7 @@ const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
 
-console.log("🚀 Celo Engage Hub V2 loaded — GM transaction system active");
+console.log("🚀 Celo Engage Hub V2 loaded — GM & Deploy transaction system active");
 
 // localStorage fonksiyonları
 function supportLinkInLocalStorage(link, userAddress) {
@@ -210,9 +211,30 @@ gmBtn.addEventListener("click", async () => {
   await sendGmTransaction();
 });
 
-// Deploy butonu
+// ✅ GÜNCELLENMİŞ: Deploy butonu - Artık gerçek kontrat deploy edecek!
 deployBtn.addEventListener("click", async () => {
-  alert("🧱 Deploy feature coming soon!");
+  const deployedAddress = await deployUserContract();
+  if (deployedAddress) {
+    // Başarılı deploy sonrası kullanıcıya kontrat bilgilerini göster
+    const userContracts = await getUserDeployedContracts();
+    contentArea.innerHTML = `
+      <div class="step-indicator">
+        <span class="step-number">🎉</span> Kontratınız Deploy Edildi!
+      </div>
+      <div class="step-container">
+        <h3>🚀 Smart Contract'ınız Hazır!</h3>
+        <p>Artık kendi Gm kontratınızı kullanabilirsiniz.</p>
+        <div class="info-card">
+          <p><strong>Kontrat Adresi:</strong> ${deployedAddress !== "deployed" ? deployedAddress : "Event'ten alınamadı"}</p>
+          <p><strong>Toplam Kontrat Sayınız:</strong> ${userContracts.length}</p>
+          <p><strong>Network:</strong> Celo Mainnet</p>
+        </div>
+        <button onclick="displaySupportLinks()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+          📋 Destek Listesine Dön
+        </button>
+      </div>
+    `;
+  }
 });
 
 // Governance butonu
