@@ -7,7 +7,6 @@ import {
   FACTORY_CONTRACT_ADDRESS, FACTORY_CONTRACT_ABI
 } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
 // ✅ ESKİ Contract yükle (diğer işlemler için)
 function getContract() {
