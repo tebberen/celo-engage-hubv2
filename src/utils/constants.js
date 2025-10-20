@@ -1,4 +1,5 @@
 // ========================= CELO ENGAGE HUB V2 — CONSTANTS ========================= //
+
 // ✅ ESKİ KONTART (diğer işlemler için)
 export const CONTRACT_ADDRESS = "0x22eA49c074098931a478F381f971C77486d185b2";
 export const CONTRACT_ABI = [
@@ -156,6 +157,62 @@ export const LINK_CONTRACT_ABI = [
 	}
 ];
 
+// ✅ YENİ GM KONTARTI
+export const GM_CONTRACT_ADDRESS = "0x2a3b04e460f93bf0964125c694af66838c5dabf0";
+export const GM_CONTRACT_ABI = [
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "message",
+				"type": "string"
+			}
+		],
+		"name": "GmSent",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_message",
+				"type": "string"
+			}
+		],
+		"name": "sendGm",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getGmCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	}
+];
+
 export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
 
 // ✅ Celo ağ parametreleri
@@ -188,7 +245,7 @@ export const INITIAL_SUPPORT_LINKS = [
   "https://github.com/tebberen"
 ];
 
-// 🟡 Celo Ecosystem bağlantıları - BU MUTLAKA OLMALI!
+// 🟡 Celo Ecosystem bağlantıları
 export const CELO_ECOSYSTEM_LINKS = [
   { name: "🌍 Celo Official",       url: "https://celo.org" },
   { name: "📘 Celo Documentation",  url: "https://docs.celo.org" },
