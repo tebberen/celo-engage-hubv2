@@ -122,7 +122,7 @@ export async function getUserDeployedContracts() {
   }
 }
 
-// 🧩 Profil kontrolü (alert yok)
+// 🧩 Profil kontrolü (GÜNCELLENDİ - daha basit ve etkili)
 export async function checkProfile() {
   try {
     const provider = getProvider();
@@ -135,44 +135,31 @@ export async function checkProfile() {
     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const profile = await contract.getUserProfile(userAddress);
     const isActive = profile.isActive || profile[5];
-
-    if (isActive) {
-      return true;
-    } else {
-      const contentArea = document.getElementById("contentArea");
-      if (contentArea) {
-        contentArea.innerHTML = `
-          <h2>🆔 Setup Your Profile</h2>
-          <div class="info-card">
-            <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
-            <input type="text" id="link" placeholder="Enter your link (e.g. https://x.com/...)" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
-            <button id="setupProfileBtn">🚀 Setup Profile</button>
-          </div>
-        `;
-        document.getElementById("setupProfileBtn").addEventListener("click", async () => {
-          const username = document.getElementById("username").value.trim();
-          const link = document.getElementById("link").value.trim();
-          if (!username || !link) return;
-          await setupUserProfile(username, link);
-        });
-      }
-      return false;
-    }
+    
+    return isActive;
   } catch (err) {
     console.error("Profile check error:", err);
     return false;
   }
 }
 
-// 🧾 Profil oluşturma (on-chain TX) - alert yok
+// 🧾 Profil oluşturma (on-chain TX) - GÜNCELLENDİ - daha iyi hata yönetimi
 export async function setupUserProfile(username, link) {
   try {
     const signer = getSigner();
-    if (!signer) return false;
+    if (!signer) {
+      console.error("No signer available");
+      return false;
+    }
 
     const contract = getContract();
-    const tx = await contract.registerUser(username, link);
+    const tx = await contract.registerUser(username, link, {
+      gasLimit: 300000 // Gas limit artırıldı
+    });
+    
+    console.log("Profile creation transaction sent:", tx.hash);
     await tx.wait();
+    console.log("Profile created successfully");
     return true;
   } catch (err) {
     console.error("Setup profile error:", err);
