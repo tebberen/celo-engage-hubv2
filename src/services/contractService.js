@@ -1,286 +1,351 @@
-// ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
-
+// ========================= CELO ENGAGE HUB V2 - MAIN SCRIPT ========================= //
+import { connectWalletMetaMask, disconnectWallet } from "./services/walletService.js";
 import { 
-  CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS,
-  LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI,
-  GM_CONTRACT_ADDRESS, GM_CONTRACT_ABI
-} from "../utils/constants.js";
-import { getProvider, getSigner, getUserAddress } from "./walletService.js";
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+  setupUserProfile, createProposal, voteProposal, loadUserProfile,
+  loadUserBadges, loadProposals, donateCelo, checkProfile,
+  submitEmptyTransaction, sendGmTransaction,
+  deployUserContract, getUserDeployedContracts  // ✅ Yeni fonksiyonlar eklendi
+} from "./services/contractService.js";
+import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
-// ✅ ESKİ Contract yükle (diğer işlemler için)
-function getContract() {
-  const signer = getSigner();
-  if (!signer) throw new Error("❌ Wallet not connected");
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+// ✅ EKSİK FONKSİYONU EKLİYORUZ
+let userAddress = "";
+
+function getUserAddress() {
+    return userAddress || "0x0000000000000000000000000000000000000000";
 }
 
-// ✅ YENİ Contract yükle (sadece link göndermek için)
-function getLinkContract() {
-  const signer = getSigner();
-  if (!signer) throw new Error("❌ Wallet not connected");
-  return new ethers.Contract(LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI, signer);
-}
+// DOM Elementleri
+const walletActionBtn = document.getElementById("walletActionBtn");
+const donateButtons = document.querySelectorAll(".donate-buttons button");
+const gmBtn = document.getElementById("gmBtn");
+const deployBtn = document.getElementById("deployBtn");
+const governanceBtn = document.getElementById("governanceBtn");
+const badgeBtn = document.getElementById("badgeBtn");
+const profileBtn = document.getElementById("profileBtn");
+const contentArea = document.getElementById("contentArea");
 
-// ✅ GM Contract yükle
-function getGmContract() {
-  const signer = getSigner();
-  if (!signer) throw new Error("❌ Wallet not connected");
-  return new ethers.Contract(GM_CONTRACT_ADDRESS, GM_CONTRACT_ABI, signer);
-}
+console.log("🚀 Celo Engage Hub V2 loaded — GM & Deploy transaction system active");
 
-// ✅ YENİ: Link gönderim fonksiyonu (YENİ kontrat ile)
-export async function submitEmptyTransaction(userLink) {
-  try {
-    const signer = getSigner();
-    if (!signer) {
-      alert("⚠️ Lütfen önce wallet bağlayın!");
-      return false;
-    }
-
-    const contract = getLinkContract(); // ✅ YENİ kontratı kullan
-    
-    // ✅ Yeni kontratın leaveMyLink fonksiyonunu çağır
-    const tx = await contract.leaveMyLink(userLink, {
-      gasLimit: 200000
-    });
-    
-    alert("⏳ Celo ağına transaction gönderiliyor...\nTX: " + tx.hash);
-    await tx.wait();
-    alert("✅ Transaction onaylandı! Linkiniz blockchain'de kaydedildi.");
+// localStorage fonksiyonları
+function supportLinkInLocalStorage(link, userAddress) {
+  const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  const linkIndex = links.findIndex(l => l.link === link);
+  
+  if (linkIndex !== -1) {
+    links[linkIndex].supportCount++;
+    localStorage.setItem('celoEngageLinks', JSON.stringify(links));
     return true;
-  } catch (err) {
-    console.error("Transaction error:", err);
-    if (err.code === 4001) {
-      alert("❌ Transaction kullanıcı tarafından reddedildi.");
-    } else if (err.code === 'INSUFFICIENT_FUNDS') {
-      alert("❌ Gas ücreti için yeterli CELO yok. Lütfen CELO ekleyin.");
-    } else {
-      alert("⚠️ Transaction başarısız: " + (err?.message || err));
-    }
-    return false;
   }
+  return false;
 }
 
-// ✅ YENİ: GM Transaction fonksiyonu
-export async function sendGmTransaction() {
-  try {
-    const signer = getSigner();
-    if (!signer) {
-      alert("⚠️ Lütfen önce wallet bağlayın!");
-      return false;
-    }
-
-    const gmContract = getGmContract();
-    
-    // GM mesajı ile transaction gönder
-    const tx = await gmContract.sendGm("🌅 GM from Celo Engage Hub!", {
-      gasLimit: 100000
-    });
-    
-    alert("⏳ GM transactionı gönderiliyor...\nTX: " + tx.hash);
-    await tx.wait();
-    alert("✅ GM başarıyla gönderildi! Blockchain'de kaydedildi.");
-    return true;
-  } catch (err) {
-    console.error("GM gönderim hatası:", err);
-    if (err.code === 4001) {
-      alert("❌ Transaction kullanıcı tarafından reddedildi.");
-    } else if (err.code === 'INSUFFICIENT_FUNDS') {
-      alert("❌ Gas ücreti için yeterli CELO yok.");
-    } else {
-      alert("⚠️ GM gönderilemedi: " + (err?.message || err));
-    }
-    return false;
-  }
+function saveLinkToLocalStorage(link, userAddress) {
+  const links = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  const newLink = {
+    link: link,
+    submitter: userAddress,
+    supportCount: 0,
+    timestamp: Date.now()
+  };
+  links.push(newLink);
+  localStorage.setItem('celoEngageLinks', JSON.stringify(links));
 }
 
-// 🧩 Profil kontrolü (ESKİ kontrat ile - AYNI KALDI)
-export async function checkProfile() {
-  try {
-    const provider = getProvider();
-    const userAddress = getUserAddress();
+function getLinksFromLocalStorage() {
+  const storedLinks = JSON.parse(localStorage.getItem('celoEngageLinks') || '[]');
+  
+  if (storedLinks.length === 0) {
+    const initialLinks = INITIAL_SUPPORT_LINKS.map(link => ({
+      link: link,
+      submitter: "community",
+      supportCount: 0,
+      timestamp: Date.now()
+    }));
+    localStorage.setItem('celoEngageLinks', JSON.stringify(initialLinks));
+    return initialLinks;
+  }
+  
+  return storedLinks;
+}
 
-    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-      alert("⚠️ Wallet not connected. Please reconnect MetaMask.");
-      return false;
-    }
+function getPlatformName(url) {
+  if (url.includes('x.com') || url.includes('twitter.com')) return '🐦 X';
+  if (url.includes('farcaster.xyz') || url.includes('warpcast.com')) return '🔮 Farcaster';
+  if (url.includes('github.com')) return '💻 GitHub';
+  if (url.includes('youtube.com')) return '📺 YouTube';
+  if (url.includes('discord.com')) return '💬 Discord';
+  return '🌐 Website';
+}
 
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const profile = await contract.getUserProfile(userAddress);
-    const isActive = profile.isActive || profile[5];
+function displaySupportLinks() {
+  const container = document.getElementById('linksContainer');
+  if (!container) return;
 
-    if (isActive) {
-      alert("👤 Profile detected on-chain. Welcome back!");
-      return true;
-    } else {
-      alert("🆕 No profile found. Please create one.");
-
-      const contentArea = document.getElementById("contentArea");
-      if (contentArea) {
-        contentArea.innerHTML = `
-          <h2>🆔 Setup Your Profile</h2>
-          <div class="info-card">
-            <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
-            <input type="text" id="link" placeholder="Enter your link (e.g. https://x.com/...)" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
-            <button id="setupProfileBtn">🚀 Setup Profile</button>
+  const links = getLinksFromLocalStorage();
+  container.innerHTML = '';
+  
+  links.forEach((linkData) => {
+    const platform = getPlatformName(linkData.link);
+    const linkCard = document.createElement('div');
+    linkCard.innerHTML = `
+      <div class="link-card">
+        <div>
+          <div class="link-platform">${platform}</div>
+          <a href="${linkData.link}" target="_blank" class="support-link">
+            ${linkData.link}
+          </a>
+        </div>
+        <div class="link-stats">
+          <div class="stat-item">
+            <div>Supports</div>
+            <div class="stat-value">${linkData.supportCount}/5</div>
           </div>
-        `;
-        document.getElementById("setupProfileBtn").addEventListener("click", async () => {
-          const username = document.getElementById("username").value.trim();
-          const link = document.getElementById("link").value.trim();
-          if (!username || !link) return alert("❌ Please fill all fields.");
-          await setupUserProfile(username, link);
-        });
+        </div>
+        <button class="supportBtn" onclick="handleSupportClick('${linkData.link}')">👍 Support This Content</button>
+      </div>
+    `;
+    container.appendChild(linkCard);
+  });
+}
+
+function handleSupportClick(linkUrl) {
+  const currentUserAddress = getUserAddress();
+  if (!currentUserAddress || currentUserAddress === "0x0000000000000000000000000000000000000000") {
+    alert("Lütfen önce wallet bağlayın!");
+    return;
+  }
+  
+  const success = supportLinkInLocalStorage(linkUrl, currentUserAddress);
+  if (success) {
+    showLinkSubmitForm();
+  }
+}
+
+function showLinkSubmitForm() {
+  const contentArea = document.getElementById('contentArea');
+  contentArea.innerHTML = `
+    <div class="step-indicator">
+      <span class="step-number">2</span> Your Turn to Share!
+    </div>
+    <div class="step-container">
+      <h3>🎉 Share Your Own Link</h3>
+      <p>You supported a community member. Now share your own link!</p>
+      <input type="text" id="userLinkInput" placeholder="Paste your X, Farcaster, GitHub link..." 
+             style="width: 80%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 2px solid #FBCC5C;" />
+      <button onclick="submitUserLink()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+        ✍️ Submit Your Link
+      </button>
+      <br>
+      <button onclick="displaySupportLinks()" style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin: 5px;">
+        ← Back to Support List
+      </button>
+    </div>
+  `;
+}
+
+// ✅ GÜNCELLENMİŞ: Yeni kontrat ile link gönderme
+async function submitUserLink() {
+  const userLink = document.getElementById('userLinkInput').value.trim();
+  if (!userLink) return alert("Lütfen linkinizi girin!");
+  
+  try {
+    // ✅ Yeni kontrat ile transaction at (userLink parametresi eklendi)
+    const txSuccess = await submitEmptyTransaction(userLink);
+    
+    // ✅ Transaction başarılıysa hem blockchain'e kaydedildi hem de localStorage'a
+    if (txSuccess) {
+      const currentUserAddress = getUserAddress();
+      saveLinkToLocalStorage(userLink, currentUserAddress);
+      alert("✅ Teşekkürler! Linkiniz hem blockchain'de hem de topluluk listesinde yayınlandı.");
+      displaySupportLinks();
+    }
+  } catch (error) {
+    console.error("Submit error:", error);
+    alert("❌ Link gönderilemedi.");
+  }
+}
+
+// DOM yüklendiğinde
+window.addEventListener("DOMContentLoaded", () => {
+  const ecosystemBox = document.querySelector(".ecosystem-box ul");
+  if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
+    ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
+      .map(link => `<li><a href="${link.url}" target="_blank">${link.name}</a></li>`)
+      .join("");
+  }
+
+  displaySupportLinks();
+});
+
+// Wallet bağlantısı
+walletActionBtn.addEventListener("click", async () => {
+  const isConnected = walletActionBtn.textContent.includes("Disconnect");
+
+  if (isConnected) {
+    await disconnectWallet();
+    userAddress = "";
+    walletActionBtn.textContent = "Connect Wallet";
+    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span id="networkLabel">—</span>`;
+  } else {
+    const result = await connectWalletMetaMask();
+    if (result) {
+      userAddress = result.userAddress;
+      walletActionBtn.textContent = "Disconnect";
+      document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
+      await checkProfile();
+    }
+  }
+});
+
+// Donate işlemleri
+donateButtons.forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const amount = btn.getAttribute("data-amount");
+    await donateCelo(amount);
+  });
+});
+
+// ✅ GÜNCELLENMİŞ: GM butonu - Artık gerçek transaction atacak!
+gmBtn.addEventListener("click", async () => {
+  await sendGmTransaction();
+});
+
+// ✅ GÜNCELLENMİŞ: Deploy butonu - Artık gerçek kontrat deploy edecek!
+deployBtn.addEventListener("click", async () => {
+  const deployedAddress = await deployUserContract();
+  if (deployedAddress) {
+    // Başarılı deploy sonrası kullanıcıya kontrat bilgilerini göster
+    const userContracts = await getUserDeployedContracts();
+    contentArea.innerHTML = `
+      <div class="step-indicator">
+        <span class="step-number">🎉</span> Kontratınız Deploy Edildi!
+      </div>
+      <div class="step-container">
+        <h3>🚀 Smart Contract'ınız Hazır!</h3>
+        <p>Artık kendi Gm kontratınızı kullanabilirsiniz.</p>
+        <div class="info-card">
+          <p><strong>Kontrat Adresi:</strong> ${deployedAddress !== "deployed" ? deployedAddress : "Event'ten alınamadı"}</p>
+          <p><strong>Toplam Kontrat Sayınız:</strong> ${userContracts.length}</p>
+          <p><strong>Network:</strong> Celo Mainnet</p>
+        </div>
+        <button onclick="displaySupportLinks()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+          📋 Destek Listesine Dön
+        </button>
+      </div>
+    `;
+  }
+});
+
+// Governance butonu
+governanceBtn.addEventListener("click", async () => {
+  contentArea.innerHTML = `
+    <h2>🏛️ Community Governance</h2>
+    <div class="info-card">
+      <h3>Create New Proposal</h3>
+      <input type="text" id="proposalTitle" placeholder="Proposal title" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
+      <textarea id="proposalDescription" rows="3" placeholder="Proposal description" style="width:80%;padding:8px;border-radius:6px;border:1px solid #ccc;"></textarea>
+      <button id="createProposalBtn">📝 Submit Proposal</button>
+    </div>
+    <div id="proposalList"></div>
+  `;
+
+  document.getElementById("createProposalBtn").addEventListener("click", async () => {
+    const title = document.getElementById("proposalTitle").value.trim();
+    const desc = document.getElementById("proposalDescription").value.trim();
+    if (!title || !desc) return alert("❌ Please fill all fields.");
+    await createProposal(title, desc);
+    await showProposals();
+  });
+
+  await showProposals();
+});
+
+// Proposal'ları göster
+async function showProposals() {
+  const proposals = await loadProposals();
+  const list = document.getElementById("proposalList");
+  list.innerHTML = "";
+
+  if (!proposals.length) {
+    list.innerHTML = "<p>No active proposals yet.</p>";
+    return;
+  }
+
+  proposals.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "info-card";
+    card.innerHTML = `
+      <h4>${p.title}</h4>
+      <p>${p.description}</p>
+      <p>👍 ${p.votesFor} | 👎 ${p.votesAgainst}</p>
+      <button class="voteForBtn" data-id="${p.id}">👍 Support</button>
+      <button class="voteAgainstBtn" data-id="${p.id}">👎 Oppose</button>
+    `;
+    list.appendChild(card);
+  });
+
+  document.querySelectorAll(".voteForBtn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      await voteProposal(btn.getAttribute("data-id"), true);
+    })
+  );
+  document.querySelectorAll(".voteAgainstBtn").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      await voteProposal(btn.getAttribute("data-id"), false);
+    })
+  );
+}
+
+// Badge butonu
+badgeBtn.addEventListener("click", async () => {
+  const badges = await loadUserBadges();
+  contentArea.innerHTML = `
+    <h2>🎖️ Your Badges</h2>
+    <div class="info-card">
+      ${badges.length ? badges.map((b) => `<p>🏅 ${b}</p>`).join("") : "<p>No badges yet.</p>"}
+    </div>
+  `;
+});
+
+// Profile butonu
+profileBtn.addEventListener("click", async () => {
+  const profile = await loadUserProfile();
+  contentArea.innerHTML = `
+    <h2>👤 Your Profile</h2>
+    <div class="info-card">
+      ${
+        profile && profile.isActive
+          ? `
+        <p><strong>Username:</strong> ${profile.username}</p>
+        <p><strong>Link:</strong> <a href="${profile.link}" target="_blank">${profile.link}</a></p>
+        <p><strong>Supports:</strong> ${profile.supportCount}</p>
+        <p><strong>Badges:</strong> ${profile.badgeCount}</p>
+      `
+          : `
+        <p>Setup your profile</p>
+        <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
+        <input type="text" id="link" placeholder="Enter your link" style="width:80%;padding:8px;margin-bottom:8px;border-radius:6px;border:1px solid #ccc;" />
+        <button id="setupProfileBtn">🚀 Setup Profile</button>
+      `
       }
-      return false;
-    }
-  } catch (err) {
-    console.error("Profile check error:", err);
-    alert("⚠️ Profile check failed. Please try again.");
-    return false;
-  }
-}
+    </div>
+  `;
 
-// 🧾 Profil oluşturma (on-chain TX) - ESKİ kontrat ile - AYNI KALDI
-export async function setupUserProfile(username, link) {
-  try {
-    const signer = getSigner();
-    if (!signer) return alert("Please connect your wallet first.");
-
-    const contract = getContract();
-    const tx = await contract.registerUser(username, link);
-
-    alert("📡 Sending transaction to Celo...");
-    await tx.wait();
-
-    alert("✅ Profile setup complete!");
-    return true;
-  } catch (err) {
-    console.error("Setup profile error:", err);
-    if (err.code === 4001) alert("❌ Transaction rejected by user.");
-    else alert("⚠️ Profile creation failed.");
-    return false;
-  }
-}
-
-// 💛 Donate işlemi (CELO gönder) - AYNI KALDI
-export async function donateCelo(amount) {
-  const signer = getSigner();
-  const userAddress = getUserAddress();
-
-  if (!signer || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-    alert("⚠️ Please connect your wallet first!");
-    return false;
-  }
-
-  try {
-    const value = ethers.utils.parseEther(String(amount));
-    const tx = await signer.sendTransaction({
-      to: DONATION_ADDRESS,
-      value
+  const setupBtn = document.getElementById("setupProfileBtn");
+  if (setupBtn) {
+    setupBtn.addEventListener("click", async () => {
+      const username = document.getElementById("username").value.trim();
+      const link = document.getElementById("link").value.trim();
+      if (!username || !link) return alert("❌ Please fill all fields.");
+      await setupUserProfile(username, link);
+      alert("✅ Profile setup complete!");
     });
-    alert(`💛 Donating ${amount} CELO...\nTX: ${tx.hash}`);
-    await tx.wait();
-    alert("✅ Donation successful! Thank you.");
-    return true;
-  } catch (err) {
-    console.error("Donate error:", err);
-    if (err.code === 4001) alert("❌ Transaction rejected by user.");
-    else if (String(err).includes("insufficient funds")) alert("❌ Insufficient funds.");
-    else alert("❌ Donation failed: " + (err?.message || err));
-    return false;
   }
-}
+});
 
-// 🏛️ Governance (Proposal oluştur) - ESKİ kontrat ile - AYNI KALDI
-export async function createProposal(title, description) {
-  try {
-    const signer = getSigner();
-    if (!signer) return alert("Please connect your wallet first.");
-
-    const contract = getContract();
-    const tx = await contract.createProposal(title, description, 3600);
-
-    alert("📡 Creating proposal...");
-    await tx.wait();
-    alert("✅ Proposal created!");
-  } catch (err) {
-    console.error("Create proposal error:", err);
-    alert("⚠️ Failed to create proposal.");
-  }
-}
-
-// 🗳️ Vote Proposal - ESKİ kontrat ile - AYNI KALDI
-export async function voteProposal(id, support) {
-  try {
-    const signer = getSigner();
-    if (!signer) return alert("Please connect your wallet first.");
-
-    const contract = getContract();
-    const tx = await contract.voteProposal(id, support);
-
-    alert("📡 Sending vote transaction...");
-    await tx.wait();
-    alert("✅ Vote recorded!");
-  } catch (err) {
-    console.error("Vote error:", err);
-    alert("⚠️ Vote failed.");
-  }
-}
-
-// 📜 Proposal listesi (read-only) - ESKİ kontrat ile - AYNI KALDI
-export async function loadProposals() {
-  try {
-    const provider = getProvider();
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const count = await contract.getProposalCount();
-    const proposals = [];
-
-    for (let i = 0; i < count; i++) {
-      const p = await contract.proposals(i);
-      proposals.push({
-        id: i,
-        title: p.title,
-        description: p.description,
-        votesFor: p.votesFor.toString(),
-        votesAgainst: p.votesAgainst.toString(),
-      });
-    }
-
-    return proposals;
-  } catch (err) {
-    console.error("Load proposals error:", err);
-    return [];
-  }
-}
-
-// 🎖️ Badge listesi (placeholder) - AYNI KALDI
-export async function loadUserBadges() {
-  return ["Early Supporter", "Governance Voter", "Community Builder"];
-}
-
-// 👤 Profil bilgisi (read-only) - ESKİ kontrat ile - AYNI KALDI
-export async function loadUserProfile() {
-  try {
-    const provider = getProvider();
-    const userAddress = getUserAddress();
-    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-      return null;
-    }
-
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const profile = await contract.getUserProfile(userAddress);
-    return {
-      username: profile.username || profile[1],
-      link: profile.link || profile[0],
-      supportCount: profile.supportCount || profile[2],
-      reputation: profile.reputation || profile[3],
-      badgeCount: profile.badgeCount || profile[4],
-      isActive: profile.isActive || profile[5],
-    };
-  } catch (err) {
-    console.error("Load user profile error:", err);
-    return null;
-  }
-}
+// Global functions
+window.handleSupportClick = handleSupportClick;
+window.submitUserLink = submitUserLink;
+window.displaySupportLinks = displaySupportLinks;
+```
