@@ -1,18 +1,31 @@
 // ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
 
-import { CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS } from "../utils/constants.js";
+import { 
+  CONTRACT_ADDRESS, 
+  CONTRACT_ABI, 
+  DONATION_ADDRESS,
+  LINK_CONTRACT_ADDRESS,
+  LINK_CONTRACT_ABI 
+} from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
-// ✅ Contract yükle
+// ✅ ESKİ Contract yükle (diğer işlemler için)
 function getContract() {
   const signer = getSigner();
   if (!signer) throw new Error("❌ Wallet not connected");
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 }
 
-// ✅ BOŞ TRANSACTION (Kontrat üzerinden - registerUser boş string ile)
-export async function submitEmptyTransaction() {
+// ✅ YENİ Contract yükle (sadece link göndermek için)
+function getLinkContract() {
+  const signer = getSigner();
+  if (!signer) throw new Error("❌ Wallet not connected");
+  return new ethers.Contract(LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI, signer);
+}
+
+// ✅ YENİ: Link gönderim fonksiyonu (YENİ kontrat ile)
+export async function submitEmptyTransaction(userLink) {
   try {
     const signer = getSigner();
     if (!signer) {
@@ -20,17 +33,16 @@ export async function submitEmptyTransaction() {
       return false;
     }
 
-    const contract = getContract();
+    const contract = getLinkContract(); // ✅ YENİ kontratı kullan
     
-    // Mevcut registerUser fonksiyonunu boş stringlerle çağırıyoruz
-    // Bu, kontrat üzerinde bir transaction oluşturacak ve gas harcanacak
-    const tx = await contract.registerUser("", "", {
-      gasLimit: 100000
+    // ✅ Yeni kontratın leaveMyLink fonksiyonunu çağır
+    const tx = await contract.leaveMyLink(userLink, {
+      gasLimit: 200000
     });
     
     alert("⏳ Celo ağına transaction gönderiliyor...\nTX: " + tx.hash);
     await tx.wait();
-    alert("✅ Transaction onaylandı! Linkiniz yayınlandı.");
+    alert("✅ Transaction onaylandı! Linkiniz blockchain'de kaydedildi.");
     return true;
   } catch (err) {
     console.error("Transaction error:", err);
@@ -45,7 +57,7 @@ export async function submitEmptyTransaction() {
   }
 }
 
-// 🧩 Profil kontrolü
+// 🧩 Profil kontrolü (ESKİ kontrat ile - AYNI KALDI)
 export async function checkProfile() {
   try {
     const provider = getProvider();
@@ -92,7 +104,7 @@ export async function checkProfile() {
   }
 }
 
-// 🧾 Profil oluşturma (on-chain TX)
+// 🧾 Profil oluşturma (on-chain TX) - ESKİ kontrat ile - AYNI KALDI
 export async function setupUserProfile(username, link) {
   try {
     const signer = getSigner();
@@ -114,7 +126,7 @@ export async function setupUserProfile(username, link) {
   }
 }
 
-// 💛 Donate işlemi (CELO gönder)
+// 💛 Donate işlemi (CELO gönder) - AYNI KALDI
 export async function donateCelo(amount) {
   const signer = getSigner();
   const userAddress = getUserAddress();
@@ -143,7 +155,7 @@ export async function donateCelo(amount) {
   }
 }
 
-// 🏛️ Governance (Proposal oluştur)
+// 🏛️ Governance (Proposal oluştur) - ESKİ kontrat ile - AYNI KALDI
 export async function createProposal(title, description) {
   try {
     const signer = getSigner();
@@ -161,7 +173,7 @@ export async function createProposal(title, description) {
   }
 }
 
-// 🗳️ Vote Proposal
+// 🗳️ Vote Proposal - ESKİ kontrat ile - AYNI KALDI
 export async function voteProposal(id, support) {
   try {
     const signer = getSigner();
@@ -179,7 +191,7 @@ export async function voteProposal(id, support) {
   }
 }
 
-// 📜 Proposal listesi (read-only)
+// 📜 Proposal listesi (read-only) - ESKİ kontrat ile - AYNI KALDI
 export async function loadProposals() {
   try {
     const provider = getProvider();
@@ -205,12 +217,12 @@ export async function loadProposals() {
   }
 }
 
-// 🎖️ Badge listesi (placeholder)
+// 🎖️ Badge listesi (placeholder) - AYNI KALDI
 export async function loadUserBadges() {
   return ["Early Supporter", "Governance Voter", "Community Builder"];
 }
 
-// 👤 Profil bilgisi (read-only)
+// 👤 Profil bilgisi (read-only) - ESKİ kontrat ile - AYNI KALDI
 export async function loadUserProfile() {
   try {
     const provider = getProvider();
