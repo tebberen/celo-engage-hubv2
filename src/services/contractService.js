@@ -1,11 +1,9 @@
 // ========================= CELO ENGAGE HUB V2 - CONTRACT SERVICE ========================= //
 
 import { 
-  CONTRACT_ADDRESS, 
-  CONTRACT_ABI, 
-  DONATION_ADDRESS,
-  LINK_CONTRACT_ADDRESS,
-  LINK_CONTRACT_ABI 
+  CONTRACT_ADDRESS, CONTRACT_ABI, DONATION_ADDRESS,
+  LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI,
+  GM_CONTRACT_ADDRESS, GM_CONTRACT_ABI
 } from "../utils/constants.js";
 import { getProvider, getSigner, getUserAddress } from "./walletService.js";
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
@@ -22,6 +20,13 @@ function getLinkContract() {
   const signer = getSigner();
   if (!signer) throw new Error("❌ Wallet not connected");
   return new ethers.Contract(LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI, signer);
+}
+
+// ✅ GM Contract yükle
+function getGmContract() {
+  const signer = getSigner();
+  if (!signer) throw new Error("❌ Wallet not connected");
+  return new ethers.Contract(GM_CONTRACT_ADDRESS, GM_CONTRACT_ABI, signer);
 }
 
 // ✅ YENİ: Link gönderim fonksiyonu (YENİ kontrat ile)
@@ -52,6 +57,39 @@ export async function submitEmptyTransaction(userLink) {
       alert("❌ Gas ücreti için yeterli CELO yok. Lütfen CELO ekleyin.");
     } else {
       alert("⚠️ Transaction başarısız: " + (err?.message || err));
+    }
+    return false;
+  }
+}
+
+// ✅ YENİ: GM Transaction fonksiyonu
+export async function sendGmTransaction() {
+  try {
+    const signer = getSigner();
+    if (!signer) {
+      alert("⚠️ Lütfen önce wallet bağlayın!");
+      return false;
+    }
+
+    const gmContract = getGmContract();
+    
+    // GM mesajı ile transaction gönder
+    const tx = await gmContract.sendGm("🌅 GM from Celo Engage Hub!", {
+      gasLimit: 100000
+    });
+    
+    alert("⏳ GM transactionı gönderiliyor...\nTX: " + tx.hash);
+    await tx.wait();
+    alert("✅ GM başarıyla gönderildi! Blockchain'de kaydedildi.");
+    return true;
+  } catch (err) {
+    console.error("GM gönderim hatası:", err);
+    if (err.code === 4001) {
+      alert("❌ Transaction kullanıcı tarafından reddedildi.");
+    } else if (err.code === 'INSUFFICIENT_FUNDS') {
+      alert("❌ Gas ücreti için yeterli CELO yok.");
+    } else {
+      alert("⚠️ GM gönderilemedi: " + (err?.message || err));
     }
     return false;
   }
