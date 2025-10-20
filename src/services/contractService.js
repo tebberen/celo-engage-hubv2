@@ -273,3 +273,161 @@ export async function loadUserProfile() {
     return null;
   }
 }
+
+// ✅ YENİ: Kullanıcı istatistiklerini getir
+export async function getUserStats(userAddress) {
+  try {
+    const provider = getProvider();
+    if (!provider) return null;
+
+    // GM sayısı
+    const gmContract = new ethers.Contract(GM_CONTRACT_ADDRESS, GM_CONTRACT_ABI, provider);
+    const gmFilter = gmContract.filters.GmSent(userAddress);
+    const gmLogs = await provider.getLogs({
+      ...gmFilter,
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+    const gmCount = gmLogs.length;
+
+    // Deploy sayısı
+    const factoryContract = new ethers.Contract(FACTORY_CONTRACT_ADDRESS, FACTORY_CONTRACT_ABI, provider);
+    const deployFilter = factoryContract.filters.ContractDeployed(userAddress);
+    const deployLogs = await provider.getLogs({
+      ...deployFilter,
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+    const deployCount = deployLogs.length;
+
+    // Proposal sayısı
+    const mainContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    const proposalFilter = mainContract.filters.ProposalCreated(null, userAddress);
+    const proposalLogs = await provider.getLogs({
+      ...proposalFilter,
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+    const proposalCount = proposalLogs.length;
+
+    // Oy sayısı
+    const voteFilter = mainContract.filters.Voted(null, userAddress);
+    const voteLogs = await provider.getLogs({
+      ...voteFilter,
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+    const voteCount = voteLogs.length;
+
+    // Link sayısı
+    const linkContract = new ethers.Contract(LINK_CONTRACT_ADDRESS, LINK_CONTRACT_ABI, provider);
+    const linkFilter = linkContract.filters.LinkAdded(userAddress);
+    const linkLogs = await provider.getLogs({
+      ...linkFilter,
+      fromBlock: 0,
+      toBlock: 'latest'
+    });
+    const linkCount = linkLogs.length;
+
+    // Badge sayısı (mevcut fonksiyonu kullan)
+    const badges = await loadUserBadges();
+    const badgeCount = badges.length;
+
+    return {
+      gmCount,
+      deployCount,
+      proposalCount,
+      voteCount,
+      linkCount,
+      badgeCount
+    };
+  } catch (err) {
+    console.error("Get user stats error:", err);
+    return null;
+  }
+}
+
+// ✅ YENİ: Badge mintleme fonksiyonu
+export async function mintBadge(badgeType) {
+  try {
+    const signer = getSigner();
+    if (!signer) {
+      console.error("No signer available");
+      return false;
+    }
+
+    const contract = getContract();
+    const tx = await contract.awardBadge(await signer.getAddress(), badgeType, {
+      gasLimit: 200000
+    });
+    
+    console.log("Badge mint transaction sent:", tx.hash);
+    await tx.wait();
+    console.log("Badge minted successfully");
+    return true;
+  } catch (err) {
+    console.error("Mint badge error:", err);
+    return false;
+  }
+}
+
+// ✅ YENİ: Badge kriterlerini kontrol et
+export function checkBadgeEligibility(stats) {
+  const eligibleBadges = [];
+
+  if (stats.gmCount >= 1) {
+    eligibleBadges.push({
+      name: "🎉 GM Master",
+      type: "gm_master",
+      description: "Sent your first GM",
+      unlocked: true
+    });
+  }
+
+  if (stats.deployCount >= 1) {
+    eligibleBadges.push({
+      name: "🚀 Contract Deployer",
+      type: "contract_deployer", 
+      description: "Deployed your first contract",
+      unlocked: true
+    });
+  }
+
+  if (stats.proposalCount >= 1) {
+    eligibleBadges.push({
+      name: "🏛️ Governance Proposer",
+      type: "governance_proposer",
+      description: "Created a governance proposal",
+      unlocked: true
+    });
+  }
+
+  if (stats.voteCount >= 1) {
+    eligibleBadges.push({
+      name: "🗳️ Active Voter",
+      type: "active_voter",
+      description: "Voted on a proposal",
+      unlocked: true
+    });
+  }
+
+  if (stats.linkCount >= 1) {
+    eligibleBadges.push({
+      name: "🔗 Link Sharer",
+      type: "link_sharer",
+      description: "Shared your first link",
+      unlocked: true
+    });
+  }
+
+  if (stats.gmCount >= 5 && stats.deployCount >= 2 && stats.voteCount >= 3) {
+    eligibleBadges.push({
+      name: "🌟 Celo Super User",
+      type: "celo_super_user",
+      description: "Active on all platforms",
+      unlocked: true
+    });
+  }
+
+  return eligibleBadges;
+}
