@@ -4,7 +4,8 @@ import {
   setupUserProfile, createProposal, voteProposal, loadUserProfile,
   loadUserBadges, loadProposals, donateCelo, checkProfile,
   submitEmptyTransaction, sendGmTransaction,
-  deployUserContract, getUserDeployedContracts
+  deployUserContract, getUserDeployedContracts,
+  getUserStats, checkBadgeEligibility, mintBadge
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -392,38 +393,117 @@ badgeBtn.addEventListener("click", async () => {
   `;
 });
 
-// Profile button
+// Profile button - TAMAMEN YENİLENDİ (İstatistikler ve Badge Mintleme)
 profileBtn.addEventListener("click", async () => {
   const profile = await loadUserProfile();
+  const currentUserAddress = getUserAddress();
+  
+  if (!profile || !profile.isActive) {
+    contentArea.innerHTML = `
+      <div class="step-indicator">
+        <span class="step-number">👤</span> Create Your Profile
+      </div>
+      <div class="step-container">
+        <h3>🚀 Profile Required</h3>
+        <p>You need to create a profile first to view your statistics.</p>
+        <button onclick="showProfileSetupForm()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+          👤 Create Profile
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // İstatistikleri yükle
+  const stats = await getUserStats(currentUserAddress);
+  const eligibleBadges = checkBadgeEligibility(stats);
+
   contentArea.innerHTML = `
-    <h2>👤 Your Profile</h2>
-    <div class="info-card">
-      ${
-        profile && profile.isActive
-          ? `
-        <p><strong>Username:</strong> ${profile.username}</p>
-        <p><strong>Link:</strong> <a href="${profile.link}" target="_blank">${profile.link}</a></p>
-        <p><strong>Supports:</strong> ${profile.supportCount}</p>
-        <p><strong>Badges:</strong> ${profile.badgeCount}</p>
-      `
-          : `
-        <p>Setup your profile</p>
-        <input type="text" id="username" placeholder="Enter username" style="width:80%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;" />
-        <button id="setupProfileBtn">🚀 Setup Profile</button>
-      `
-      }
+    <div class="step-indicator">
+      <span class="step-number">👤</span> Your Profile & Statistics
+    </div>
+    <div class="step-container">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h2>${profile.username}</h2>
+        <p style="color: #666; word-break: break-all;">${currentUserAddress}</p>
+      </div>
+
+      <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🌅</div>
+          <div style="font-size: 12px; color: #666;">GM Count</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.gmCount}</div>
+        </div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🚀</div>
+          <div style="font-size: 12px; color: #666;">Deploy Count</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.deployCount}</div>
+        </div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🏛️</div>
+          <div style="font-size: 12px; color: #666;">Proposals</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.proposalCount}</div>
+        </div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🗳️</div>
+          <div style="font-size: 12px; color: #666;">Votes</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.voteCount}</div>
+        </div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🔗</div>
+          <div style="font-size: 12px; color: #666;">Links</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.linkCount}</div>
+        </div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🎖️</div>
+          <div style="font-size: 12px; color: #666;">Badges</div>
+          <div style="font-size: 24px; font-weight: bold;">${stats.badgeCount}</div>
+        </div>
+      </div>
+
+      <div style="background: #FFF8E1; padding: 20px; border-radius: 12px; border: 2px solid #FBCC5C;">
+        <h3 style="text-align: center; margin-bottom: 20px;">🎁 Available Badges</h3>
+        <div id="badgesContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+          ${eligibleBadges.length > 0 ? 
+            eligibleBadges.map(badge => `
+              <div class="badge-card" style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 2px solid #35D07F;">
+                <div style="font-size: 20px; margin-bottom: 10px;">${badge.name}</div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">${badge.description}</div>
+                <button onclick="mintBadgeNow('${badge.type}')" 
+                        style="background: #35D07F; color: black; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                  🎉 Mint Badge
+                </button>
+              </div>
+            `).join('') : 
+            '<p style="text-align: center; color: #666;">Complete more actions to unlock badges!</p>'
+          }
+        </div>
+      </div>
     </div>
   `;
-
-  const setupBtn = document.getElementById("setupProfileBtn");
-  if (setupBtn) {
-    setupBtn.addEventListener("click", async () => {
-      const username = document.getElementById("username").value.trim();
-      if (!username) return;
-      await setupUserProfile(username, "");
-    });
-  }
 });
+
+// ✅ YENİ: Badge mintleme fonksiyonu
+window.mintBadgeNow = async function(badgeType) {
+  try {
+    const success = await mintBadge(badgeType);
+    if (success) {
+      alert('✅ Badge successfully minted!');
+      // Sayfayı yenile
+      profileBtn.click();
+    } else {
+      alert('❌ Failed to mint badge. Please try again.');
+    }
+  } catch (error) {
+    console.error('Mint badge error:', error);
+    alert('❌ Error minting badge.');
+  }
+};
+
+// ✅ YENİ: Profile setup formunu göster
+window.showProfileSetupForm = function() {
+  showProfileSetupForm();
+};
 
 // Global functions
 window.handleSupportClick = handleSupportClick;
