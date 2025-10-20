@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- ✅ CSP Güncellendi: eval hatası çözüldü -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src *">
+  <!-- ✅ CSP GÜNCELLENDİ: img-src eklendi -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self'; 
+    script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; 
+    style-src 'self' 'unsafe-inline'; 
+    connect-src *;
+    img-src 'self' data:;
+  ">
   <title>Celo Engage Hub</title>
   <link rel="stylesheet" href="src/styles/main.css" />
   <!-- ✅ FAVICON EKLENDİ -->
@@ -206,9 +212,27 @@
     </div>
   </div>
 
-  <!-- ✅ Ethers.js global olarak yüklendi -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-  
+  <!-- ✅ Ethers.js global olarak yüklendi - GÜVENLİ VERSİYON -->
+  <script>
+    // Ethers.js yükleme kontrolü
+    if (typeof window.ethers === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js';
+      script.onload = function() {
+        console.log('✅ Ethers.js loaded successfully');
+        // Ethers yüklendikten sonra uygulamayı başlat
+        if (typeof startApp === 'function') {
+          startApp();
+        }
+      };
+      script.onerror = function() {
+        console.error('❌ Failed to load Ethers.js');
+        alert('Ethers.js yüklenemedi. Lütfen sayfayı yenileyin.');
+      };
+      document.head.appendChild(script);
+    }
+  </script>
+
   <!-- ✅ Tüm işlemleri yöneten ana modül -->
   <script type="module" src="src/main.js"></script>
 </body>
