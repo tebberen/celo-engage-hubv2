@@ -1,13 +1,19 @@
-// ========================= CELO ENGAGE HUB — WALLET SERVICE (SAFE FINAL VERSION) ========================= //
-// 💳 MetaMask bağlantısı, ağ geçişi ve bağlantı durumu yönetimi (Celo Mainnet + Alfajores)
+// ========================= CELO ENGAGE HUB — WALLET SERVICE (FIXED) ========================= //
 
-// ✅ Multi-provider MetaMask fix (getter hatası önlenmiş)
+// ✅ Ethers kontrolü - window.ethers kullan
+const getEthers = () => {
+  if (typeof window !== 'undefined' && window.ethers) {
+    return window.ethers;
+  }
+  throw new Error('Ethers.js not loaded. Please refresh the page.');
+};
+
+// ✅ Multi-provider MetaMask fix
 if (typeof window !== "undefined") {
   window.addEventListener("DOMContentLoaded", () => {
     if (window.ethereum && window.ethereum.providers) {
       const metamaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
       if (metamaskProvider && !Object.isFrozen(window.ethereum)) {
-        // Getter-only property fix: güvenli kopya oluştur
         window.ethereum = Object.assign({}, metamaskProvider);
       }
     }
@@ -16,15 +22,15 @@ if (typeof window !== "undefined") {
 
 // ✅ Ağ parametreleri
 export const CELO_MAINNET_PARAMS = {
-  chainId: "0xA4EC", // 42220
-  chainName: "Celo Mainnet",
+  chainId: "0xA4EC",
+  chainName: "Celo Mainnet", 
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: ["https://forno.celo.org"],
   blockExplorerUrls: ["https://celoscan.io/"]
 };
 
 export const CELO_ALFAJORES_PARAMS = {
-  chainId: "0xAEF3", // 44787
+  chainId: "0xAEF3",
   chainName: "Celo Alfajores Testnet",
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: ["https://alfajores-forno.celo-testnet.org"],
@@ -65,28 +71,11 @@ export async function switchToCeloNetwork() {
       });
       return true;
     }
-
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: CELO_ALFAJORES_PARAMS.chainId }]
-      });
-      return true;
-    } catch (e2) {
-      if (e2.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [CELO_ALFAJORES_PARAMS]
-        });
-        return true;
-      }
-      console.error("❌ Network switch failed:", e2);
-      return false;
-    }
+    return false;
   }
 }
 
-// 🔹 Cüzdan bağla
+// 🔹 Cüzdan bağla - BASİT VERSİYON
 export async function connectWalletMetaMask() {
   if (!hasMetaMask()) {
     alert("❌ MetaMask not detected. Please install MetaMask first.");
@@ -94,25 +83,45 @@ export async function connectWalletMetaMask() {
   }
 
   try {
+    // Ethers kontrolü
+    const ethers = getEthers();
+    
+    // Provider oluştur
     provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await switchToCeloNetwork();
+    
+    // Hesapları iste
+    const accounts = await window.ethereum.request({ 
+      method: "eth_requestAccounts" 
+    });
+    
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No accounts found");
+    }
 
-    await window.ethereum.request({ method: "eth_requestAccounts" });
+    // Signer ve adres al
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
 
+    // Ağ etiketini güncelle
     await updateNetworkLabel();
 
-    if (walletStatusEl())
+    // UI güncelle
+    if (walletStatusEl()) {
       walletStatusEl().innerHTML = `<p>✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}</p>`;
-    if (connectBtnEl()) connectBtnEl().textContent = "Disconnect";
+    }
+    if (connectBtnEl()) {
+      connectBtnEl().textContent = "Disconnect";
+    }
 
     console.log("🔗 Wallet connected:", userAddress);
     return { provider, signer, userAddress };
   } catch (err) {
     console.error("❌ Connect error:", err);
-    if (err.code === 4001) alert("❌ Connection rejected by user.");
-    else alert("⚠️ Connection failed: " + (err?.message || err));
+    if (err.code === 4001) {
+      alert("❌ Connection rejected by user.");
+    } else {
+      alert("⚠️ Connection failed. Please try again.");
+    }
     return null;
   }
 }
@@ -120,22 +129,28 @@ export async function connectWalletMetaMask() {
 // 🔹 Ağ bilgisini güncelle
 export async function updateNetworkLabel() {
   if (!provider) return false;
-  const net = await provider.getNetwork();
-  currentChainId = String(net.chainId);
+  
+  try {
+    const net = await provider.getNetwork();
+    currentChainId = String(net.chainId);
 
-  if (!networkLabelEl()) return false;
+    if (!networkLabelEl()) return false;
 
-  if (currentChainId === "42220") {
-    networkLabelEl().textContent = "🌕 Celo Mainnet";
-    networkLabelEl().style.color = "#35D07F";
-  } else if (currentChainId === "44787") {
-    networkLabelEl().textContent = "🧪 Alfajores Testnet";
-    networkLabelEl().style.color = "#F59E0B";
-  } else {
-    networkLabelEl().textContent = "⚠️ Wrong Network";
-    networkLabelEl().style.color = "#EF4444";
+    if (currentChainId === "42220") {
+      networkLabelEl().textContent = "🌕 Celo Mainnet";
+      networkLabelEl().style.color = "#35D07F";
+    } else if (currentChainId === "44787") {
+      networkLabelEl().textContent = "🧪 Alfajores Testnet";
+      networkLabelEl().style.color = "#F59E0B";
+    } else {
+      networkLabelEl().textContent = "⚠️ Wrong Network";
+      networkLabelEl().style.color = "#EF4444";
+    }
+    return true;
+  } catch (err) {
+    console.error("Update network label error:", err);
+    return false;
   }
-  return true;
 }
 
 // 🔹 Bağlantıyı kes
@@ -145,16 +160,12 @@ export function disconnectWallet() {
   userAddress = "";
   currentChainId = null;
 
-  if (walletStatusEl()) walletStatusEl().innerHTML = "<p>🔴 Not connected</p><span id='networkLabel'>—</span>";
-  if (connectBtnEl()) connectBtnEl().textContent = "Connect Wallet";
-
-  if (window.ethereum && window.ethereum.removeAllListeners) {
-    window.ethereum.removeAllListeners("accountsChanged");
-    window.ethereum.removeAllListeners("chainChanged");
+  if (walletStatusEl()) {
+    walletStatusEl().innerHTML = "<p>🔴 Not connected</p><span id='networkLabel'>—</span>";
   }
-
-  localStorage.clear();
-  sessionStorage.clear();
+  if (connectBtnEl()) {
+    connectBtnEl().textContent = "Connect Wallet";
+  }
 
   console.log("🔌 Wallet disconnected successfully.");
 }
@@ -164,4 +175,4 @@ export function getProvider() { return provider; }
 export function getSigner() { return signer; }
 export function getUserAddress() { return userAddress; }
 
-console.log("🧩 Wallet service loaded — safe final version active.");
+console.log("🧩 Wallet service loaded — fixed version active.");
