@@ -1,12 +1,5 @@
-// ========================= CELO ENGAGE HUB — WALLET SERVICE (FIXED) ========================= //
-
-// ✅ Ethers kontrolü - window.ethers kullan
-const getEthers = () => {
-  if (typeof window !== 'undefined' && window.ethers) {
-    return window.ethers;
-  }
-  throw new Error('Ethers.js not loaded. Please refresh the page.');
-};
+// ========================= CELO ENGAGE HUB — WALLET SERVICE ========================= //
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
 // ✅ Multi-provider MetaMask fix
 if (typeof window !== "undefined") {
@@ -23,7 +16,7 @@ if (typeof window !== "undefined") {
 // ✅ Ağ parametreleri
 export const CELO_MAINNET_PARAMS = {
   chainId: "0xA4EC",
-  chainName: "Celo Mainnet", 
+  chainName: "Celo Mainnet",
   nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   rpcUrls: ["https://forno.celo.org"],
   blockExplorerUrls: ["https://celoscan.io/"]
@@ -75,7 +68,7 @@ export async function switchToCeloNetwork() {
   }
 }
 
-// 🔹 Cüzdan bağla - BASİT VERSİYON
+// 🔹 Cüzdan bağla
 export async function connectWalletMetaMask() {
   if (!hasMetaMask()) {
     alert("❌ MetaMask not detected. Please install MetaMask first.");
@@ -83,29 +76,20 @@ export async function connectWalletMetaMask() {
   }
 
   try {
-    // Ethers kontrolü
-    const ethers = getEthers();
-    
-    // Provider oluştur
     provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    
-    // Hesapları iste
-    const accounts = await window.ethereum.request({ 
-      method: "eth_requestAccounts" 
-    });
+    await switchToCeloNetwork();
+
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     
     if (!accounts || accounts.length === 0) {
       throw new Error("No accounts found");
     }
 
-    // Signer ve adres al
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
 
-    // Ağ etiketini güncelle
     await updateNetworkLabel();
 
-    // UI güncelle
     if (walletStatusEl()) {
       walletStatusEl().innerHTML = `<p>✅ Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}</p>`;
     }
@@ -120,7 +104,7 @@ export async function connectWalletMetaMask() {
     if (err.code === 4001) {
       alert("❌ Connection rejected by user.");
     } else {
-      alert("⚠️ Connection failed. Please try again.");
+      alert("⚠️ Connection failed: " + (err?.message || err));
     }
     return null;
   }
@@ -167,6 +151,11 @@ export function disconnectWallet() {
     connectBtnEl().textContent = "Connect Wallet";
   }
 
+  if (window.ethereum && window.ethereum.removeAllListeners) {
+    window.ethereum.removeAllListeners("accountsChanged");
+    window.ethereum.removeAllListeners("chainChanged");
+  }
+
   console.log("🔌 Wallet disconnected successfully.");
 }
 
@@ -175,4 +164,4 @@ export function getProvider() { return provider; }
 export function getSigner() { return signer; }
 export function getUserAddress() { return userAddress; }
 
-console.log("🧩 Wallet service loaded — fixed version active.");
+console.log("🧩 Wallet service loaded — simple version active.");
