@@ -1,8 +1,8 @@
-// ========================= CELO ENGAGE HUB V2 - CONSTANTS ========================= //
+// ========================= CELO ENGAGE HUB V4 - CONSTANTS ========================= //
 
-// ✅ YENİ V3 KONTART (tüm profil, istatistik ve badge'ler için)
-export const V3_CONTRACT_ADDRESS = "0x5a3ddc1c12338bbbadd24469b3b01b236fc5761a";
-export const V3_CONTRACT_ABI = [
+// ✅ YENİ V4 KONTART
+export const V4_CONTRACT_ADDRESS = "0x6b7a7b3cb36a8bdcfa283b107285bb50645e8477";
+export const V4_CONTRACT_ABI = [
 	{
 		"inputs": [
 			{
@@ -41,42 +41,47 @@ export const V3_CONTRACT_ABI = [
 		"type": "event"
 	},
 	{
-		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
+				"internalType": "string",
+				"name": "_title",
+				"type": "string"
 			},
 			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newCount",
-				"type": "uint256"
+				"internalType": "string",
+				"name": "_description",
+				"type": "string"
 			}
 		],
-		"name": "ContractDeployed",
-		"type": "event"
+		"name": "createProposal",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
-		"anonymous": false,
+		"inputs": [],
+		"name": "donateCelo",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
-				"indexed": true,
 				"internalType": "address",
-				"name": "user",
+				"name": "_token",
 				"type": "address"
 			},
 			{
-				"indexed": false,
 				"internalType": "uint256",
-				"name": "newCount",
+				"name": "_amount",
 				"type": "uint256"
 			}
 		],
-		"name": "GmSent",
-		"type": "event"
+		"name": "donateToken",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	},
 	{
 		"inputs": [],
@@ -114,25 +119,6 @@ export const V3_CONTRACT_ABI = [
 		"type": "function"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "link",
-				"type": "string"
-			}
-		],
-		"name": "LinkAdded",
-		"type": "event"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "string",
@@ -151,60 +137,21 @@ export const V3_CONTRACT_ABI = [
 		"type": "function"
 	},
 	{
-		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"indexed": false,
 				"internalType": "uint256",
-				"name": "totalPoints",
+				"name": "_proposalId",
 				"type": "uint256"
-			}
-		],
-		"name": "StatsUpdated",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
 			},
 			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "username",
-				"type": "string"
+				"internalType": "bool",
+				"name": "_support",
+				"type": "bool"
 			}
 		],
-		"name": "UserRegistered",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_user",
-				"type": "address"
-			}
-		],
-		"name": "checkBadgeEligibility",
-		"outputs": [
-			{
-				"internalType": "string[]",
-				"name": "",
-				"type": "string[]"
-			}
-		],
-		"stateMutability": "view",
+		"name": "voteProposal",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -215,7 +162,7 @@ export const V3_CONTRACT_ABI = [
 				"type": "address"
 			}
 		],
-		"name": "getUserBadges",
+		"name": "checkBadgeEligibility",
 		"outputs": [
 			{
 				"internalType": "string[]",
@@ -318,42 +265,53 @@ export const V3_CONTRACT_ABI = [
 		],
 		"stateMutability": "view",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getUserBadges",
+		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
 	}
 ];
 
-// ESKİ KONTARTLARI KALDIRIYORUZ - ARTIK SADECE V3 KULLANACAĞIZ
-export const CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
-export const CONTRACT_ABI = V3_CONTRACT_ABI;
+// ✅ Multi-token desteği - Alfajores Testnet
+export const ACCEPTED_TOKENS = {
+  CELO: {
+    address: "0xF194afDf50B03e69Bd7D057c1Aa9e10c9954E4C9",
+    symbol: "CELO",
+    decimals: 18
+  },
+  cUSD: {
+    address: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
+    symbol: "cUSD",
+    decimals: 18
+  },
+  cEUR: {
+    address: "0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F",
+    symbol: "cEUR",
+    decimals: 18
+  }
+};
 
-// Diğer kontratları da kaldırıyoruz çünkü V3'te tüm fonksiyonlar var
-export const LINK_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
-export const LINK_CONTRACT_ABI = V3_CONTRACT_ABI;
+// 🎯 V3'ü V4 ile değiştiriyoruz (geriye uyumluluk için)
+export const V3_CONTRACT_ADDRESS = V4_CONTRACT_ADDRESS;
+export const V3_CONTRACT_ABI = V4_CONTRACT_ABI;
 
-export const GM_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS; 
-export const GM_CONTRACT_ABI = V3_CONTRACT_ABI;
-
-export const FACTORY_CONTRACT_ADDRESS = V3_CONTRACT_ADDRESS;
-export const FACTORY_CONTRACT_ABI = V3_CONTRACT_ABI;
-
-// Diğer sabitler aynı kalabilir
+// Diğer sabitler
 export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
-
-// ✅ Celo ağ parametreleri
-export const CELO_MAINNET_PARAMS = {
-  chainId: "0xA4EC",
-  chainName: "Celo Mainnet",
-  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
-  rpcUrls: ["https://forno.celo.org"],
-  blockExplorerUrls: ["https://celoscan.io/"]
-};
-
-export const CELO_ALFAJORES_PARAMS = {
-  chainId: "0xAEF3",
-  chainName: "Celo Alfajores Testnet", 
-  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
-  rpcUrls: ["https://alfajores-forno.celo-testnet.org"],
-  blockExplorerUrls: ["https://alfajores.celoscan.io/"]
-};
 
 // 🌍 Support Community Links
 export const INITIAL_SUPPORT_LINKS = [
@@ -378,7 +336,7 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "🐦 Celo Twitter",        url: "https://x.com/Celo" },
   { name: "💬 Celo Discord",        url: "https://chat.celo.org" },
   { name: "📰 Celo Blog",           url: "https://blog.celo.org" },
-  { name: "💻 Celo GitHub",         url: "https://github.com/celo-org" },
-  { name: "📺 YouTube Channel",     url: "https://www.youtube.com/@CeloOrg" },
-  { name: "📲 Telegram Global",     url: "https://t.me/CeloOrg" }
+  { name: "💻 Celo GitHub",         url: "https://github.com/celo-org" }
 ];
+
+console.log("✅ constants.js güncellendi - V4 kontratı aktif!");
