@@ -70,8 +70,6 @@ export async function getUserStats(userAddress) {
     return {
       gmCount: stats.gmCount.toNumber(),
       deployCount: stats.deployCount.toNumber(),
-      proposalCount: stats.proposalCount.toNumber(),
-      voteCount: stats.voteCount.toNumber(),
       linkCount: stats.linkCount.toNumber(),
       totalPoints: stats.totalPoints.toNumber(),
       badgeCount: 0 // V4'te badgeCount profile'da
@@ -156,30 +154,6 @@ export async function incrementLinkCount() {
   }
 }
 
-export async function incrementProposalCount() {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.incrementProposalCount({ gasLimit: 100000 });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Increment proposal count error:", err);
-    return false;
-  }
-}
-
-export async function incrementVoteCount() {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.incrementVoteCount({ gasLimit: 100000 });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Increment vote count error:", err);
-    return false;
-  }
-}
-
 // ✅ V4: Badge mintleme
 export async function mintBadge(badgeType) {
   try {
@@ -230,62 +204,6 @@ export async function loadUserProfile() {
   }
 }
 
-// 🏛️ V4: Governance fonksiyonları
-export async function createProposal(title, description) {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.createProposal(title, description, {
-      gasLimit: 300000
-    });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Create proposal error:", err);
-    return false;
-  }
-}
-
-export async function voteProposal(proposalId, support) {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.voteProposal(proposalId, support, {
-      gasLimit: 200000
-    });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Vote error:", err);
-    return false;
-  }
-}
-
-// 💰 V4: Multi-token bağış
-export async function donateMultiToken(tokenSymbol, amount) {
-  try {
-    const signer = getSigner();
-    if (!signer) return false;
-
-    const token = ACCEPTED_TOKENS[tokenSymbol];
-    if (!token) {
-      console.error("Token not supported:", tokenSymbol);
-      return false;
-    }
-
-    const contract = getV4Contract();
-    const value = ethers.utils.parseUnits(String(amount), token.decimals);
-    
-    const tx = await contract.donateToken(token.address, value, {
-      gasLimit: 200000
-    });
-    
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Multi-token donate error:", err);
-    return false;
-  }
-}
-
 // 💰 V4: CELO bağış (native)
 export async function donateCelo(amount) {
   const signer = getSigner();
@@ -309,30 +227,6 @@ export async function donateCelo(amount) {
   } catch (err) {
     console.error("Donate CELO error:", err);
     return false;
-  }
-}
-
-// 📜 Proposal listesi (V4'ten gerçek verilerle)
-export async function loadProposals() {
-  try {
-    const provider = getProvider();
-    if (!provider) return [];
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    
-    // Basit implementasyon - gerçek projede tüm proposal'ları getir
-    return [
-      {
-        id: 1,
-        title: "Community Improvement Proposal",
-        description: "Let's make the community better together!",
-        votesFor: "15",
-        votesAgainst: "2"
-      }
-    ];
-  } catch (err) {
-    console.error("Load proposals error:", err);
-    return [];
   }
 }
 
@@ -360,4 +254,4 @@ export async function getUserDeployedContracts() {
   }
 }
 
-console.log("🚀 V4 Contract Service loaded - Full profile, governance & multi-token system active!");
+console.log("🚀 V4 Contract Service loaded - Profile & badge system active!");
