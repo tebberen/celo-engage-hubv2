@@ -3,6 +3,20 @@
 // ✅ YENİ V4 KONTART
 export const V4_CONTRACT_ADDRESS = "0x6b7a7b3cb36a8bdcfa283b107285bb50645e8477";
 export const V4_CONTRACT_ABI = [
+    // ✅ OWNER FONKSİYONU EKLENDİ:
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
 	{
 		"inputs": [
 			{
@@ -335,8 +349,8 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "💬 Celo Forum",          url: "https://forum.celo.org" },
   { name: "🐦 Celo Twitter",        url: "https://x.com/Celo" },
   { name: "💬 Celo Discord",        url: "https://chat.celo.org" },
-  { name: "📰 Celo Blog",           url: "https://blog.celo.org" },
-  { name: "💻 Celo GitHub",         url: "https://github.com/celo-org" }
+  { name: "📰 Celo Blog",          url: "https://blog.celo.org" },
+  { name: "💻 Celo GitHub",        url: "https://github.com/celo-org" }
 ];
 
-console.log("✅ constants.js güncellendi - V4 kontratı aktif!");
+console.log("✅ constants.js güncellendi - Owner fonksiyonu eklendi, V4 kontratı aktif!");
