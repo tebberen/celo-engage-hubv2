@@ -16,7 +16,7 @@
       border: none;
       border-radius: 8px;
       padding: 10px 18px;
-      cursor: button;
+      cursor: pointer;
       width: 100%;
       margin-top: 10px;
       transition: background 0.3s ease;
@@ -111,7 +111,7 @@
       border: none;
       padding: 12px 20px;
       border-radius: 8px;
-      cursor: button;
+      cursor: pointer;
       margin: 8px;
       font-size: 16px;
       font-weight: bold;
@@ -122,6 +122,16 @@
       background: #000000;
       color: #FBCC5C;
       transform: translateY(-2px);
+    }
+    .owner-badge {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: black;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 10px;
+      margin-top: 5px;
+      display: inline-block;
     }
   </style>
 </head>
@@ -137,6 +147,7 @@
       <div class="nav-bar">
         <button id="gmBtn">Gm</button>
         <button id="deployBtn">Deploy</button>
+        <button id="governanceBtn">Governance</button> <!-- ✅ GOVERNANCE GERİ EKLENDİ -->
         <button id="badgeBtn">Badge</button>
         <button id="profileBtn">Profile</button>
       </div>
