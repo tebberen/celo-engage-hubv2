@@ -5,7 +5,8 @@ import {
   loadUserBadges, donateCelo, checkProfile,
   submitEmptyTransaction, sendGmTransaction,
   deployUserContract, getUserDeployedContracts,
-  getUserStats, checkBadgeEligibility, mintBadge
+  getUserStats, checkBadgeEligibility, mintBadge,
+  createProposalAsOwner, checkIfOwner, loadProposals, voteProposal
 } from "./services/contractService.js";
 import { INITIAL_SUPPORT_LINKS, CELO_ECOSYSTEM_LINKS } from "./utils/constants.js";
 
@@ -109,6 +110,7 @@ const walletActionBtn = document.getElementById("walletActionBtn");
 const donateButtons = document.querySelectorAll(".donate-buttons button");
 const gmBtn = document.getElementById("gmBtn");
 const deployBtn = document.getElementById("deployBtn");
+const governanceBtn = document.getElementById("governanceBtn");
 const badgeBtn = document.getElementById("badgeBtn");
 const profileBtn = document.getElementById("profileBtn");
 const contentArea = document.getElementById("contentArea");
@@ -249,8 +251,38 @@ async function submitUserLink() {
   }
 }
 
+// ✅ YENİ: Owner kontrolü ve gösterimi
+async function checkAndDisplayOwnerStatus() {
+  const userAddress = getUserAddress();
+  const isOwner = await checkIfOwner();
+
+  if (userAddress && isOwner) {
+    // Owner olduğunu göster
+    const walletStatusEl = document.getElementById("walletStatus");
+    if (walletStatusEl) {
+      const existingOwnerBadge = walletStatusEl.querySelector('.owner-badge');
+      if (!existingOwnerBadge) {
+        const ownerBadge = document.createElement('div');
+        ownerBadge.className = 'owner-badge';
+        ownerBadge.innerHTML = '👑 Contract Owner';
+        ownerBadge.style.cssText = `
+          background: linear-gradient(135deg, #FFD700, #FFA500);
+          color: black;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-weight: bold;
+          font-size: 10px;
+          margin-top: 5px;
+          display: inline-block;
+        `;
+        walletStatusEl.appendChild(ownerBadge);
+      }
+    }
+  }
+}
+
 // DOM loaded
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const ecosystemBox = document.querySelector(".ecosystem-box ul");
   if (ecosystemBox && CELO_ECOSYSTEM_LINKS.length) {
     ecosystemBox.innerHTML = CELO_ECOSYSTEM_LINKS
@@ -259,6 +291,11 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   displaySupportLinks();
+  
+  // ✅ Eğer kullanıcı daha önce bağlanmışsa owner kontrolü yap
+  if (getUserAddress()) {
+    await checkAndDisplayOwnerStatus();
+  }
 });
 
 // Wallet connection - GÜNCELLENDİ
@@ -278,7 +315,8 @@ walletActionBtn.addEventListener("click", async () => {
       walletActionBtn.textContent = "Disconnect";
       document.getElementById("walletStatus").innerHTML = `<p>✅ Connected: ${result.userAddress.slice(0,6)}...${result.userAddress.slice(-4)}</p><span id="networkLabel">🌕 Celo Mainnet</span>`;
       
-      // ✅ YENİ: Cüzdan bağlandıktan sonra profil kontrolü
+      // ✅ YENİ: Cüzdan bağlandıktan sonra profil kontrolü ve owner kontrolü
+      await checkAndDisplayOwnerStatus();
       await handleProfileAfterConnect();
     }
   }
@@ -321,21 +359,168 @@ deployBtn.addEventListener("click", async () => {
   }
 });
 
+// ✅ YENİ: Governance butonu - Sadece owner proposal oluşturabilir
+governanceBtn.addEventListener("click", async () => {
+  const isOwner = await checkIfOwner();
+  
+  let ownerSection = '';
+  if (isOwner) {
+    ownerSection = `
+      <div style="background: #FFF0C2; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #FFD700;">
+        <h3>👑 Owner Only - Create Proposal</h3>
+        <input type="text" id="proposalTitle" placeholder="Proposal title" 
+               style="width:100%;padding:12px;margin:10px 0;border-radius:8px;border:2px solid #FBCC5C;" />
+        <textarea id="proposalDescription" rows="3" placeholder="Proposal description" 
+                  style="width:100%;padding:12px;border-radius:8px;border:2px solid #FBCC5C;"></textarea>
+        <button id="createProposalBtn" 
+                style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 10px;">
+          📝 Create Proposal
+        </button>
+      </div>
+    `;
+  }
+
+  contentArea.innerHTML = `
+    <div class="step-indicator">
+      <span class="step-number">🏛️</span> Community Governance
+    </div>
+    <div class="step-container">
+      ${isOwner ? ownerSection : '<p style="text-align: center; color: #666;">Only contract owner can create proposals</p>'}
+      
+      <div style="margin-top: 30px;">
+        <h3>🗳️ Active Proposals</h3>
+        <div id="proposalList">
+          <p style="text-align: center;">No active proposals yet.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (isOwner) {
+    document.getElementById("createProposalBtn").addEventListener("click", async () => {
+      const title = document.getElementById("proposalTitle").value.trim();
+      const desc = document.getElementById("proposalDescription").value.trim();
+      
+      if (!title || !desc) {
+        alert("Please enter both title and description");
+        return;
+      }
+      
+      const success = await createProposalAsOwner(title, desc);
+      if (success) {
+        alert("✅ Proposal created successfully!");
+        // Proposal listesini yenile
+        await showProposals();
+      } else {
+        alert("❌ Failed to create proposal");
+      }
+    });
+  }
+
+  await showProposals();
+});
+
+// ✅ YENİ: Proposal listesini göster
+async function showProposals() {
+  const proposals = await loadProposals();
+  const list = document.getElementById("proposalList");
+  
+  if (!list) return;
+
+  if (!proposals || proposals.length === 0) {
+    list.innerHTML = "<p style='text-align: center;'>No active proposals yet.</p>";
+    return;
+  }
+
+  list.innerHTML = '';
+  
+  proposals.forEach((p) => {
+    const card = document.createElement("div");
+    card.style.cssText = `
+      background: #FFFDF6;
+      border: 2px solid #FBCC5C;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    `;
+    card.innerHTML = `
+      <h4 style="margin: 0 0 10px 0;">${p.title}</h4>
+      <p style="margin: 0 0 15px 0; color: #666;">${p.description}</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="color: #35D07F;">👍 ${p.votesFor}</span>
+          <span style="margin: 0 15px;">|</span>
+          <span style="color: #EF4444;">👎 ${p.votesAgainst}</span>
+        </div>
+        <div>
+          <button class="voteForBtn" data-id="${p.id}" style="background: #35D07F; color: black; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 10px;">
+            👍 Support
+          </button>
+          <button class="voteAgainstBtn" data-id="${p.id}" style="background: #EF4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            👎 Oppose
+          </button>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  // Oy butonlarına event listener ekle
+  document.querySelectorAll(".voteForBtn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const proposalId = btn.getAttribute("data-id");
+      const success = await voteProposal(proposalId, true);
+      if (success) {
+        alert("✅ Vote submitted!");
+        await showProposals();
+      }
+    });
+  });
+  
+  document.querySelectorAll(".voteAgainstBtn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const proposalId = btn.getAttribute("data-id");
+      const success = await voteProposal(proposalId, false);
+      if (success) {
+        alert("✅ Vote submitted!");
+        await showProposals();
+      }
+    });
+  });
+}
+
 // Badge button
 badgeBtn.addEventListener("click", async () => {
   const badges = await loadUserBadges();
   contentArea.innerHTML = `
-    <h2>🎖️ Your Badges</h2>
-    <div class="info-card">
-      ${badges.length ? badges.map((b) => `<p>🏅 ${b}</p>`).join("") : "<p>No badges yet.</p>"}
+    <div class="step-indicator">
+      <span class="step-number">🎖️</span> Your Badges
+    </div>
+    <div class="step-container">
+      <h3>Your Achievement Badges</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+        ${badges.length ? 
+          badges.map((b) => `
+            <div style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center; border: 2px solid #FBCC5C;">
+              <div style="font-size: 24px; margin-bottom: 10px;">🏅</div>
+              <div style="font-weight: bold;">${b}</div>
+            </div>
+          `).join("") : 
+          '<div style="text-align: center; padding: 40px; color: #666;"><p>No badges yet. Complete more actions to earn badges!</p></div>'
+        }
+      </div>
+      <button onclick="displaySupportLinks()" style="background: #35D07F; color: black; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 20px 10px 0 10px;">
+        📋 Back to Support List
+      </button>
     </div>
   `;
 });
 
-// Profile button - GÜNCELLENDİ (GOVERNANCE KISIMLARI KALDIRILDI)
+// ✅ GÜNCELLENDİ: Profile button - REPUTATION BİLGİLERİ KALDIRILDI
 profileBtn.addEventListener("click", async () => {
   const profile = await loadUserProfile();
   const currentUserAddress = getUserAddress();
+  const isOwner = await checkIfOwner();
   
   if (!profile || !profile.isActive) {
     contentArea.innerHTML = `
@@ -354,70 +539,35 @@ profileBtn.addEventListener("click", async () => {
   }
 
   const stats = await getUserStats(currentUserAddress);
-  const eligibleBadges = await checkBadgeEligibility(currentUserAddress);
 
   contentArea.innerHTML = `
     <div class="step-indicator">
-      <span class="step-number">👤</span> Your Profile & Statistics
+      <span class="step-number">👤</span> Your Profile
     </div>
     <div class="step-container">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h2>${profile.username}</h2>
+        <h2>${profile.username} ${isOwner ? '👑' : ''}</h2>
         <p style="color: #666; word-break: break-all;">${currentUserAddress}</p>
+        ${isOwner ? '<p style="color: #FFD700; font-weight: bold;">Contract Owner</p>' : ''}
       </div>
 
-      <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
-        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">🌅</div>
+      <!-- REPUTATION BİLGİSİ KALDIRILDI -->
+      
+      <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        <div class="stat-card" style="background: #FFF0C2; padding: 15px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 5px;">🌅</div>
           <div style="font-size: 12px; color: #666;">GM Count</div>
-          <div style="font-size: 24px; font-weight: bold;">${stats.gmCount}</div>
+          <div style="font-size: 20px; font-weight: bold;">${stats.gmCount}</div>
         </div>
-        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">🚀</div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 15px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 5px;">🚀</div>
           <div style="font-size: 12px; color: #666;">Deploy Count</div>
-          <div style="font-size: 24px; font-weight: bold;">${stats.deployCount}</div>
+          <div style="font-size: 20px; font-weight: bold;">${stats.deployCount}</div>
         </div>
-        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">🔗</div>
+        <div class="stat-card" style="background: #FFF0C2; padding: 15px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 20px; margin-bottom: 5px;">🔗</div>
           <div style="font-size: 12px; color: #666;">Links</div>
-          <div style="font-size: 24px; font-weight: bold;">${stats.linkCount}</div>
-        </div>
-        <div class="stat-card" style="background: #FFF0C2; padding: 20px; border-radius: 12px; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">⭐</div>
-          <div style="font-size: 12px; color: #666;">Reputation</div>
-          <div style="font-size: 24px; font-weight: bold;">${profile.reputation}</div>
-        </div>
-      </div>
-
-      <div style="background: #FFF8E1; padding: 20px; border-radius: 12px; border: 2px solid #FBCC5C; margin-bottom: 20px;">
-        <h3 style="text-align: center; margin-bottom: 15px;">⭐ Reputation System</h3>
-        <div style="text-align: left;">
-          <p><strong>Current Reputation:</strong> ${profile.reputation}</p>
-          <p><strong>How to Earn Reputation:</strong></p>
-          <ul style="margin-left: 20px;">
-            <li>🌅 Send GM = <strong>+5 reputation</strong></li>
-            <li>🔗 Submit Link = <strong>+10 reputation</strong></li>
-            <li>🚀 Deploy Contract = <strong>+20 reputation</strong></li>
-          </ul>
-        </div>
-      </div>
-
-      <div style="background: #FFF8E1; padding: 20px; border-radius: 12px; border: 2px solid #FBCC5C;">
-        <h3 style="text-align: center; margin-bottom: 20px;">🎁 Available Badges</h3>
-        <div id="badgesContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-          ${eligibleBadges.length > 0 ? 
-            eligibleBadges.map(badge => `
-              <div class="badge-card" style="background: white; padding: 15px; border-radius: 8px; text-align: center; border: 2px solid #35D07F;">
-                <div style="font-size: 20px; margin-bottom: 10px;">${badge.name}</div>
-                <div style="font-size: 12px; color: #666; margin-bottom: 10px;">${badge.description}</div>
-                <button onclick="mintBadgeNow('${badge.type}')" 
-                        style="background: #35D07F; color: black; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                  🎉 Mint Badge
-                </button>
-              </div>
-            `).join('') : 
-            '<p style="text-align: center; color: #666;">Complete more actions to unlock badges!</p>'
-          }
+          <div style="font-size: 20px; font-weight: bold;">${stats.linkCount}</div>
         </div>
       </div>
 
@@ -437,7 +587,7 @@ window.mintBadgeNow = async function(badgeType) {
     if (success) {
       alert('✅ Badge successfully minted!');
       // Sayfayı yenile
-      profileBtn.click();
+      badgeBtn.click();
     } else {
       alert('❌ Failed to mint badge. Please try again.');
     }
