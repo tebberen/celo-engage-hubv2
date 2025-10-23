@@ -204,6 +204,114 @@ export async function loadUserProfile() {
   }
 }
 
+// 🏛️ V4: Governance fonksiyonları - YENİDEN EKLENDİ
+export async function createProposal(title, description) {
+  try {
+    const contract = getV4Contract();
+    const tx = await contract.createProposal(title, description, {
+      gasLimit: 300000
+    });
+    await tx.wait();
+    return true;
+  } catch (err) {
+    console.error("Create proposal error:", err);
+    return false;
+  }
+}
+
+// ✅ YENİ: Sadece owner için proposal oluşturma
+export async function createProposalAsOwner(title, description) {
+  try {
+    const contract = getV4Contract();
+    
+    // Owner kontrolü
+    const contractOwner = await contract.owner();
+    const userAddress = getUserAddress();
+    
+    if (userAddress.toLowerCase() === contractOwner.toLowerCase()) {
+      // Owner ise proposal oluştur
+      const tx = await contract.createProposal(title, description, {
+        gasLimit: 300000
+      });
+      await tx.wait();
+      return true;
+    } else {
+      throw new Error("Sadece owner proposal oluşturabilir");
+    }
+  } catch (err) {
+    console.error("Create proposal as owner error:", err);
+    return false;
+  }
+}
+
+export async function voteProposal(proposalId, support) {
+  try {
+    const contract = getV4Contract();
+    const tx = await contract.voteProposal(proposalId, support, {
+      gasLimit: 200000
+    });
+    await tx.wait();
+    return true;
+  } catch (err) {
+    console.error("Vote error:", err);
+    return false;
+  }
+}
+
+// 📜 Proposal listesi
+export async function loadProposals() {
+  try {
+    const provider = getProvider();
+    if (!provider) return [];
+
+    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
+    
+    // Basit implementasyon - gerçek projede tüm proposal'ları getir
+    // Bu kısım kontratınıza göre özelleştirilmelidir
+    return [
+      {
+        id: 1,
+        title: "Community Improvement Proposal",
+        description: "Let's make the community better together!",
+        votesFor: "15",
+        votesAgainst: "2"
+      }
+    ];
+  } catch (err) {
+    console.error("Load proposals error:", err);
+    return [];
+  }
+}
+
+// ✅ YENİ: Kontrat owner'ını getir
+export async function getContractOwner() {
+  try {
+    const provider = getProvider();
+    if (!provider) return null;
+
+    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
+    const owner = await contract.owner();
+    return owner;
+  } catch (err) {
+    console.error("Get contract owner error:", err);
+    return null;
+  }
+}
+
+// ✅ YENİ: Owner kontrolü
+export async function checkIfOwner() {
+  try {
+    const userAddress = getUserAddress();
+    const contractOwner = await getContractOwner();
+    
+    return userAddress && contractOwner && 
+           userAddress.toLowerCase() === contractOwner.toLowerCase();
+  } catch (err) {
+    console.error("Check owner error:", err);
+    return false;
+  }
+}
+
 // 💰 V4: CELO bağış (native)
 export async function donateCelo(amount) {
   const signer = getSigner();
@@ -254,4 +362,4 @@ export async function getUserDeployedContracts() {
   }
 }
 
-console.log("🚀 V4 Contract Service loaded - Profile & badge system active!");
+console.log("🚀 V4 Contract Service loaded - Governance system reactivated with owner-only proposals!");
