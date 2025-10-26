@@ -9,6 +9,9 @@ import {
   MIN_DONATION
 } from '../utils/constants.js';
 
+// ✅ ETHERERS IMPORT - HATA ÇÖZÜMÜ
+import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
+
 export class ContractService {
   constructor(provider, account) {
     this.provider = provider;
