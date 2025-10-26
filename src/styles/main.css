@@ -119,20 +119,106 @@ header {
   color: #555;
 }
 
+/* === YENİ: DISCONNECT BUTONU === */
 .disconnect-btn {
-  margin-top: 10px;
-  padding: 8px 15px;
-  border-radius: 8px;
-  background: #35d07f;
-  color: #000;
+  background-color: #f44336;
+  color: white;
   border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
   cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
   font-weight: bold;
+  transition: background 0.3s ease;
 }
 
 .disconnect-btn:hover {
-  background: #000;
-  color: #35d07f;
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+}
+
+/* === YENİ: WALLET MODAL STİLLERİ === */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 300px;
+  border-radius: 12px;
+  text-align: center;
+  animation: modalSlideIn 0.3s ease-out;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+@keyframes modalSlideIn {
+  from { 
+    transform: translateY(-50px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close:hover {
+  color: black;
+}
+
+/* === YENİ: WALLET SEÇENEK BUTONLARI === */
+.wallet-option-btn {
+  background: #FFFDF6;
+  border: 2px solid #FBCC5C;
+  border-radius: 8px;
+  padding: 15px;
+  width: 100%;
+  margin: 10px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  transition: all 0.3s ease;
+}
+
+.wallet-option-btn:hover:not(:disabled) {
+  background: #FBCC5C !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 204, 92, 0.3);
+}
+
+.wallet-option-btn:disabled {
+  background: #f0f0f0;
+  border: 2px solid #ddd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.wallet-option-btn img {
+  width: 32px;
+  height: 32px;
+  margin-right: 15px;
+  border-radius: 6px;
 }
 
 /* === DONATE BOX === */
@@ -387,4 +473,219 @@ header {
 /* Eski link-grid'i kaldırıyoruz, yeni links-grid kullanacağız */
 .link-grid {
   display: none;
+}
+
+/* YENİ: FEATURE CARD STİLLERİ */
+.feature-card {
+  background: #FFFDF6;
+  border: 2px solid #FBCC5C;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 15px 0;
+}
+
+.input-group {
+  margin: 15px 0;
+}
+
+.input-group input, .input-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 5px 0;
+  font-family: inherit;
+}
+
+.action-button {
+  background: #35D07F;
+  color: black;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 5px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover {
+  background: #000000;
+  color: #35D07F;
+  transform: translateY(-2px);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: #FFFDF6;
+  border: 1px solid #FBCC5C;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  background: #FFD700;
+  color: black;
+  padding: 5px 10px;
+  border-radius: 15px;
+  margin: 2px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* YENİ: TOKEN SELECTOR STİLLERİ */
+.token-selector {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.token-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #FBCC5C;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.token-btn.active {
+  background: #FBCC5C;
+  color: black;
+}
+
+.token-btn:hover:not(.active) {
+  background: #FFF0C2;
+}
+
+/* YENİ: WITHDRAW SECTION */
+.withdraw-section {
+  background: #FFF0F0;
+  border: 2px solid #FF6B6B;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+/* YENİ: GLOBAL STATS */
+.global-stats {
+  background: #FFFDF6;
+  border: 2px solid #FBCC5C;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.global-stats h3 {
+  color: #000;
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+/* YENİ: RESPONSIVE TASARIM İYİLEŞTİRMELERİ */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    padding: 15px;
+  }
+  
+  .sidebar {
+    width: 100%;
+    order: 2;
+  }
+  
+  .main-content {
+    order: 1;
+  }
+  
+  .nav-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .nav-bar button {
+    width: 100%;
+  }
+  
+  .modal-content {
+    width: 90%;
+    margin: 20% auto;
+  }
+  
+  .wallet-option-btn {
+    padding: 12px;
+  }
+  
+  .wallet-option-btn img {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+  }
+}
+
+/* YENİ: LOADING ANIMASYONU */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #FBCC5C;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* YENİ: SMOOTH SCROLL */
+html {
+  scroll-behavior: smooth;
+}
+
+/* YENİ: FOCUS STYLES FOR ACCESSIBILITY */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid #FBCC5C;
+  outline-offset: 2px;
+}
+
+/* YENİ: WALLET INFO STYLES */
+#walletInfo p {
+  margin: 8px 0;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+#walletInfo strong {
+  color: #000;
+}
+
+/* YENİ: SECTION TRANSITIONS */
+.section {
+  display: none;
+  padding: 20px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
