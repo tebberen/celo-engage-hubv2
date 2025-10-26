@@ -1,365 +1,390 @@
-// ========================= CELO ENGAGE HUB V4 - CONTRACT SERVICE ========================= //
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+// src/services/contractService.js
 
 import { 
-  V4_CONTRACT_ADDRESS, 
-  V4_CONTRACT_ABI, 
-  ACCEPTED_TOKENS,
-  DONATION_ADDRESS
-} from "../utils/constants.js";
-import { getProvider, getSigner, getUserAddress } from "./walletService.js";
+  CONTRACT_ADDRESS, 
+  CONTRACT_ABI,
+  MODULES,
+  CURRENT_TOKENS,
+  OWNER_ADDRESS,
+  MIN_DONATION
+} from '../utils/constants.js';
 
-// ✅ V4 Contract yükle
-function getV4Contract() {
-  const signer = getSigner();
-  if (!signer) throw new Error("Wallet not connected");
-  return new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, signer);
-}
+export class ContractService {
+  constructor(web3, account) {
+    this.web3 = web3;
+    this.account = account;
+    this.contracts = {};
+    this.moduleContracts = {};
+    this.initializeContracts();
+  }
 
-// ✅ V4: Profil oluşturma
-export async function setupUserProfile(username, link) {
-  try {
-    const signer = getSigner();
-    if (!signer) {
-      console.error("No signer available");
-      return false;
+  // Kontratları başlat
+  initializeContracts() {
+    try {
+      // Ana kontrat
+      this.contracts.main = new this.web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+      
+      // Modül kontratları
+      this.moduleContracts.badge = new this.web3.eth.Contract(MODULES.BADGE.abi, MODULES.BADGE.address);
+      this.moduleContracts.deploy = new this.web3.eth.Contract(MODULES.DEPLOY.abi, MODULES.DEPLOY.address);
+      this.moduleContracts.donate = new this.web3.eth.Contract(MODULES.DONATE.abi, MODULES.DONATE.address);
+      this.moduleContracts.gm = new this.web3.eth.Contract(MODULES.GM.abi, MODULES.GM.address);
+      this.moduleContracts.governance = new this.web3.eth.Contract(MODULES.GOVERNANCE.abi, MODULES.GOVERNANCE.address);
+      this.moduleContracts.link = new this.web3.eth.Contract(MODULES.LINK.abi, MODULES.LINK.address);
+      this.moduleContracts.profile = new this.web3.eth.Contract(MODULES.PROFILE.abi, MODULES.PROFILE.address);
+
+      console.log("✅ Tüm kontratlar başarıyla yüklendi!");
+    } catch (error) {
+      console.error("❌ Kontrat başlatma hatası:", error);
+      throw error;
     }
-
-    const contract = getV4Contract();
-    const tx = await contract.registerUser(username, link, {
-      gasLimit: 300000
-    });
-    
-    console.log("V4 Profile creation transaction sent:", tx.hash);
-    await tx.wait();
-    console.log("V4 Profile created successfully");
-    return true;
-  } catch (err) {
-    console.error("V4 Setup profile error:", err);
-    return false;
   }
-}
 
-// ✅ V4: Profil kontrolü
-export async function checkProfile() {
-  try {
-    const provider = getProvider();
-    const userAddress = getUserAddress();
-
-    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-      return false;
-    }
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const profile = await contract.getUserProfile(userAddress);
-    return profile.isActive;
-  } catch (err) {
-    console.error("V4 Profile check error:", err);
-    return false;
-  }
-}
-
-// ✅ V4: Kullanıcı istatistiklerini getir
-export async function getUserStats(userAddress) {
-  try {
-    const provider = getProvider();
-    if (!provider) return null;
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const stats = await contract.getUserStats(userAddress);
-    return {
-      gmCount: stats.gmCount.toNumber(),
-      deployCount: stats.deployCount.toNumber(),
-      linkCount: stats.linkCount.toNumber(),
-      totalPoints: stats.totalPoints.toNumber(),
-      badgeCount: 0 // V4'te badgeCount profile'da
-    };
-  } catch (err) {
-    console.error("V4 Get user stats error:", err);
-    return null;
-  }
-}
-
-// ✅ V4: Badge'leri getir
-export async function loadUserBadges() {
-  try {
-    const provider = getProvider();
-    const userAddress = getUserAddress();
-    if (!provider || !userAddress) return [];
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const badges = await contract.getUserBadges(userAddress);
-    return badges;
-  } catch (err) {
-    console.error("V4 Load user badges error:", err);
-    return [];
-  }
-}
-
-// ✅ V4: Uygun badge'leri kontrol et
-export async function checkBadgeEligibility(userAddress) {
-  try {
-    const provider = getProvider();
-    if (!provider) return [];
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const eligibleBadges = await contract.checkBadgeEligibility(userAddress);
-    
-    return eligibleBadges.map(badgeName => ({
-      name: badgeName,
-      type: badgeName.toLowerCase().replace(/\s+/g, '_'),
-      description: `Earned by completing ${badgeName} requirements`,
-      unlocked: true
-    }));
-  } catch (err) {
-    console.error("V4 Check badge eligibility error:", err);
-    return [];
-  }
-}
-
-// ✅ V4: İstatistik artırma fonksiyonları
-export async function incrementGmCount() {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.incrementGmCount({ gasLimit: 100000 });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Increment GM count error:", err);
-    return false;
-  }
-}
-
-export async function incrementDeployCount() {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.incrementDeployCount({ gasLimit: 100000 });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Increment deploy count error:", err);
-    return false;
-  }
-}
-
-export async function incrementLinkCount() {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.incrementLinkCount({ gasLimit: 100000 });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Increment link count error:", err);
-    return false;
-  }
-}
-
-// ✅ V4: Badge mintleme
-export async function mintBadge(badgeType) {
-  try {
-    const signer = getSigner();
-    if (!signer) {
-      console.error("No signer available");
-      return false;
-    }
-
-    const contract = getV4Contract();
-    const tx = await contract.awardBadge(badgeType, {
-      gasLimit: 200000
-    });
-    
-    console.log("V4 Badge mint transaction sent:", tx.hash);
-    await tx.wait();
-    console.log("V4 Badge minted successfully");
-    return true;
-  } catch (err) {
-    console.error("V4 Mint badge error:", err);
-    return false;
-  }
-}
-
-// ✅ V4: Profil bilgisi
-export async function loadUserProfile() {
-  try {
-    const provider = getProvider();
-    const userAddress = getUserAddress();
-    if (!provider || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-      return null;
-    }
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const profile = await contract.getUserProfile(userAddress);
-    return {
-      username: profile.username,
-      link: profile.link,
-      supportCount: profile.supportCount.toNumber(),
-      reputation: profile.reputation.toNumber(),
-      badgeCount: profile.badgeCount.toNumber(),
-      isActive: profile.isActive,
-      createdAt: profile.createdAt.toNumber()
-    };
-  } catch (err) {
-    console.error("V4 Load user profile error:", err);
-    return null;
-  }
-}
-
-// 🏛️ V4: Governance fonksiyonları - YENİDEN EKLENDİ
-export async function createProposal(title, description) {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.createProposal(title, description, {
-      gasLimit: 300000
-    });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Create proposal error:", err);
-    return false;
-  }
-}
-
-// ✅ YENİ: Sadece owner için proposal oluşturma
-export async function createProposalAsOwner(title, description) {
-  try {
-    const contract = getV4Contract();
-    
-    // Owner kontrolü
-    const contractOwner = await contract.owner();
-    const userAddress = getUserAddress();
-    
-    if (userAddress.toLowerCase() === contractOwner.toLowerCase()) {
-      // Owner ise proposal oluştur
-      const tx = await contract.createProposal(title, description, {
-        gasLimit: 300000
+  // Kullanıcı kaydı
+  async registerUser() {
+    try {
+      const result = await this.contracts.main.methods.registerUser().send({
+        from: this.account,
+        gas: 300000
       });
-      await tx.wait();
-      return true;
-    } else {
-      throw new Error("Sadece owner proposal oluşturabilir");
+      return result;
+    } catch (error) {
+      console.error("Kullanıcı kaydı hatası:", error);
+      throw error;
     }
-  } catch (err) {
-    console.error("Create proposal as owner error:", err);
-    return false;
   }
-}
 
-export async function voteProposal(proposalId, support) {
-  try {
-    const contract = getV4Contract();
-    const tx = await contract.voteProposal(proposalId, support, {
-      gasLimit: 200000
-    });
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Vote error:", err);
-    return false;
+  // GM gönderme
+  async sendGM(message = "Hello from Celo Engage Hub!") {
+    try {
+      const result = await this.moduleContracts.gm.methods.sendGM(this.account, message).send({
+        from: this.account,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("GM gönderme hatası:", error);
+      throw error;
+    }
   }
-}
 
-// 📜 Proposal listesi
-export async function loadProposals() {
-  try {
-    const provider = getProvider();
-    if (!provider) return [];
+  // Kontrat deploy etme
+  async deployContract(contractName = "SimpleContract") {
+    try {
+      const result = await this.moduleContracts.deploy.methods.deployContract(this.account, contractName).send({
+        from: this.account,
+        gas: 500000
+      });
+      return result;
+    } catch (error) {
+      console.error("Kontrat deploy hatası:", error);
+      throw error;
+    }
+  }
 
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    
-    // Basit implementasyon - gerçek projede tüm proposal'ları getir
-    // Bu kısım kontratınıza göre özelleştirilmelidir
-    return [
-      {
-        id: 1,
-        title: "Community Improvement Proposal",
-        description: "Let's make the community better together!",
-        votesFor: "15",
-        votesAgainst: "2"
+  // CELO bağışı
+  async donateCELO(amount) {
+    try {
+      const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
+      
+      const result = await this.moduleContracts.donate.methods.donateCELO(this.account).send({
+        from: this.account,
+        value: weiAmount,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("CELO bağış hatası:", error);
+      throw error;
+    }
+  }
+
+  // cUSD bağışı
+  async donateCUSD(amount) {
+    try {
+      const weiAmount = this.web3.utils.toWei(amount.toString(), 'ether');
+      
+      // Önce cUSD token kontratı
+      const cUSDToken = new this.web3.eth.Contract([
+        {
+          "constant": false,
+          "inputs": [
+            {"name": "_spender", "type": "address"},
+            {"name": "_value", "type": "uint256"}
+          ],
+          "name": "approve",
+          "outputs": [{"name": "", "type": "bool"}],
+          "type": "function"
+        }
+      ], CURRENT_TOKENS.cUSD.address);
+
+      // cUSD onayı
+      await cUSDToken.methods.approve(MODULES.DONATE.address, weiAmount).send({
+        from: this.account,
+        gas: 300000
+      });
+
+      // Bağış yap
+      const result = await this.moduleContracts.donate.methods.donateCUSD(this.account, weiAmount).send({
+        from: this.account,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("cUSD bağış hatası:", error);
+      throw error;
+    }
+  }
+
+  // Link paylaşma
+  async shareLink(link) {
+    try {
+      const result = await this.moduleContracts.link.methods.shareLink(this.account, link).send({
+        from: this.account,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("Link paylaşma hatası:", error);
+      throw error;
+    }
+  }
+
+  // Öneri oluşturma (sadece owner)
+  async createProposal(title, description, link) {
+    try {
+      const result = await this.moduleContracts.governance.methods.createProposal(
+        this.account, title, description, link
+      ).send({
+        from: this.account,
+        gas: 500000
+      });
+      return result;
+    } catch (error) {
+      console.error("Öneri oluşturma hatası:", error);
+      throw error;
+    }
+  }
+
+  // Oy verme
+  async vote(proposalId, support) {
+    try {
+      const result = await this.moduleContracts.governance.methods.vote(
+        this.account, proposalId, support
+      ).send({
+        from: this.account,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("Oy verme hatası:", error);
+      throw error;
+    }
+  }
+
+  // Bağışları çekme (sadece owner)
+  async withdrawDonations() {
+    try {
+      const result = await this.moduleContracts.donate.methods.withdraw(this.account).send({
+        from: this.account,
+        gas: 300000
+      });
+      return result;
+    } catch (error) {
+      console.error("Bağış çekme hatası:", error);
+      throw error;
+    }
+  }
+
+  // === OKUMA FONKSİYONLARI ===
+
+  // Kullanıcı profilini getir
+  async getUserProfile() {
+    try {
+      const profile = await this.moduleContracts.profile.methods.getUserProfile(this.account).call();
+      return profile;
+    } catch (error) {
+      console.error("Profil getirme hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcı istatistiklerini getir
+  async getUserStats() {
+    try {
+      const stats = await this.moduleContracts.profile.methods.getUserStats(this.account).call();
+      return stats;
+    } catch (error) {
+      console.error("İstatistik getirme hatası:", error);
+      throw error;
+    }
+  }
+
+  // Global istatistikleri getir
+  async getGlobalStats() {
+    try {
+      const stats = await this.moduleContracts.profile.methods.getGlobalStats().call();
+      return stats;
+    } catch (error) {
+      console.error("Global istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcı badge bilgilerini getir
+  async getUserBadge() {
+    try {
+      const badge = await this.moduleContracts.badge.methods.getUserBadge(this.account).call();
+      return badge;
+    } catch (error) {
+      console.error("Badge getirme hatası:", error);
+      throw error;
+    }
+  }
+
+  // GM istatistikleri
+  async getGMStats() {
+    try {
+      const stats = await this.moduleContracts.gm.methods.getGMStats().call();
+      return stats;
+    } catch (error) {
+      console.error("GM istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Bağış istatistikleri
+  async getDonateStats() {
+    try {
+      const stats = await this.moduleContracts.donate.methods.getDonateStats().call();
+      return stats;
+    } catch (error) {
+      console.error("Bağış istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Deploy istatistikleri
+  async getDeployStats() {
+    try {
+      const stats = await this.moduleContracts.deploy.methods.getDeployStats().call();
+      return stats;
+    } catch (error) {
+      console.error("Deploy istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Link istatistikleri
+  async getLinkStats() {
+    try {
+      const stats = await this.moduleContracts.link.methods.getLinkStats().call();
+      return stats;
+    } catch (error) {
+      console.error("Link istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Governance istatistikleri
+  async getGovernanceStats() {
+    try {
+      const stats = await this.moduleContracts.governance.methods.getGovernanceStats().call();
+      return stats;
+    } catch (error) {
+      console.error("Governance istatistik hatası:", error);
+      throw error;
+    }
+  }
+
+  // Aktif önerileri getir
+  async getActiveProposals() {
+    try {
+      const proposalIds = await this.moduleContracts.governance.methods.getActiveProposals().call();
+      const proposals = [];
+      
+      for (const id of proposalIds) {
+        const proposal = await this.moduleContracts.governance.methods.getProposal(id).call();
+        proposals.push(proposal);
       }
-    ];
-  } catch (err) {
-    console.error("Load proposals error:", err);
-    return [];
+      
+      return proposals;
+    } catch (error) {
+      console.error("Aktif öneriler hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcının öneriye oy verip vermediğini kontrol et
+  async hasUserVoted(proposalId) {
+    try {
+      const hasVoted = await this.moduleContracts.governance.methods.hasUserVoted(proposalId, this.account).call();
+      return hasVoted;
+    } catch (error) {
+      console.error("Oy kontrol hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcı linklerini getir
+  async getUserLinks() {
+    try {
+      const links = await this.moduleContracts.profile.methods.getUserLinks(this.account).call();
+      return links;
+    } catch (error) {
+      console.error("Link getirme hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcı kontratlarını getir
+  async getUserContracts() {
+    try {
+      const contracts = await this.moduleContracts.profile.methods.getUserContracts(this.account).call();
+      return contracts;
+    } catch (error) {
+      console.error("Kontrat getirme hatası:", error);
+      throw error;
+    }
+  }
+
+  // Kullanıcı GM mesajlarını getir
+  async getUserGMMessages() {
+    try {
+      const messages = await this.moduleContracts.gm.methods.getUserGMMessages(this.account).call();
+      return messages;
+    } catch (error) {
+      console.error("GM mesajları hatası:", error);
+      throw error;
+    }
+  }
+
+  // Owner kontrolü
+  isOwner() {
+    return this.account?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  }
+
+  // Link doğrulama
+  async validateLink(link) {
+    try {
+      const isValid = await this.moduleContracts.link.methods.validateLink(link).call();
+      return isValid;
+    } catch (error) {
+      console.error("Link doğrulama hatası:", error);
+      return false;
+    }
+  }
+
+  // Link paylaşım limiti kontrolü
+  async canUserShareLink() {
+    try {
+      const canShare = await this.moduleContracts.link.methods.canUserShareLink(this.account).call();
+      return canShare;
+    } catch (error) {
+      console.error("Link limit kontrol hatası:", error);
+      throw error;
+    }
   }
 }
 
-// ✅ YENİ: Kontrat owner'ını getir
-export async function getContractOwner() {
-  try {
-    const provider = getProvider();
-    if (!provider) return null;
-
-    const contract = new ethers.Contract(V4_CONTRACT_ADDRESS, V4_CONTRACT_ABI, provider);
-    const owner = await contract.owner();
-    return owner;
-  } catch (err) {
-    console.error("Get contract owner error:", err);
-    return null;
-  }
-}
-
-// ✅ YENİ: Owner kontrolü
-export async function checkIfOwner() {
-  try {
-    const userAddress = getUserAddress();
-    const contractOwner = await getContractOwner();
-    
-    return userAddress && contractOwner && 
-           userAddress.toLowerCase() === contractOwner.toLowerCase();
-  } catch (err) {
-    console.error("Check owner error:", err);
-    return false;
-  }
-}
-
-// 💰 V4: CELO bağış (native)
-export async function donateCelo(amount) {
-  const signer = getSigner();
-  const userAddress = getUserAddress();
-
-  if (!signer || !userAddress || userAddress === "0x0000000000000000000000000000000000000000") {
-    return false;
-  }
-
-  try {
-    const value = ethers.utils.parseEther(String(amount));
-    const contract = getV4Contract();
-    
-    const tx = await contract.donateCelo({
-      value: value,
-      gasLimit: 100000
-    });
-    
-    await tx.wait();
-    return true;
-  } catch (err) {
-    console.error("Donate CELO error:", err);
-    return false;
-  }
-}
-
-// 🔄 Geriye uyumluluk için V3 fonksiyonları
-export async function sendGmTransaction() {
-  return await incrementGmCount();
-}
-
-export async function submitEmptyTransaction(userLink) {
-  return await incrementLinkCount();
-}
-
-export async function deployUserContract() {
-  const success = await incrementDeployCount();
-  return success ? "deployed" : null;
-}
-
-export async function getUserDeployedContracts() {
-  try {
-    const stats = await getUserStats(getUserAddress());
-    return Array(stats.deployCount).fill("0x0000000000000000000000000000000000000000");
-  } catch (err) {
-    console.error("Get user contracts error:", err);
-    return [];
-  }
-}
-
-console.log("🚀 V4 Contract Service loaded - Governance system reactivated with owner-only proposals!");
+export default ContractService;
