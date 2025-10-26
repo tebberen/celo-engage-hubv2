@@ -1,443 +1,320 @@
-// =======================
-// 🌐 CELO ENGAGE HUB vFull RealTime
-// =======================
+// ========================= CELO ENGAGE HUB - FULL MAIN ========================= //
+// src/main.js
 
-import { WalletService } from './services/walletService.js';
-import { ContractService } from './services/contractService.js';
-import { 
-  CURRENT_NETWORK, 
+import {
+  initContract,
+  sendGM,
+  getGMStats,
+  deployContract,
+  getDeployStats,
+  donateCELO,
+  donateCUSD,
+  getDonateStats,
+  shareLink,
+  getLinkStats,
+  createProposal,
+  vote,
+  getGovernanceStats,
+  getUserBadge,
+  getBadgeStats,
+  loadUserProfile,
+  withdrawDonations
+} from "./src/services/contractService.js";
+
+import {
   OWNER_ADDRESS,
   DEFAULT_GM_MESSAGE,
-  MIN_DONATION,
-  INITIAL_SUPPORT_LINKS
-} from './utils/constants.js';
+  INITIAL_SUPPORT_LINKS,
+  CELO_ECOSYSTEM_LINKS,
+  CURRENT_NETWORK,
+  MIN_DONATION
+} from "./src/utils/constants.js";
 
-class CeloEngageHub {
-  constructor() {
-    this.walletService = null;
-    this.contractService = null;
-    this.account = null;
-    this.userProfile = null;
-    this.globalStats = null;
-    this.leaderboard = {
-      xp: [],
-      donors: [],
-      gm: []
-    };
+import {
+  connectWalletMetaMask,
+  disconnectWallet,
+  checkCurrentNetwork
+} from "./src/services/walletService.js";
 
-    // Auto refresh interval
-    this.refreshInterval = null;
+let userAddress = "";
+let appInitialized = false;
+let isLoading = false;
 
-    this.initializeApp();
-  }
+// ========================= APP INIT ========================= //
 
-  async initializeApp() {
-    try {
-      console.log("🚀 Celo Engage Hub başlatılıyor...");
-      this.initializeDOMElements();
-      this.initializeEventListeners();
-      this.walletService = new WalletService();
-      await this.checkWalletConnection();
-      await this.loadInitialData();
-      this.startAutoRefresh();
-      console.log("✅ Uygulama başarıyla başlatıldı!");
-    } catch (error) {
-      console.error("❌ Başlatma hatası:", error);
-      this.showError("Uygulama başlatılamadı: " + error.message);
-    }
-  }
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("🚀 Celo Engage Hub - Starting...");
+  setupUI();
+  await initializeApp();
+});
 
-  // ========== DOM Elements ==========
-  initializeDOMElements() {
-    this.connectWalletBtn = document.getElementById("connectWallet");
-    this.walletAddressEl = document.getElementById("walletAddress");
-    this.walletBalanceEl = document.getElementById("walletBalance");
-    this.networkInfoEl = document.getElementById("networkInfo");
+// ========================= INITIALIZATION ========================= //
 
-    // Navigation
-    this.navHome = document.getElementById("navHome");
-    this.navProfile = document.getElementById("navProfile");
-    this.navGovernance = document.getElementById("navGovernance");
-    this.navLeaderboard = document.getElementById("navLeaderboard");
-    this.navBadges = document.getElementById("navBadges");
+async function initializeApp() {
+  try {
+    toggleLoading(true, "Connecting to wallet...");
+    userAddress = await connectWalletMetaMask();
+    if (!userAddress) throw new Error("Wallet not connected");
+    await checkCurrentNetwork();
+    document.getElementById("wallet-address").innerText = shortenAddress(userAddress);
 
-    // Sections
-    this.homeSection = document.getElementById("homeSection");
-    this.profileSection = document.getElementById("profileSection");
-    this.governanceSection = document.getElementById("governanceSection");
-    this.leaderboardSection = document.getElementById("leaderboardSection");
-    this.badgesSection = document.getElementById("badgesSection");
-
-    // GM, Deploy, Donate, Link, Governance elements
-    this.gmButton = document.getElementById("gmButton");
-    this.gmMessageInput = document.getElementById("gmMessageInput");
-    this.gmCounter = document.getElementById("gmCounter");
-    this.userGmCounter = document.getElementById("userGmCounter");
-
-    this.deployButton = document.getElementById("deployButton");
-    this.contractNameInput = document.getElementById("contractNameInput");
-    this.deployCounter = document.getElementById("deployCounter");
-    this.userDeployCounter = document.getElementById("userDeployCounter");
-
-    this.donateCeloBtn = document.getElementById("donateCeloBtn");
-    this.donateCusdBtn = document.getElementById("donateCusdBtn");
-    this.donateAmountInput = document.getElementById("donateAmountInput");
-    this.withdrawDonationsBtn = document.getElementById("withdrawDonationsBtn");
-
-    this.shareLinkBtn = document.getElementById("shareLinkBtn");
-    this.linkInput = document.getElementById("linkInput");
-    this.linkCounter = document.getElementById("linkCounter");
-
-    this.createProposalBtn = document.getElementById("createProposalBtn");
-    this.proposalTitleInput = document.getElementById("proposalTitleInput");
-    this.proposalDescInput = document.getElementById("proposalDescInput");
-    this.proposalLinkInput = document.getElementById("proposalLinkInput");
-    this.proposalsList = document.getElementById("proposalsList");
-
-    this.globalVisitors = document.getElementById("globalVisitors");
-    this.globalGM = document.getElementById("globalGM");
-    this.globalDeploy = document.getElementById("globalDeploy");
-    this.globalLinks = document.getElementById("globalLinks");
-    this.globalVotes = document.getElementById("globalVotes");
-    this.globalBadges = document.getElementById("globalBadges");
-
-    this.leaderboardXP = document.getElementById("leaderboardXP");
-    this.leaderboardDonors = document.getElementById("leaderboardDonors");
-    this.leaderboardGM = document.getElementById("leaderboardGM");
-
-    console.log("✅ DOM elementleri yüklendi!");
-  }
-
-  // ========== Event Listeners ==========
-  initializeEventListeners() {
-    this.connectWalletBtn?.addEventListener("click", () => this.connectWallet());
-    this.navHome?.addEventListener("click", () => this.showSection("home"));
-    this.navProfile?.addEventListener("click", () => this.showSection("profile"));
-    this.navGovernance?.addEventListener("click", () => this.showSection("governance"));
-    this.navLeaderboard?.addEventListener("click", () => this.showSection("leaderboard"));
-    this.navBadges?.addEventListener("click", () => this.showSection("badges"));
-
-    this.gmButton?.addEventListener("click", () => this.sendGM());
-    this.deployButton?.addEventListener("click", () => this.deployContract());
-    this.donateCeloBtn?.addEventListener("click", () => this.donate("CELO"));
-    this.donateCusdBtn?.addEventListener("click", () => this.donate("cUSD"));
-    this.withdrawDonationsBtn?.addEventListener("click", () => this.withdrawDonations());
-    this.shareLinkBtn?.addEventListener("click", () => this.shareLink());
-    this.createProposalBtn?.addEventListener("click", () => this.createProposal());
-
-    console.log("✅ Event listenerlar aktif!");
-  }
-
-  // ========== Wallet Bağlantısı ==========
-  async checkWalletConnection() {
-    try {
-      const connected = await this.walletService.checkWalletConnection();
-      if (connected) {
-        this.account = this.walletService.getAccount();
-        await this.initializeContractService();
-        await this.updateWalletInfo();
-        await this.loadUserData();
-      }
-    } catch (err) {
-      console.log("Cüzdan bağlı değil.");
-    }
-  }
-
-  async connectWallet() {
-    try {
-      this.showLoading("Cüzdana bağlanıyor...");
-      await this.walletService.connectWallet();
-      this.account = this.walletService.getAccount();
-      await this.initializeContractService();
-      await this.updateWalletInfo();
-      await this.loadUserData();
-      this.showSuccess("Cüzdan başarıyla bağlandı!");
-    } catch (error) {
-      this.showError("Bağlantı hatası: " + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  async initializeContractService() {
-    const provider = this.walletService.getWeb3();
-    this.contractService = new ContractService(provider, this.account);
-    console.log("✅ Contract Service başlatıldı");
-  }
-
-  async updateWalletInfo() {
-    const shortAddress = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
-    const balance = await this.walletService.getBalance();
-    this.walletAddressEl.textContent = shortAddress;
-    this.walletBalanceEl.textContent = `${parseFloat(balance).toFixed(3)} CELO`;
-    this.networkInfoEl.textContent = CURRENT_NETWORK.name;
-    this.connectWalletBtn.style.display = "none";
-  }
-
-  // ========== Global & User Data ==========
-  async loadInitialData() {
-    try {
-      await this.loadGlobalStats();
-      if (this.account) await this.loadUserData();
-      this.initializeEventWatchers();
-    } catch (e) {
-      console.error("Başlangıç veri yükleme hatası:", e);
-    }
-  }
-
-  async loadGlobalStats() {
-    try {
-      const stats = await this.contractService.getGlobalStats();
-      this.globalStats = stats;
-      this.globalVisitors.textContent = stats.visitors ?? "0";
-      this.globalGM.textContent = stats.gm ?? "0";
-      this.globalDeploy.textContent = stats.deploy ?? "0";
-      this.globalLinks.textContent = stats.links ?? "0";
-      this.globalVotes.textContent = stats.votes ?? "0";
-      this.globalBadges.textContent = stats.badges ?? "0";
-    } catch (err) {
-      console.error("Global stats hatası:", err);
-    }
-  }
-
-  async loadUserData() {
-    if (!this.contractService || !this.account) return;
-    try {
-      this.userProfile = await this.contractService.getUserProfile();
-      this.updateProfileUI(this.userProfile);
-      await this.loadBadgeInfo();
-      await this.loadLeaderboard();
-      await this.loadProposals();
-    } catch (err) {
-      console.error("Kullanıcı verisi yükleme hatası:", err);
-    }
-  }
-
-  updateProfileUI(profile) {
-    document.getElementById("profileAddress").textContent = this.account;
-    document.getElementById("profileLevel").textContent = profile.level ?? "1";
-    document.getElementById("profileTier").textContent = profile.tier ?? "1";
-    document.getElementById("profileXP").textContent = profile.totalXP ?? "0";
-    document.getElementById("profileGMCount").textContent = profile.gmCount ?? "0";
-    document.getElementById("profileDeployCount").textContent = profile.deployCount ?? "0";
-    document.getElementById("profileDonateCount").textContent = profile.donateCount ?? "0";
-    document.getElementById("profileLinkCount").textContent = profile.linkCount ?? "0";
-    document.getElementById("profileVoteCount").textContent = profile.voteCount ?? "0";
-  }
-
-  async loadBadgeInfo() {
-    const badge = await this.contractService.getUserBadge();
-    if (this.userBadgeInfo) {
-      this.userBadgeInfo.innerHTML = `
-        <div class="badge-card">
-          <h4>Level: ${badge.level}</h4>
-          <p>Tier: ${badge.tier}</p>
-          <p>XP: ${badge.totalXP}</p>
-          <small>Last Update: ${new Date(badge.lastUpdate * 1000).toLocaleString()}</small>
-        </div>`;
-    }
-  }
-
-  // ========== Event Watchers ==========
-  initializeEventWatchers() {
-    const gm = this.contractService.moduleContracts.gm;
-    const donate = this.contractService.moduleContracts.donate;
-    const deploy = this.contractService.moduleContracts.deploy;
-    const link = this.contractService.moduleContracts.link;
-    const badge = this.contractService.moduleContracts.badge;
-
-    gm.on("GMEvent", async (user) => {
-      console.log("📩 GM Event", user);
-      await this.loadGlobalStats();
-      await this.loadUserData();
-    });
-
-    donate.on("DonationEvent", async (user, amount) => {
-      console.log("💰 Donation Event", user, amount.toString());
-      await this.loadGlobalStats();
-      await this.loadUserData();
-    });
-
-    deploy.on("ContractDeployed", async (user, addr) => {
-      console.log("⚙️ Deploy Event", addr);
-      await this.loadGlobalStats();
-      await this.loadUserData();
-    });
-
-    link.on("LinkShared", async (user, link) => {
-      console.log("🔗 Link Event", link);
-      await this.loadGlobalStats();
-      await this.loadUserData();
-    });
-
-    badge.on("BadgeUpdated", async (user, tier) => {
-      console.log("🏅 Badge Updated", user, tier.toString());
-      await this.loadUserData();
-    });
-
-    console.log("🟢 Event watchers aktif!");
-  }
-
-  // ========== Leaderboard ==========
-  async loadLeaderboard() {
-    try {
-      const donors = await this.contractService.getTopDonors();
-      const xpUsers = await this.contractService.getGlobalStats(); // örnek: total xp
-      this.leaderboard.donors = donors.addresses.map((addr, i) => ({
-        address: addr,
-        amount: donors.amounts[i]
-      }));
-
-      if (this.leaderboardDonors) {
-        this.leaderboardDonors.innerHTML = this.leaderboard.donors
-          .map(
-            (d, i) =>
-              `<div class="leaderboard-item">#${i + 1} ${d.address.slice(0, 6)}...${d.address.slice(-4)} — ${d.amount} CELO</div>`
-          )
-          .join("");
-      }
-    } catch (err) {
-      console.error("Leaderboard yükleme hatası:", err);
-    }
-  }
-
-  // ========== Governance ==========
-  async loadProposals() {
-    const proposals = await this.contractService.getActiveProposals();
-    if (this.proposalsList) {
-      this.proposalsList.innerHTML =
-        proposals.length === 0
-          ? "<p>Henüz öneri yok.</p>"
-          : proposals
-              .map(
-                (p) => `
-        <div class="proposal-card">
-          <h4>${p.title}</h4>
-          <p>${p.description}</p>
-          <div class="proposal-votes">👍 ${p.forVotes} 👎 ${p.againstVotes}</div>
-          <button onclick="app.voteOnProposal(${p.id}, true)">Kabul</button>
-          <button onclick="app.voteOnProposal(${p.id}, false)">Red</button>
-        </div>`
-              )
-              .join("");
-    }
-  }
-
-  async voteOnProposal(id, support) {
-    this.showLoading("Oy veriliyor...");
-    await this.contractService.vote(id, support);
-    await this.loadProposals();
-    this.showSuccess(`Oyunuz ${support ? "kabul" : "ret"} olarak kaydedildi.`);
-    this.hideLoading();
-  }
-
-  async createProposal() {
-    if (!this.contractService.isOwner()) {
-      return this.showError("Sadece owner öneri oluşturabilir.");
-    }
-    const title = this.proposalTitleInput.value.trim();
-    const desc = this.proposalDescInput.value.trim();
-    const link = this.proposalLinkInput.value.trim();
-    this.showLoading("Öneri oluşturuluyor...");
-    await this.contractService.createProposal(title, desc, link);
-    await this.loadProposals();
-    this.hideLoading();
-    this.showSuccess("Öneri oluşturuldu!");
-  }
-
-  // ========== Auto Refresh ==========
-  startAutoRefresh() {
-    if (this.refreshInterval) clearInterval(this.refreshInterval);
-    this.refreshInterval = setInterval(async () => {
-      console.log("🔄 Otomatik yenileme...");
-      await this.loadGlobalStats();
-      if (this.account) await this.loadUserData();
-    }, 60000); // 60 saniyede bir yeniler
-  }
-
-  // ========== Owner Fonksiyonları ==========
-  async withdrawDonations() {
-    if (!this.contractService.isOwner()) {
-      return this.showError("Sadece owner çekebilir!");
-    }
-    try {
-      this.showLoading("Bağışlar çekiliyor...");
-      await this.contractService.withdrawDonations();
-      this.showSuccess("Bağışlar başarıyla çekildi!");
-      await this.loadUserData();
-    } catch (e) {
-      this.showError("Bağış çekme hatası: " + e.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // ========== Section Navigation ==========
-  showSection(name) {
-    const sections = {
-      home: this.homeSection,
-      profile: this.profileSection,
-      governance: this.governanceSection,
-      leaderboard: this.leaderboardSection,
-      badges: this.badgesSection
-    };
-    Object.values(sections).forEach((sec) => (sec.style.display = "none"));
-    if (sections[name]) sections[name].style.display = "block";
-
-    // Navigation active state
-    [this.navHome, this.navProfile, this.navGovernance, this.navLeaderboard, this.navBadges].forEach((n) =>
-      n?.classList.remove("active")
-    );
-    const activeMap = {
-      home: this.navHome,
-      profile: this.navProfile,
-      governance: this.navGovernance,
-      leaderboard: this.navLeaderboard,
-      badges: this.navBadges
-    };
-    activeMap[name]?.classList.add("active");
-  }
-
-  // ========== UI Yardımcı Fonksiyonlar ==========
-  showLoading(msg = "İşlem yapılıyor...") {
-    console.log("⏳", msg);
-    const el = document.getElementById("statusMessage");
-    if (el) {
-      el.textContent = msg;
-      el.style.color = "#FBCC5C";
-      el.style.display = "block";
-    }
-  }
-
-  hideLoading() {
-    const el = document.getElementById("statusMessage");
-    if (el) el.style.display = "none";
-  }
-
-  showSuccess(msg) {
-    console.log("✅", msg);
-    const el = document.getElementById("statusMessage");
-    if (el) {
-      el.textContent = msg;
-      el.style.color = "#00C851";
-      el.style.display = "block";
-    }
-  }
-
-  showError(msg) {
-    console.error("❌", msg);
-    const el = document.getElementById("statusMessage");
-    if (el) {
-      el.textContent = msg;
-      el.style.color = "#ff4444";
-      el.style.display = "block";
-    }
+    await initContract();
+    await loadDashboard();
+    renderCommunityLinks();
+    renderCeloLinks();
+    appInitialized = true;
+    toggleLoading(false);
+  } catch (err) {
+    console.error("❌ Initialization failed:", err);
+    toggleLoading(false);
   }
 }
 
-// =======================
-// 🔥 Uygulama Başlatma
-// =======================
-const app = new CeloEngageHub();
-window.app = app;
-console.log("🎉 Celo Engage Hub vFull RealTime aktif!");
+// ========================= DASHBOARD LOADER ========================= //
+
+async function loadDashboard() {
+  try {
+    toggleLoading(true, "Loading your profile...");
+
+    const [
+      gm,
+      deploy,
+      donate,
+      link,
+      gov,
+      badge,
+      profile
+    ] = await Promise.all([
+      getGMStats(),
+      getDeployStats(),
+      getDonateStats(),
+      getLinkStats(),
+      getGovernanceStats(),
+      getBadgeStats(),
+      loadUserProfile(userAddress)
+    ]);
+
+    document.getElementById("gm-total").innerText = gm.total;
+    document.getElementById("deploy-total").innerText = deploy.total;
+    document.getElementById("donate-total").innerText = donate.totalDonatedValue;
+    document.getElementById("link-total").innerText = link.total;
+    document.getElementById("proposal-total").innerText = gov.totalProposals;
+    document.getElementById("badge-total").innerText = badge;
+    document.getElementById("level").innerText = profile.level;
+    document.getElementById("tier").innerText = profile.tier;
+    document.getElementById("xp").innerText = profile.totalXP;
+    document.getElementById("donate-count").innerText = profile.donateCount;
+
+    console.log("📊 Dashboard loaded successfully");
+    toggleLoading(false);
+  } catch (err) {
+    console.error("⚠️ Dashboard Error:", err);
+    toggleLoading(false);
+  }
+}
+
+// ========================= GM MODULE ========================= //
+
+async function handleGM() {
+  try {
+    if (!ensureConnected()) return;
+    const msg = prompt("Write your GM message:", DEFAULT_GM_MESSAGE);
+    if (!msg) return alert("Message cannot be empty!");
+    toggleLoading(true, "Sending GM...");
+    await sendGM(msg);
+    alert("✅ GM sent successfully!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ GM Error:", err);
+    alert("GM failed. Check console for details.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= DEPLOY MODULE ========================= //
+
+async function handleDeploy() {
+  try {
+    if (!ensureConnected()) return;
+    const name = prompt("Enter new contract name:", "MyCeloContract");
+    if (!name) return;
+    toggleLoading(true, "Deploying contract...");
+    await deployContract(name);
+    alert("✅ Contract deployed successfully!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Deploy Error:", err);
+    alert("Failed to deploy contract.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= DONATE MODULE ========================= //
+
+async function handleDonate() {
+  try {
+    if (!ensureConnected()) return;
+    const choice = confirm("Donate in CELO? (Cancel for cUSD)");
+    const amount = prompt("Enter amount:", "0.1");
+    if (!amount) return;
+    const wei = ethers.utils.parseEther(amount);
+    toggleLoading(true, "Sending donation...");
+
+    if (choice) {
+      await donateCELO(wei);
+    } else {
+      await donateCUSD(wei);
+    }
+
+    alert("💛 Donation sent successfully!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Donation Error:", err);
+    alert("Donation failed.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= LINK MODULE ========================= //
+
+async function handleShareLink() {
+  try {
+    if (!ensureConnected()) return;
+    const link = prompt("Enter link to share (Farcaster / X / GitHub):");
+    if (!link) return;
+    toggleLoading(true, "Sharing link...");
+    await shareLink(link);
+    alert("🔗 Link shared!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Link Error:", err);
+    alert("Failed to share link.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= GOVERNANCE MODULE ========================= //
+
+async function handleCreateProposal() {
+  try {
+    if (!ensureConnected()) return;
+    const title = prompt("Proposal title:");
+    const desc = prompt("Proposal description:");
+    const ref = prompt("Reference link (optional):", "");
+    toggleLoading(true, "Creating proposal...");
+    await createProposal(title, desc, ref);
+    alert("🗳️ Proposal created successfully!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Proposal Error:", err);
+    alert("Failed to create proposal.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+async function handleVote() {
+  try {
+    if (!ensureConnected()) return;
+    const id = prompt("Enter Proposal ID:");
+    const choice = confirm("Vote YES? (Cancel for NO)");
+    toggleLoading(true, "Submitting vote...");
+    await vote(id, choice);
+    alert(`🗳️ Vote submitted (${choice ? "YES" : "NO"})!`);
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Vote Error:", err);
+    alert("Voting failed.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= BADGE & PROFILE MODULE ========================= //
+
+async function showBadgeInfo() {
+  try {
+    toggleLoading(true, "Loading badge info...");
+    const badge = await getUserBadge(userAddress);
+    alert(
+      `🏅 Badge Info\nLevel: ${badge.level}\nTier: ${badge.tier}\nXP: ${badge.totalXP}`
+    );
+  } catch (err) {
+    console.error("❌ Badge Error:", err);
+    alert("Failed to load badge info.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= OWNER WITHDRAW ========================= //
+
+async function handleWithdraw() {
+  try {
+    if (userAddress.toLowerCase() !== OWNER_ADDRESS.toLowerCase())
+      return alert("🚫 Only owner can withdraw!");
+    toggleLoading(true, "Withdrawing donations...");
+    await withdrawDonations();
+    alert("💸 Withdraw successful!");
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Withdraw Error:", err);
+    alert("Withdraw failed.");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ========================= UI HELPERS ========================= //
+
+function setupUI() {
+  document.getElementById("connectWalletBtn")?.addEventListener("click", initializeApp);
+  document.getElementById("gmBtn")?.addEventListener("click", handleGM);
+  document.getElementById("deployBtn")?.addEventListener("click", handleDeploy);
+  document.getElementById("donateBtn")?.addEventListener("click", handleDonate);
+  document.getElementById("shareLinkBtn")?.addEventListener("click", handleShareLink);
+  document.getElementById("proposalBtn")?.addEventListener("click", handleCreateProposal);
+  document.getElementById("voteBtn")?.addEventListener("click", handleVote);
+  document.getElementById("badgeBtn")?.addEventListener("click", showBadgeInfo);
+  document.getElementById("withdrawBtn")?.addEventListener("click", handleWithdraw);
+}
+
+function shortenAddress(addr) {
+  return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
+}
+
+function toggleLoading(state, message = "Loading...") {
+  const loader = document.getElementById("loader");
+  if (!loader) return;
+  loader.style.display = state ? "flex" : "none";
+  loader.innerText = message;
+  isLoading = state;
+}
+
+function ensureConnected() {
+  if (!userAddress) {
+    alert("⚠️ Please connect your wallet first!");
+    return false;
+  }
+  return true;
+}
+
+function renderCommunityLinks() {
+  const container = document.getElementById("support-links");
+  container.innerHTML = INITIAL_SUPPORT_LINKS
+    .map(link => `<a href="${link}" target="_blank">${link}</a>`)
+    .join("<br>");
+}
+
+function renderCeloLinks() {
+  const container = document.getElementById("celo-links");
+  container.innerHTML = CELO_ECOSYSTEM_LINKS
+    .map(item => `<a href="${item.url}" target="_blank">${item.name}</a>`)
+    .join("<br>");
+}
+
+console.log("✅ Full main.js loaded successfully!");
