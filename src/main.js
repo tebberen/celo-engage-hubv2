@@ -49,7 +49,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Celo Engage Hub - Starting...");
   setupNavigation();
   setupUI();
-  await initializeApp();
+  renderCommunityLinks();
+  renderCeloLinks();
+  
+  // Otomatik bağlanma YOK - sadece UI hazırlığı
+  console.log("✅ App ready - waiting for user to connect wallet");
 });
 
 // ========================= NAVIGATION ========================= //
@@ -70,13 +74,57 @@ function setupNavigation() {
       // Aktif buton ve sectionı ayarla
       button.classList.add('active');
       document.getElementById(`${targetSection}Section`).classList.add('active');
+      
+      // Badges section'a tıklandığında badge bilgilerini yükle
+      if (targetSection === 'badges' && userAddress) {
+        loadBadgeInfo();
+      }
     });
   });
 }
 
-// ========================= INITIALIZATION ========================= //
+// ========================= YENİ CÜZDAN MODAL SİSTEMİ ========================= //
 
-async function initializeApp() {
+// Modal elementlerini seç
+const walletModal = document.getElementById('walletModal');
+const connectWalletBtn = document.getElementById('connectWallet');
+const closeModal = document.querySelector('.close');
+const connectMetaMaskBtn = document.getElementById('connectMetaMask');
+const connectWalletConnectBtn = document.getElementById('connectWalletConnect');
+const disconnectWalletBtn = document.getElementById('disconnectWallet');
+
+// Connect Wallet butonuna tıklandığında modal'ı aç
+connectWalletBtn.addEventListener('click', () => {
+  walletModal.style.display = 'block';
+});
+
+// Modal'ı kapatma işlevi
+closeModal.addEventListener('click', () => {
+  walletModal.style.display = 'none';
+});
+
+// Modal dışına tıklandığında kapat
+window.addEventListener('click', (event) => {
+  if (event.target === walletModal) {
+    walletModal.style.display = 'none';
+  }
+});
+
+// MetaMask bağlantısı için tıklama olayı
+connectMetaMaskBtn.addEventListener('click', async () => {
+  walletModal.style.display = 'none'; // Modal'ı kapat
+  await connectWallet(); // MetaMask bağlantı fonksiyonunu çağır
+});
+
+// WalletConnect için tıklama olayı (Coming Soon)
+connectWalletConnectBtn.addEventListener('click', () => {
+  alert('🚧 WalletConnect support is coming soon!');
+  // Burayı daha sonra WalletConnect entegrasyonu ile dolduracağız
+});
+
+// ========================= CÜZDAN BAĞLANTI FONKSİYONU ========================= //
+
+async function connectWallet() {
   try {
     toggleLoading(true, "Connecting to wallet...");
     
@@ -89,7 +137,7 @@ async function initializeApp() {
     // ✅ Ağ kontrolü
     await walletService.ensureCeloNetwork();
     
-    // ✅ UI Güncelleme - DOĞRU HTML ID'ler
+    // ✅ UI Güncelleme
     document.getElementById("walletAddress").innerText = shortenAddress(userAddress);
     document.getElementById("walletStatus").innerHTML = `<p>🟢 Connected</p><span>${CURRENT_NETWORK.name}</span>`;
     document.getElementById("walletInfo").style.display = "block";
@@ -101,8 +149,6 @@ async function initializeApp() {
     
     await initContract();
     await loadDashboard();
-    renderCommunityLinks();
-    renderCeloLinks();
     
     // Owner panel kontrolü
     if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
@@ -113,10 +159,62 @@ async function initializeApp() {
     appInitialized = true;
     toggleLoading(false);
     
+    console.log("✅ Wallet connected successfully:", userAddress);
+    
   } catch (err) {
-    console.error("❌ Initialization failed:", err);
+    console.error("❌ Connection failed:", err);
     alert("Connection failed: " + err.message);
     toggleLoading(false);
+  }
+}
+
+// ========================= DISCONNECT FONKSİYONU ========================= //
+
+async function disconnectWallet() {
+  try {
+    // WalletService üzerinden bağlantıyı kes
+    walletService.disconnect();
+    
+    // Global değişkenleri sıfırla
+    userAddress = "";
+    appInitialized = false;
+    
+    // UI'ı sıfırla
+    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
+    document.getElementById("walletInfo").style.display = "none";
+    document.getElementById("connectWallet").style.display = "block";
+    
+    // Kullanıcıya özel istatistikleri sıfırla
+    document.getElementById("userGmCounter").innerText = "0";
+    document.getElementById("userDeployCounter").innerText = "0";
+    document.getElementById("userDonateCounter").innerText = "0";
+    document.getElementById("userLinkCounter").innerText = "0";
+    document.getElementById("userVoteCounter").innerText = "0";
+    
+    // Profile section'daki verileri sıfırla
+    document.getElementById("profileAddress").innerText = "-";
+    document.getElementById("profileLevel").innerText = "1";
+    document.getElementById("profileTier").innerText = "1";
+    document.getElementById("profileXP").innerText = "0";
+    document.getElementById("profileGMCount").innerText = "0";
+    document.getElementById("profileDeployCount").innerText = "0";
+    document.getElementById("profileDonateCount").innerText = "0";
+    document.getElementById("profileLinkCount").innerText = "0";
+    document.getElementById("profileVoteCount").innerText = "0";
+    
+    // Owner panellerini gizle
+    document.getElementById("withdrawPanel").style.display = "none";
+    document.getElementById("ownerPanel").style.display = "none";
+    
+    // Badge bilgilerini temizle
+    document.getElementById("userBadgeInfo").innerHTML = "";
+    
+    console.log("🔌 Wallet disconnected");
+    alert("Wallet disconnected successfully!");
+    
+  } catch (err) {
+    console.error("Disconnect error:", err);
+    alert("Disconnect failed: " + err.message);
   }
 }
 
@@ -319,6 +417,12 @@ async function handleShareLink() {
       return;
     }
     
+    // Basit URL validasyonu
+    if (!link.startsWith('http://') && !link.startsWith('https://')) {
+      alert("Please enter a valid URL starting with http:// or https://");
+      return;
+    }
+    
     toggleLoading(true, "Sharing link...");
     await shareLink(link);
     
@@ -392,6 +496,10 @@ async function loadBadgeInfo() {
           <h4>Total XP</h4>
           <div>${badge.totalXP}</div>
         </div>
+        <div class="stat-card">
+          <h4>Last Update</h4>
+          <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
+        </div>
       </div>
     `;
     
@@ -434,8 +542,10 @@ async function handleWithdraw() {
 // ========================= UI HELPERS ========================= //
 
 function setupUI() {
-  // ✅ DOĞRU HTML ID'ler ile event listener'lar
-  document.getElementById("connectWallet").addEventListener("click", initializeApp);
+  // Connect Wallet butonu event listener'ı artık modal'ı açacak
+  // (Zaten yukarıda tanımlandı)
+
+  // Diğer buton event listener'ları
   document.getElementById("gmButton").addEventListener("click", handleGM);
   document.getElementById("deployButton").addEventListener("click", handleDeploy);
   document.getElementById("donateCeloBtn").addEventListener("click", handleDonateCELO);
@@ -443,6 +553,9 @@ function setupUI() {
   document.getElementById("shareLinkBtn").addEventListener("click", handleShareLink);
   document.getElementById("createProposalBtn").addEventListener("click", handleCreateProposal);
   document.getElementById("withdrawDonationsBtn").addEventListener("click", handleWithdraw);
+  
+  // Disconnect butonu için event listener
+  disconnectWalletBtn.addEventListener("click", disconnectWallet);
   
   // Quick donate butonları
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
@@ -521,12 +634,5 @@ function renderCeloLinks() {
     <li><a href="${item.url}" target="_blank">${item.name}</a></li>
   `).join('');
 }
-
-// ✅ Badges section aktif olduğunda badge bilgilerini yükle
-document.addEventListener('click', function(e) {
-  if (e.target.getAttribute('data-section') === 'badges') {
-    loadBadgeInfo();
-  }
-});
 
 console.log("✅ main.js successfully loaded and initialized!");
