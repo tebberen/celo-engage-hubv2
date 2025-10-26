@@ -209,6 +209,43 @@
       font-size: 12px;
       font-weight: bold;
     }
+
+    /* ✅ DONATE ÖZEL STİLLERİ */
+    .donate-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .donate-buttons button {
+      flex: 1;
+      min-width: 120px;
+    }
+    .token-selector {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .token-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #FBCC5C;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .token-btn.active {
+      background: #FBCC5C;
+      color: black;
+    }
+    .withdraw-section {
+      background: #FFF0F0;
+      border: 2px solid #FF6B6B;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -245,6 +282,18 @@
           <div id="walletInfo" style="display: none;">
             <p id="walletAddress"></p>
             <p id="walletBalance"></p>
+          </div>
+        </div>
+
+        <!-- ✅ SIDEBAR DONATE KUTUSU -->
+        <div class="donate-box">
+          <h3>💛 Quick Donate</h3>
+          <p>Fast support with preset amounts</p>
+          <div class="donate-buttons">
+            <button class="supportBtn" data-amount="0.1" data-token="CELO">0.1 CELO</button>
+            <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
+            <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
+            <button class="supportBtn" data-amount="0.1" data-token="cUSD">0.1 cUSD</button>
           </div>
         </div>
 
@@ -356,18 +405,59 @@
           </div>
         </section>
 
-        <!-- ✅ DONATE SECTION -->
+        <!-- ✅ DONATE SECTION - TAM DONATE SİSTEMİ -->
         <section id="donateSection" class="section">
           <div class="feature-card">
             <h3>💛 Make a Donation</h3>
+            <p><strong>Minimum donation: 0.1 CELO or 0.1 cUSD</strong></p>
+            
             <div class="input-group">
-              <input type="number" id="donateAmountInput" placeholder="Enter amount (min 0.1)" step="0.1" min="0.1">
+              <input type="number" id="donateAmountInput" placeholder="Enter amount (min 0.1)" step="0.1" min="0.1" value="0.1">
             </div>
-            <div>
+
+            <!-- Token Seçimi -->
+            <div class="token-selector">
+              <button class="token-btn active" data-token="CELO">CELO 💛</button>
+              <button class="token-btn" data-token="cUSD">cUSD 💵</button>
+            </div>
+
+            <!-- Donate Butonları -->
+            <div class="donate-buttons">
               <button id="donateCeloBtn" class="action-button">Donate CELO 💛</button>
               <button id="donateCusdBtn" class="action-button">Donate cUSD 💵</button>
-              <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B; display: none;">Withdraw Donations (Owner)</button>
             </div>
+
+            <!-- Hızlı Donate Butonları -->
+            <div class="donate-buttons">
+              <button class="supportBtn" data-amount="0.1" data-token="CELO">0.1 CELO</button>
+              <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
+              <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
+              <button class="supportBtn" data-amount="5" data-token="CELO">5 CELO</button>
+            </div>
+
+            <!-- Owner Withdraw Panel -->
+            <div id="withdrawPanel" class="withdraw-section" style="display: none;">
+              <h4>💰 Owner Withdraw Panel</h4>
+              <p>Withdraw donations to project owner</p>
+              <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B;">Withdraw Donations 🏦</button>
+              
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <h4>Total Donated</h4>
+                  <div id="totalDonatedValue">0 CELO</div>
+                </div>
+                <div class="stat-card">
+                  <h4>Total Donators</h4>
+                  <div id="totalDonatorsCount">0</div>
+                </div>
+                <div class="stat-card">
+                  <h4>Daily Limit</h4>
+                  <div id="dailyWithdrawLimit">1000 CELO</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Donate İstatistikleri -->
             <div class="stats-grid">
               <div class="stat-card">
                 <h4>Total Donators</h4>
@@ -378,8 +468,12 @@
                 <div id="userDonateCounter">0</div>
               </div>
               <div class="stat-card">
-                <h4>Total Donated</h4>
-                <div id="totalDonated">0 CELO</div>
+                <h4>Your Total Donated</h4>
+                <div id="userTotalDonated">0 CELO</div>
+              </div>
+              <div class="stat-card">
+                <h4>Top Donors</h4>
+                <div id="topDonorsCount">0</div>
               </div>
             </div>
           </div>
@@ -518,5 +612,31 @@
   <script type="module" src="src/services/walletService.js"></script>
   <script type="module" src="src/services/contractService.js"></script>
   <script type="module" src="src/main.js"></script>
+
+  <script>
+    // Donate butonları için event listener
+    document.addEventListener('DOMContentLoaded', function() {
+      // Quick donate butonları
+      document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const amount = this.getAttribute('data-amount');
+          const token = this.getAttribute('data-token');
+          document.getElementById('donateAmountInput').value = amount;
+          
+          // Token seçimini güncelle
+          document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
+          document.querySelector(`.token-btn[data-token="${token}"]`).classList.add('active');
+        });
+      });
+
+      // Token seçimi
+      document.querySelectorAll('.token-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    });
+  </script>
 </body>
 </html>
