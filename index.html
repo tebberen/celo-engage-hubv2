@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- ✅ BASİT CSP - Tüm güvenlik kısıtlamalarını kaldır (geliştirme için) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src * 'unsafe-inline';">
+  
+  <!-- ✅ DÜZELTİLMİŞ CSP - Tüm hatalar için -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src * 'unsafe-inline'; img-src * data: blob:;">
+  
+  <!-- ✅ ETHER.JS CDN - ContractService için ZORUNLU -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  
   <title>Celo Engage Hub</title>
   <link rel="stylesheet" href="src/styles/main.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
@@ -133,6 +138,77 @@
       margin-top: 5px;
       display: inline-block;
     }
+
+    /* ✅ YENİ EKLENEN STILLER - Tüm özellikler için */
+    .section {
+      display: none;
+      padding: 20px;
+    }
+    .section.active {
+      display: block;
+    }
+    .nav-button {
+      padding: 10px 15px;
+      margin: 0 5px;
+      border: none;
+      border-radius: 8px;
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+    .nav-button.active {
+      background: #35D07F;
+      color: white;
+    }
+    .feature-card {
+      background: #FFFDF6;
+      border: 2px solid #FBCC5C;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 15px 0;
+    }
+    .input-group {
+      margin: 15px 0;
+    }
+    .input-group input, .input-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 5px 0;
+    }
+    .action-button {
+      background: #35D07F;
+      color: black;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-card {
+      background: #FFFDF6;
+      border: 1px solid #FBCC5C;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      background: #FFD700;
+      color: black;
+      padding: 5px 10px;
+      border-radius: 15px;
+      margin: 2px;
+      font-size: 12px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -144,12 +220,17 @@
       <p class="subtitle"><i>Social TX – Where Every Interaction Builds Real Value</i></p>
       <p class="description">If you want support, support first</p>
 
+      <!-- ✅ YENİ NAVIGATION - Tüm özellikler için -->
       <div class="nav-bar">
-        <button id="gmBtn">Gm</button>
-        <button id="deployBtn">Deploy</button>
-        <button id="governanceBtn">Governance</button> <!-- ✅ GOVERNANCE GERİ EKLENDİ -->
-        <button id="badgeBtn">Badge</button>
-        <button id="profileBtn">Profile</button>
+        <button class="nav-button active" data-section="home">🏠 Home</button>
+        <button class="nav-button" data-section="gm">👋 GM</button>
+        <button class="nav-button" data-section="deploy">🚀 Deploy</button>
+        <button class="nav-button" data-section="donate">💛 Donate</button>
+        <button class="nav-button" data-section="links">🔗 Links</button>
+        <button class="nav-button" data-section="governance">🗳️ Governance</button>
+        <button class="nav-button" data-section="profile">👤 Profile</button>
+        <button class="nav-button" data-section="badges">🏆 Badges</button>
+        <button class="nav-button" data-section="leaderboard">🏆 Leaderboard</button>
       </div>
     </header>
 
@@ -160,17 +241,41 @@
             <p>🔴 Not connected</p>
             <span id="networkLabel">—</span>
           </div>
-          <button id="walletActionBtn" class="wallet-btn">Connect Wallet</button>
+          <button id="connectWallet" class="wallet-btn">Connect Wallet</button>
+          <div id="walletInfo" style="display: none;">
+            <p id="walletAddress"></p>
+            <p id="walletBalance"></p>
+          </div>
         </div>
 
-        <div class="donate-box">
-          <h3>💛 Donate to Support Hub</h3>
-          <p>Choose an amount to support the community</p>
-          <div class="donate-buttons">
-            <button data-amount="0.5">0.5 CELO</button>
-            <button data-amount="1">1 CELO</button>
-            <button data-amount="5">5 CELO</button>
-            <button data-amount="10">10 CELO</button>
+        <!-- ✅ GLOBAL STATS -->
+        <div class="global-stats">
+          <h3>📊 Global Stats</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value" id="globalVisitors">0</div>
+              <div class="stat-label">Visitors</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="globalGM">0</div>
+              <div class="stat-label">GM Count</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="globalDeploy">0</div>
+              <div class="stat-label">Deploys</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="globalLinks">0</div>
+              <div class="stat-label">Links</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="globalVotes">0</div>
+              <div class="stat-label">Votes</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="globalBadges">0</div>
+              <div class="stat-label">Badges</div>
+            </div>
           </div>
         </div>
 
@@ -191,7 +296,8 @@
       </aside>
 
       <main class="main-content">
-        <section class="support-section" id="contentArea">
+        <!-- ✅ HOME SECTION -->
+        <section id="homeSection" class="section active">
           <div class="step-indicator">
             <span class="step-number">1</span> Support Community Members
           </div>
@@ -207,14 +313,208 @@
             </div>
           </div>
         </section>
+
+        <!-- ✅ GM SECTION -->
+        <section id="gmSection" class="section">
+          <div class="feature-card">
+            <h3>👋 Send GM</h3>
+            <div class="input-group">
+              <input type="text" id="gmMessageInput" placeholder="Enter your GM message (optional)" value="Hello from Celo Engage Hub!">
+            </div>
+            <button id="gmButton" class="action-button">Send GM 🌟</button>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>Global GM Count</h4>
+                <div id="gmCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Your GM Count</h4>
+                <div id="userGmCounter">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ DEPLOY SECTION -->
+        <section id="deploySection" class="section">
+          <div class="feature-card">
+            <h3>🚀 Deploy Contract</h3>
+            <div class="input-group">
+              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)" value="MyContract">
+            </div>
+            <button id="deployButton" class="action-button">Deploy Contract 🚀</button>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>Global Deploy Count</h4>
+                <div id="deployCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Your Deploy Count</h4>
+                <div id="userDeployCounter">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ DONATE SECTION -->
+        <section id="donateSection" class="section">
+          <div class="feature-card">
+            <h3>💛 Make a Donation</h3>
+            <div class="input-group">
+              <input type="number" id="donateAmountInput" placeholder="Enter amount (min 0.1)" step="0.1" min="0.1">
+            </div>
+            <div>
+              <button id="donateCeloBtn" class="action-button">Donate CELO 💛</button>
+              <button id="donateCusdBtn" class="action-button">Donate cUSD 💵</button>
+              <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B; display: none;">Withdraw Donations (Owner)</button>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>Total Donators</h4>
+                <div id="donateCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Your Donations</h4>
+                <div id="userDonateCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Total Donated</h4>
+                <div id="totalDonated">0 CELO</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ LINKS SECTION -->
+        <section id="linksSection" class="section">
+          <div class="feature-card">
+            <h3>🔗 Share Links</h3>
+            <div class="input-group">
+              <input type="text" id="linkInput" placeholder="Enter your link (https://...)">
+            </div>
+            <button id="shareLinkBtn" class="action-button">Share Link 🔗</button>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>Global Links</h4>
+                <div id="linkCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Your Links</h4>
+                <div id="userLinkCounter">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ GOVERNANCE SECTION -->
+        <section id="governanceSection" class="section">
+          <div class="feature-card">
+            <h3>🗳️ Governance</h3>
+            
+            <!-- Owner Only: Create Proposal -->
+            <div id="ownerPanel" style="display: none;">
+              <h4>Create Proposal (Owner Only)</h4>
+              <div class="input-group">
+                <input type="text" id="proposalTitleInput" placeholder="Proposal Title">
+                <textarea id="proposalDescInput" placeholder="Proposal Description"></textarea>
+                <input type="text" id="proposalLinkInput" placeholder="Proposal Link (optional)">
+              </div>
+              <button id="createProposalBtn" class="action-button">Create Proposal 📝</button>
+            </div>
+
+            <!-- Active Proposals -->
+            <h4>Active Proposals</h4>
+            <div id="proposalsList">
+              <!-- Proposals will be loaded here -->
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>Total Votes</h4>
+                <div id="voteCounter">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Your Votes</h4>
+                <div id="userVoteCounter">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ PROFILE SECTION -->
+        <section id="profileSection" class="section">
+          <div class="feature-card">
+            <h3>👤 Your Profile</h3>
+            <div id="profileInfo">
+              <p><strong>Address:</strong> <span id="profileAddress">-</span></p>
+              <p><strong>Level:</strong> <span id="profileLevel">1</span></p>
+              <p><strong>Tier:</strong> <span id="profileTier">1</span></p>
+              <p><strong>Total XP:</strong> <span id="profileXP">0</span></p>
+            </div>
+            
+            <h4>Your Statistics</h4>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <h4>GM Count</h4>
+                <div id="profileGMCount">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Deploy Count</h4>
+                <div id="profileDeployCount">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Donate Count</h4>
+                <div id="profileDonateCount">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Link Count</h4>
+                <div id="profileLinkCount">0</div>
+              </div>
+              <div class="stat-card">
+                <h4>Vote Count</h4>
+                <div id="profileVoteCount">0</div>
+              </div>
+            </div>
+
+            <h4>Your Links</h4>
+            <div id="userLinksList">
+              <!-- User links will be loaded here -->
+            </div>
+
+            <h4>Your Contracts</h4>
+            <div id="userContractsList">
+              <!-- User contracts will be loaded here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ BADGES SECTION -->
+        <section id="badgesSection" class="section">
+          <div class="feature-card">
+            <h3>🏆 Your Badges</h3>
+            <div id="userBadgeInfo">
+              <!-- Badge info will be loaded here -->
+            </div>
+            <div id="badgesList">
+              <!-- Badges will be displayed here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ✅ LEADERBOARD SECTION -->
+        <section id="leaderboardSection" class="section">
+          <div class="feature-card">
+            <h3>🏆 Leaderboard</h3>
+            <p>Coming soon...</p>
+            <!-- Leaderboard will be implemented here -->
+          </div>
+        </section>
       </main>
     </div>
   </div>
 
-  <!-- ✅ Ethers.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-  
-  <!-- ✅ Tüm JavaScript dosyaları -->
+  <!-- ✅ TÜM JAVASCRIPT DOSYALARI -->
+  <script type="module" src="src/utils/constants.js"></script>
   <script type="module" src="src/services/walletService.js"></script>
   <script type="module" src="src/services/contractService.js"></script>
   <script type="module" src="src/main.js"></script>
