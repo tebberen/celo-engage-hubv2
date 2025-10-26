@@ -3,7 +3,8 @@
 // ========================= CELO ENGAGE HUB - CONSTANTS ========================= //
 
 // Ağ Seçimi: 'mainnet' veya 'sepolia' olarak ayarlayın
-export const DEFAULT_NETWORK = import.meta.env.VITE_DEFAULT_NETWORK || 'sepolia';
+// Eğer VITE_DEFAULT_NETWORK tanımlı değilse, 'mainnet' kullan
+export const DEFAULT_NETWORK = 'mainnet'; // Varsayılan olarak mainnet kullan
 
 // Ağ Yapılandırmaları
 export const NETWORKS = {
