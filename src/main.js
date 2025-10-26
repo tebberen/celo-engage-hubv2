@@ -1,4 +1,6 @@
-// src/main.js
+// =======================
+// 🌐 CELO ENGAGE HUB vFull RealTime
+// =======================
 
 import { WalletService } from './services/walletService.js';
 import { ContractService } from './services/contractService.js';
@@ -7,8 +9,7 @@ import {
   OWNER_ADDRESS,
   DEFAULT_GM_MESSAGE,
   MIN_DONATION,
-  INITIAL_SUPPORT_LINKS,
-  CELO_ECOSYSTEM_LINKS
+  INITIAL_SUPPORT_LINKS
 } from './utils/constants.js';
 
 class CeloEngageHub {
@@ -18,171 +19,116 @@ class CeloEngageHub {
     this.account = null;
     this.userProfile = null;
     this.globalStats = null;
-    
+    this.leaderboard = {
+      xp: [],
+      donors: [],
+      gm: []
+    };
+
+    // Auto refresh interval
+    this.refreshInterval = null;
+
     this.initializeApp();
   }
 
-  // Uygulamayı başlat
   async initializeApp() {
     try {
-      console.log('🚀 Celo Engage Hub başlatılıyor...');
-      
-      // DOM elementlerini yükle
+      console.log("🚀 Celo Engage Hub başlatılıyor...");
       this.initializeDOMElements();
-      
-      // Event listener'ları kur
       this.initializeEventListeners();
-      
-      // Wallet service'i başlat
       this.walletService = new WalletService();
-      
-      // Kullanıcıyı kontrol et
       await this.checkWalletConnection();
-      
-      // Başlangıç verilerini yükle
       await this.loadInitialData();
-      
-      console.log('✅ Uygulama başarıyla başlatıldı!');
-      
+      this.startAutoRefresh();
+      console.log("✅ Uygulama başarıyla başlatıldı!");
     } catch (error) {
-      console.error('❌ Uygulama başlatma hatası:', error);
-      this.showError('Uygulama başlatılamadı: ' + error.message);
+      console.error("❌ Başlatma hatası:", error);
+      this.showError("Uygulama başlatılamadı: " + error.message);
     }
   }
 
-  // DOM elementlerini initialize et
+  // ========== DOM Elements ==========
   initializeDOMElements() {
-    // Wallet bağlantı elementleri
-    this.connectWalletBtn = document.getElementById('connectWallet');
-    this.walletAddressEl = document.getElementById('walletAddress');
-    this.walletBalanceEl = document.getElementById('walletBalance');
-    this.networkInfoEl = document.getElementById('networkInfo');
-
-    // Navigation elementleri
-    this.navHome = document.getElementById('navHome');
-    this.navProfile = document.getElementById('navProfile');
-    this.navGovernance = document.getElementById('navGovernance');
-    this.navLeaderboard = document.getElementById('navLeaderboard');
-    this.navBadges = document.getElementById('navBadges');
-
-    // Section elementleri
-    this.homeSection = document.getElementById('homeSection');
-    this.profileSection = document.getElementById('profileSection');
-    this.governanceSection = document.getElementById('governanceSection');
-    this.leaderboardSection = document.getElementById('leaderboardSection');
-    this.badgesSection = document.getElementById('badgesSection');
-
-    // GM Section
-    this.gmButton = document.getElementById('gmButton');
-    this.gmMessageInput = document.getElementById('gmMessageInput');
-    this.gmCounter = document.getElementById('gmCounter');
-    this.userGmCounter = document.getElementById('userGmCounter');
-
-    // Deploy Section
-    this.deployButton = document.getElementById('deployButton');
-    this.contractNameInput = document.getElementById('contractNameInput');
-    this.deployCounter = document.getElementById('deployCounter');
-    this.userDeployCounter = document.getElementById('userDeployCounter');
-
-    // Donate Section
-    this.donateCeloBtn = document.getElementById('donateCeloBtn');
-    this.donateCusdBtn = document.getElementById('donateCusdBtn');
-    this.donateAmountInput = document.getElementById('donateAmountInput');
-    this.donateCounter = document.getElementById('donateCounter');
-    this.totalDonated = document.getElementById('totalDonated');
-    this.userDonateCounter = document.getElementById('userDonateCounter');
-    this.withdrawDonationsBtn = document.getElementById('withdrawDonationsBtn');
-
-    // Link Share Section
-    this.shareLinkBtn = document.getElementById('shareLinkBtn');
-    this.linkInput = document.getElementById('linkInput');
-    this.linkCounter = document.getElementById('linkCounter');
-    this.userLinkCounter = document.getElementById('userLinkCounter');
-
-    // Governance Section
-    this.createProposalBtn = document.getElementById('createProposalBtn');
-    this.proposalTitleInput = document.getElementById('proposalTitleInput');
-    this.proposalDescInput = document.getElementById('proposalDescInput');
-    this.proposalLinkInput = document.getElementById('proposalLinkInput');
-    this.proposalsList = document.getElementById('proposalsList');
-    this.voteCounter = document.getElementById('voteCounter');
-    this.userVoteCounter = document.getElementById('userVoteCounter');
-
-    // Profile Section
-    this.profileAddress = document.getElementById('profileAddress');
-    this.profileLevel = document.getElementById('profileLevel');
-    this.profileTier = document.getElementById('profileTier');
-    this.profileXP = document.getElementById('profileXP');
-    this.profileGMCount = document.getElementById('profileGMCount');
-    this.profileDeployCount = document.getElementById('profileDeployCount');
-    this.profileDonateCount = document.getElementById('profileDonateCount');
-    this.profileLinkCount = document.getElementById('profileLinkCount');
-    this.profileVoteCount = document.getElementById('profileVoteCount');
-    this.userLinksList = document.getElementById('userLinksList');
-    this.userContractsList = document.getElementById('userContractsList');
-
-    // Badges Section
-    this.badgesList = document.getElementById('badgesList');
-    this.userBadgeInfo = document.getElementById('userBadgeInfo');
-
-    // Global Stats
-    this.globalVisitors = document.getElementById('globalVisitors');
-    this.globalGM = document.getElementById('globalGM');
-    this.globalDeploy = document.getElementById('globalDeploy');
-    this.globalLinks = document.getElementById('globalLinks');
-    this.globalVotes = document.getElementById('globalVotes');
-    this.globalBadges = document.getElementById('globalBadges');
-
-    // Loading states
-    this.loadingElements = document.querySelectorAll('.loading');
-    this.errorElements = document.querySelectorAll('.error');
-    this.successElements = document.querySelectorAll('.success');
-
-    console.log('✅ DOM elementleri başarıyla yüklendi!');
-  }
-
-  // Event listener'ları kur
-  initializeEventListeners() {
-    // Wallet bağlantısı
-    this.connectWalletBtn?.addEventListener('click', () => this.connectWallet());
+    this.connectWalletBtn = document.getElementById("connectWallet");
+    this.walletAddressEl = document.getElementById("walletAddress");
+    this.walletBalanceEl = document.getElementById("walletBalance");
+    this.networkInfoEl = document.getElementById("networkInfo");
 
     // Navigation
-    this.navHome?.addEventListener('click', () => this.showSection('home'));
-    this.navProfile?.addEventListener('click', () => this.showSection('profile'));
-    this.navGovernance?.addEventListener('click', () => this.showSection('governance'));
-    this.navLeaderboard?.addEventListener('click', () => this.showSection('leaderboard'));
-    this.navBadges?.addEventListener('click', () => this.showSection('badges'));
+    this.navHome = document.getElementById("navHome");
+    this.navProfile = document.getElementById("navProfile");
+    this.navGovernance = document.getElementById("navGovernance");
+    this.navLeaderboard = document.getElementById("navLeaderboard");
+    this.navBadges = document.getElementById("navBadges");
 
-    // GM İşlemleri
-    this.gmButton?.addEventListener('click', () => this.sendGM());
-    this.gmMessageInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.sendGM();
-    });
+    // Sections
+    this.homeSection = document.getElementById("homeSection");
+    this.profileSection = document.getElementById("profileSection");
+    this.governanceSection = document.getElementById("governanceSection");
+    this.leaderboardSection = document.getElementById("leaderboardSection");
+    this.badgesSection = document.getElementById("badgesSection");
 
-    // Deploy İşlemleri
-    this.deployButton?.addEventListener('click', () => this.deployContract());
-    this.contractNameInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.deployContract();
-    });
+    // GM, Deploy, Donate, Link, Governance elements
+    this.gmButton = document.getElementById("gmButton");
+    this.gmMessageInput = document.getElementById("gmMessageInput");
+    this.gmCounter = document.getElementById("gmCounter");
+    this.userGmCounter = document.getElementById("userGmCounter");
 
-    // Donate İşlemleri
-    this.donateCeloBtn?.addEventListener('click', () => this.donate('CELO'));
-    this.donateCusdBtn?.addEventListener('click', () => this.donate('cUSD'));
-    this.withdrawDonationsBtn?.addEventListener('click', () => this.withdrawDonations());
+    this.deployButton = document.getElementById("deployButton");
+    this.contractNameInput = document.getElementById("contractNameInput");
+    this.deployCounter = document.getElementById("deployCounter");
+    this.userDeployCounter = document.getElementById("userDeployCounter");
 
-    // Link Paylaşımı
-    this.shareLinkBtn?.addEventListener('click', () => this.shareLink());
-    this.linkInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') this.shareLink();
-    });
+    this.donateCeloBtn = document.getElementById("donateCeloBtn");
+    this.donateCusdBtn = document.getElementById("donateCusdBtn");
+    this.donateAmountInput = document.getElementById("donateAmountInput");
+    this.withdrawDonationsBtn = document.getElementById("withdrawDonationsBtn");
 
-    // Governance
-    this.createProposalBtn?.addEventListener('click', () => this.createProposal());
+    this.shareLinkBtn = document.getElementById("shareLinkBtn");
+    this.linkInput = document.getElementById("linkInput");
+    this.linkCounter = document.getElementById("linkCounter");
 
-    console.log('✅ Event listenerlar başarıyla kuruldu!');
+    this.createProposalBtn = document.getElementById("createProposalBtn");
+    this.proposalTitleInput = document.getElementById("proposalTitleInput");
+    this.proposalDescInput = document.getElementById("proposalDescInput");
+    this.proposalLinkInput = document.getElementById("proposalLinkInput");
+    this.proposalsList = document.getElementById("proposalsList");
+
+    this.globalVisitors = document.getElementById("globalVisitors");
+    this.globalGM = document.getElementById("globalGM");
+    this.globalDeploy = document.getElementById("globalDeploy");
+    this.globalLinks = document.getElementById("globalLinks");
+    this.globalVotes = document.getElementById("globalVotes");
+    this.globalBadges = document.getElementById("globalBadges");
+
+    this.leaderboardXP = document.getElementById("leaderboardXP");
+    this.leaderboardDonors = document.getElementById("leaderboardDonors");
+    this.leaderboardGM = document.getElementById("leaderboardGM");
+
+    console.log("✅ DOM elementleri yüklendi!");
   }
 
-  // Wallet bağlantısını kontrol et
+  // ========== Event Listeners ==========
+  initializeEventListeners() {
+    this.connectWalletBtn?.addEventListener("click", () => this.connectWallet());
+    this.navHome?.addEventListener("click", () => this.showSection("home"));
+    this.navProfile?.addEventListener("click", () => this.showSection("profile"));
+    this.navGovernance?.addEventListener("click", () => this.showSection("governance"));
+    this.navLeaderboard?.addEventListener("click", () => this.showSection("leaderboard"));
+    this.navBadges?.addEventListener("click", () => this.showSection("badges"));
+
+    this.gmButton?.addEventListener("click", () => this.sendGM());
+    this.deployButton?.addEventListener("click", () => this.deployContract());
+    this.donateCeloBtn?.addEventListener("click", () => this.donate("CELO"));
+    this.donateCusdBtn?.addEventListener("click", () => this.donate("cUSD"));
+    this.withdrawDonationsBtn?.addEventListener("click", () => this.withdrawDonations());
+    this.shareLinkBtn?.addEventListener("click", () => this.shareLink());
+    this.createProposalBtn?.addEventListener("click", () => this.createProposal());
+
+    console.log("✅ Event listenerlar aktif!");
+  }
+
+  // ========== Wallet Bağlantısı ==========
   async checkWalletConnection() {
     try {
       const connected = await this.walletService.checkWalletConnection();
@@ -190,597 +136,308 @@ class CeloEngageHub {
         this.account = this.walletService.getAccount();
         await this.initializeContractService();
         await this.updateWalletInfo();
-        this.showSuccess('Cüzdan bağlantısı başarılı!');
+        await this.loadUserData();
       }
-    } catch (error) {
-      console.log('Cüzdan bağlı değil:', error.message);
+    } catch (err) {
+      console.log("Cüzdan bağlı değil.");
     }
   }
 
-  // Wallet'a bağlan
   async connectWallet() {
     try {
-      this.showLoading('Cüzdana bağlanıyor...');
-      
+      this.showLoading("Cüzdana bağlanıyor...");
       await this.walletService.connectWallet();
       this.account = this.walletService.getAccount();
-      
       await this.initializeContractService();
       await this.updateWalletInfo();
       await this.loadUserData();
-      
-      this.showSuccess('Cüzdan başarıyla bağlandı!');
-      
+      this.showSuccess("Cüzdan başarıyla bağlandı!");
     } catch (error) {
-      console.error('Cüzdan bağlantı hatası:', error);
-      this.showError('Cüzdan bağlanamadı: ' + error.message);
+      this.showError("Bağlantı hatası: " + error.message);
     } finally {
       this.hideLoading();
     }
   }
 
-  // Contract service'i başlat
   async initializeContractService() {
-    try {
-      const web3 = this.walletService.getWeb3();
-      this.contractService = new ContractService(web3, this.account);
-      console.log('✅ Contract Service başlatıldı!');
-    } catch (error) {
-      console.error('Contract Service başlatma hatası:', error);
-      throw error;
-    }
+    const provider = this.walletService.getWeb3();
+    this.contractService = new ContractService(provider, this.account);
+    console.log("✅ Contract Service başlatıldı");
   }
 
-  // Wallet bilgilerini güncelle
   async updateWalletInfo() {
-    if (!this.account) return;
-
-    try {
-      // Adresi göster
-      const shortAddress = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
-      this.walletAddressEl.textContent = shortAddress;
-      
-      // Balance'ı getir
-      const balance = await this.walletService.getBalance();
-      this.walletBalanceEl.textContent = `${parseFloat(balance).toFixed(4)} CELO`;
-      
-      // Network bilgisi
-      this.networkInfoEl.textContent = CURRENT_NETWORK.name;
-      
-      // Connect butonunu gizle
-      this.connectWalletBtn.style.display = 'none';
-      this.walletAddressEl.parentElement.style.display = 'block';
-      
-    } catch (error) {
-      console.error('Wallet info güncelleme hatası:', error);
-    }
+    const shortAddress = `${this.account.slice(0, 6)}...${this.account.slice(-4)}`;
+    const balance = await this.walletService.getBalance();
+    this.walletAddressEl.textContent = shortAddress;
+    this.walletBalanceEl.textContent = `${parseFloat(balance).toFixed(3)} CELO`;
+    this.networkInfoEl.textContent = CURRENT_NETWORK.name;
+    this.connectWalletBtn.style.display = "none";
   }
 
-  // Başlangıç verilerini yükle
+  // ========== Global & User Data ==========
   async loadInitialData() {
     try {
       await this.loadGlobalStats();
-      await this.loadSupportLinks();
-      
-      if (this.account) {
-        await this.loadUserData();
-      }
-    } catch (error) {
-      console.error('Başlangıç veri yükleme hatası:', error);
+      if (this.account) await this.loadUserData();
+      this.initializeEventWatchers();
+    } catch (e) {
+      console.error("Başlangıç veri yükleme hatası:", e);
     }
   }
 
-  // Global istatistikleri yükle
   async loadGlobalStats() {
-    if (!this.contractService) return;
-
     try {
-      this.globalStats = await this.contractService.getGlobalStats();
-      
-      // Global sayacları güncelle
-      this.globalVisitors.textContent = this.globalStats.visitors || '0';
-      this.globalGM.textContent = this.globalStats.gm || '0';
-      this.globalDeploy.textContent = this.globalStats.deploy || '0';
-      this.globalLinks.textContent = this.globalStats.links || '0';
-      this.globalVotes.textContent = this.globalStats.votes || '0';
-      this.globalBadges.textContent = this.globalStats.badges || '0';
-      
-    } catch (error) {
-      console.error('Global stats yükleme hatası:', error);
+      const stats = await this.contractService.getGlobalStats();
+      this.globalStats = stats;
+      this.globalVisitors.textContent = stats.visitors ?? "0";
+      this.globalGM.textContent = stats.gm ?? "0";
+      this.globalDeploy.textContent = stats.deploy ?? "0";
+      this.globalLinks.textContent = stats.links ?? "0";
+      this.globalVotes.textContent = stats.votes ?? "0";
+      this.globalBadges.textContent = stats.badges ?? "0";
+    } catch (err) {
+      console.error("Global stats hatası:", err);
     }
   }
 
-  // Kullanıcı verilerini yükle
   async loadUserData() {
     if (!this.contractService || !this.account) return;
-
     try {
-      // Kullanıcı profilini getir
       this.userProfile = await this.contractService.getUserProfile();
-      
-      // Kullanıcı istatistiklerini getir
-      const userStats = await this.contractService.getUserStats();
-      
-      // Profil sayaclarını güncelle
-      this.userGmCounter.textContent = userStats.gmCount || '0';
-      this.userDeployCounter.textContent = userStats.deployCount || '0';
-      this.userDonateCounter.textContent = userStats.donateCount || '0';
-      this.userLinkCounter.textContent = userStats.linkCount || '0';
-      this.userVoteCounter.textContent = userStats.voteCount || '0';
-      
-      // Global sayacları güncelle
-      this.gmCounter.textContent = this.globalStats?.gm || '0';
-      this.deployCounter.textContent = this.globalStats?.deploy || '0';
-      this.donateCounter.textContent = this.globalStats?.visitors || '0'; // Bağış sayısı için uygun alan
-      this.linkCounter.textContent = this.globalStats?.links || '0';
-      this.voteCounter.textContent = this.globalStats?.votes || '0';
-      
-      // Profil section'ını güncelle
-      await this.updateProfileSection();
-      
-      // Badge bilgilerini getir
+      this.updateProfileUI(this.userProfile);
       await this.loadBadgeInfo();
-      
-      // Kullanıcı linklerini getir
-      await this.loadUserLinks();
-      
-      // Kullanıcı kontratlarını getir
-      await this.loadUserContracts();
-      
-      // Governance verilerini getir
+      await this.loadLeaderboard();
       await this.loadProposals();
-      
-      // Owner kontrolü - özel elementleri göster/gizle
-      this.toggleOwnerElements();
-      
-    } catch (error) {
-      console.error('Kullanıcı veri yükleme hatası:', error);
+    } catch (err) {
+      console.error("Kullanıcı verisi yükleme hatası:", err);
     }
   }
 
-  // Profil section'ını güncelle
-  async updateProfileSection() {
-    if (!this.userProfile) return;
-
-    try {
-      this.profileAddress.textContent = this.account;
-      this.profileLevel.textContent = this.userProfile.level || '1';
-      this.profileTier.textContent = this.userProfile.tier || '1';
-      this.profileXP.textContent = this.userProfile.totalXP || '0';
-      this.profileGMCount.textContent = this.userProfile.gmCount || '0';
-      this.profileDeployCount.textContent = this.userProfile.deployCount || '0';
-      this.profileDonateCount.textContent = this.userProfile.donateCount || '0';
-      this.profileLinkCount.textContent = this.userProfile.linkCount || '0';
-      this.profileVoteCount.textContent = this.userProfile.voteCount || '0';
-      
-    } catch (error) {
-      console.error('Profil güncelleme hatası:', error);
-    }
+  updateProfileUI(profile) {
+    document.getElementById("profileAddress").textContent = this.account;
+    document.getElementById("profileLevel").textContent = profile.level ?? "1";
+    document.getElementById("profileTier").textContent = profile.tier ?? "1";
+    document.getElementById("profileXP").textContent = profile.totalXP ?? "0";
+    document.getElementById("profileGMCount").textContent = profile.gmCount ?? "0";
+    document.getElementById("profileDeployCount").textContent = profile.deployCount ?? "0";
+    document.getElementById("profileDonateCount").textContent = profile.donateCount ?? "0";
+    document.getElementById("profileLinkCount").textContent = profile.linkCount ?? "0";
+    document.getElementById("profileVoteCount").textContent = profile.voteCount ?? "0";
   }
 
-  // Badge bilgilerini yükle
   async loadBadgeInfo() {
-    if (!this.contractService) return;
-
-    try {
-      const badgeInfo = await this.contractService.getUserBadge();
-      
-      // Badge bilgilerini göster
-      if (this.userBadgeInfo) {
-        this.userBadgeInfo.innerHTML = `
-          <div class="badge-card">
-            <h4>Seviye: ${badgeInfo.level || '1'}</h4>
-            <p>Tier: ${badgeInfo.tier || '1'}</p>
-            <p>Toplam XP: ${badgeInfo.totalXP || '0'}</p>
-            <p>Son Güncelleme: ${new Date(badgeInfo.lastUpdate * 1000).toLocaleDateString()}</p>
-          </div>
-        `;
-      }
-      
-    } catch (error) {
-      console.error('Badge bilgisi yükleme hatası:', error);
+    const badge = await this.contractService.getUserBadge();
+    if (this.userBadgeInfo) {
+      this.userBadgeInfo.innerHTML = `
+        <div class="badge-card">
+          <h4>Level: ${badge.level}</h4>
+          <p>Tier: ${badge.tier}</p>
+          <p>XP: ${badge.totalXP}</p>
+          <small>Last Update: ${new Date(badge.lastUpdate * 1000).toLocaleString()}</small>
+        </div>`;
     }
   }
 
-  // Kullanıcı linklerini yükle
-  async loadUserLinks() {
-    if (!this.contractService) return;
+  // ========== Event Watchers ==========
+  initializeEventWatchers() {
+    const gm = this.contractService.moduleContracts.gm;
+    const donate = this.contractService.moduleContracts.donate;
+    const deploy = this.contractService.moduleContracts.deploy;
+    const link = this.contractService.moduleContracts.link;
+    const badge = this.contractService.moduleContracts.badge;
 
+    gm.on("GMEvent", async (user) => {
+      console.log("📩 GM Event", user);
+      await this.loadGlobalStats();
+      await this.loadUserData();
+    });
+
+    donate.on("DonationEvent", async (user, amount) => {
+      console.log("💰 Donation Event", user, amount.toString());
+      await this.loadGlobalStats();
+      await this.loadUserData();
+    });
+
+    deploy.on("ContractDeployed", async (user, addr) => {
+      console.log("⚙️ Deploy Event", addr);
+      await this.loadGlobalStats();
+      await this.loadUserData();
+    });
+
+    link.on("LinkShared", async (user, link) => {
+      console.log("🔗 Link Event", link);
+      await this.loadGlobalStats();
+      await this.loadUserData();
+    });
+
+    badge.on("BadgeUpdated", async (user, tier) => {
+      console.log("🏅 Badge Updated", user, tier.toString());
+      await this.loadUserData();
+    });
+
+    console.log("🟢 Event watchers aktif!");
+  }
+
+  // ========== Leaderboard ==========
+  async loadLeaderboard() {
     try {
-      const userLinks = await this.contractService.getUserLinks();
-      
-      if (this.userLinksList && userLinks.length > 0) {
-        this.userLinksList.innerHTML = userLinks.map(link => `
-          <div class="link-item">
-            <a href="${link}" target="_blank" rel="noopener">${link}</a>
-          </div>
-        `).join('');
+      const donors = await this.contractService.getTopDonors();
+      const xpUsers = await this.contractService.getGlobalStats(); // örnek: total xp
+      this.leaderboard.donors = donors.addresses.map((addr, i) => ({
+        address: addr,
+        amount: donors.amounts[i]
+      }));
+
+      if (this.leaderboardDonors) {
+        this.leaderboardDonors.innerHTML = this.leaderboard.donors
+          .map(
+            (d, i) =>
+              `<div class="leaderboard-item">#${i + 1} ${d.address.slice(0, 6)}...${d.address.slice(-4)} — ${d.amount} CELO</div>`
+          )
+          .join("");
       }
-      
-    } catch (error) {
-      console.error('Kullanıcı linkleri yükleme hatası:', error);
+    } catch (err) {
+      console.error("Leaderboard yükleme hatası:", err);
     }
   }
 
-  // Kullanıcı kontratlarını yükle
-  async loadUserContracts() {
-    if (!this.contractService) return;
-
-    try {
-      const userContracts = await this.contractService.getUserContracts();
-      
-      if (this.userContractsList && userContracts.length > 0) {
-        this.userContractsList.innerHTML = userContracts.map(contract => `
-          <div class="contract-item">
-            <span class="contract-address">${contract}</span>
-            <button onclick="app.viewContract('${contract}')" class="btn-small">Görüntüle</button>
-          </div>
-        `).join('');
-      }
-      
-    } catch (error) {
-      console.error('Kullanıcı kontratları yükleme hatası:', error);
-    }
-  }
-
-  // Önerileri yükle
+  // ========== Governance ==========
   async loadProposals() {
-    if (!this.contractService) return;
-
-    try {
-      const proposals = await this.contractService.getActiveProposals();
-      
-      if (this.proposalsList) {
-        if (proposals.length === 0) {
-          this.proposalsList.innerHTML = '<p>Henüz aktif öneri bulunmuyor.</p>';
-          return;
-        }
-
-        this.proposalsList.innerHTML = proposals.map(proposal => `
-          <div class="proposal-card">
-            <h4>${proposal.title}</h4>
-            <p>${proposal.description}</p>
-            ${proposal.link ? `<a href="${proposal.link}" target="_blank">Detaylı Bilgi</a>` : ''}
-            <div class="proposal-meta">
-              <span>Başlangıç: ${new Date(proposal.startTime * 1000).toLocaleDateString()}</span>
-              <span>Bitiş: ${new Date(proposal.endTime * 1000).toLocaleDateString()}</span>
-            </div>
-            <div class="proposal-votes">
-              <span>👍 ${proposal.forVotes}</span>
-              <span>👎 ${proposal.againstVotes}</span>
-            </div>
-            <div class="proposal-actions">
-              <button onclick="app.voteOnProposal(${proposal.id}, true)" class="btn-success">Kabul Et</button>
-              <button onclick="app.voteOnProposal(${proposal.id}, false)" class="btn-danger">Reddet</button>
-            </div>
-          </div>
-        `).join('');
-      }
-      
-    } catch (error) {
-      console.error('Önerileri yükleme hatası:', error);
+    const proposals = await this.contractService.getActiveProposals();
+    if (this.proposalsList) {
+      this.proposalsList.innerHTML =
+        proposals.length === 0
+          ? "<p>Henüz öneri yok.</p>"
+          : proposals
+              .map(
+                (p) => `
+        <div class="proposal-card">
+          <h4>${p.title}</h4>
+          <p>${p.description}</p>
+          <div class="proposal-votes">👍 ${p.forVotes} 👎 ${p.againstVotes}</div>
+          <button onclick="app.voteOnProposal(${p.id}, true)">Kabul</button>
+          <button onclick="app.voteOnProposal(${p.id}, false)">Red</button>
+        </div>`
+              )
+              .join("");
     }
   }
 
-  // Support linklerini yükle
-  async loadSupportLinks() {
-    // Implementation for support links
+  async voteOnProposal(id, support) {
+    this.showLoading("Oy veriliyor...");
+    await this.contractService.vote(id, support);
+    await this.loadProposals();
+    this.showSuccess(`Oyunuz ${support ? "kabul" : "ret"} olarak kaydedildi.`);
+    this.hideLoading();
   }
 
-  // GM gönder
-  async sendGM() {
-    if (!this.contractService) {
-      this.showError('Lütfen önce cüzdanınıza bağlanın!');
-      return;
-    }
-
-    try {
-      this.showLoading('GM gönderiliyor...');
-      
-      const message = this.gmMessageInput?.value || DEFAULT_GM_MESSAGE;
-      await this.contractService.sendGM(message);
-      
-      await this.loadUserData();
-      await this.loadGlobalStats();
-      
-      this.showSuccess('GM başarıyla gönderildi!');
-      if (this.gmMessageInput) this.gmMessageInput.value = '';
-      
-    } catch (error) {
-      console.error('GM gönderme hatası:', error);
-      this.showError('GM gönderilemedi: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // Kontrat deploy et
-  async deployContract() {
-    if (!this.contractService) {
-      this.showError('Lütfen önce cüzdanınıza bağlanın!');
-      return;
-    }
-
-    try {
-      this.showLoading('Kontrat deploy ediliyor...');
-      
-      const contractName = this.contractNameInput?.value || `Contract-${Date.now()}`;
-      await this.contractService.deployContract(contractName);
-      
-      await this.loadUserData();
-      await this.loadGlobalStats();
-      
-      this.showSuccess('Kontrat başarıyla deploy edildi!');
-      if (this.contractNameInput) this.contractNameInput.value = '';
-      
-    } catch (error) {
-      console.error('Kontrat deploy hatası:', error);
-      this.showError('Kontrat deploy edilemedi: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // Bağış yap
-  async donate(tokenType) {
-    if (!this.contractService) {
-      this.showError('Lütfen önce cüzdanınıza bağlanın!');
-      return;
-    }
-
-    try {
-      const amount = parseFloat(this.donateAmountInput?.value);
-      if (!amount || amount < 0.1) {
-        this.showError('Minimum bağış miktarı 0.1 CELO/cUSD');
-        return;
-      }
-
-      this.showLoading(`${tokenType} bağışı yapılıyor...`);
-
-      if (tokenType === 'CELO') {
-        await this.contractService.donateCELO(amount);
-      } else {
-        await this.contractService.donateCUSD(amount);
-      }
-
-      await this.loadUserData();
-      await this.loadGlobalStats();
-      
-      this.showSuccess(`${amount} ${tokenType} başarıyla bağışlandı!`);
-      if (this.donateAmountInput) this.donateAmountInput.value = '';
-      
-    } catch (error) {
-      console.error('Bağış hatası:', error);
-      this.showError('Bağış yapılamadı: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // Link paylaş
-  async shareLink() {
-    if (!this.contractService) {
-      this.showError('Lütfen önce cüzdanınıza bağlanın!');
-      return;
-    }
-
-    try {
-      const link = this.linkInput?.value?.trim();
-      if (!link) {
-        this.showError('Lütfen geçerli bir link girin!');
-        return;
-      }
-
-      // Link doğrulama
-      const isValid = await this.contractService.validateLink(link);
-      if (!isValid) {
-        this.showError('Geçersiz link formatı! HTTPS ile başlamalı.');
-        return;
-      }
-
-      this.showLoading('Link paylaşılıyor...');
-      await this.contractService.shareLink(link);
-      
-      await this.loadUserData();
-      await this.loadGlobalStats();
-      
-      this.showSuccess('Link başarıyla paylaşıldı!');
-      if (this.linkInput) this.linkInput.value = '';
-      
-    } catch (error) {
-      console.error('Link paylaşma hatası:', error);
-      this.showError('Link paylaşılamadı: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // Öneri oluştur (sadece owner)
   async createProposal() {
-    if (!this.contractService || !this.contractService.isOwner()) {
-      this.showError('Sadece proje sahibi öneri oluşturabilir!');
-      return;
+    if (!this.contractService.isOwner()) {
+      return this.showError("Sadece owner öneri oluşturabilir.");
     }
+    const title = this.proposalTitleInput.value.trim();
+    const desc = this.proposalDescInput.value.trim();
+    const link = this.proposalLinkInput.value.trim();
+    this.showLoading("Öneri oluşturuluyor...");
+    await this.contractService.createProposal(title, desc, link);
+    await this.loadProposals();
+    this.hideLoading();
+    this.showSuccess("Öneri oluşturuldu!");
+  }
 
-    try {
-      const title = this.proposalTitleInput?.value?.trim();
-      const description = this.proposalDescInput?.value?.trim();
-      const link = this.proposalLinkInput?.value?.trim();
-
-      if (!title || !description) {
-        this.showError('Lütfen başlık ve açıklama girin!');
-        return;
-      }
-
-      this.showLoading('Öneri oluşturuluyor...');
-      await this.contractService.createProposal(title, description, link);
-      
-      await this.loadProposals();
+  // ========== Auto Refresh ==========
+  startAutoRefresh() {
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
+    this.refreshInterval = setInterval(async () => {
+      console.log("🔄 Otomatik yenileme...");
       await this.loadGlobalStats();
-      
-      this.showSuccess('Öneri başarıyla oluşturuldu!');
-      
-      // Inputları temizle
-      if (this.proposalTitleInput) this.proposalTitleInput.value = '';
-      if (this.proposalDescInput) this.proposalDescInput.value = '';
-      if (this.proposalLinkInput) this.proposalLinkInput.value = '';
-      
-    } catch (error) {
-      console.error('Öneri oluşturma hatası:', error);
-      this.showError('Öneri oluşturulamadı: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
+      if (this.account) await this.loadUserData();
+    }, 60000); // 60 saniyede bir yeniler
   }
 
-  // Oy verme
-  async voteOnProposal(proposalId, support) {
-    if (!this.contractService) {
-      this.showError('Lütfen önce cüzdanınıza bağlanın!');
-      return;
-    }
-
-    try {
-      this.showLoading('Oy veriliyor...');
-      await this.contractService.vote(proposalId, support);
-      
-      await this.loadProposals();
-      await this.loadUserData();
-      
-      this.showSuccess(`Oyunuz ${support ? 'kabul' : 'ret'} olarak kaydedildi!`);
-      
-    } catch (error) {
-      console.error('Oy verme hatası:', error);
-      this.showError('Oy verilemedi: ' + error.message);
-    } finally {
-      this.hideLoading();
-    }
-  }
-
-  // Bağışları çek (sadece owner)
+  // ========== Owner Fonksiyonları ==========
   async withdrawDonations() {
-    if (!this.contractService || !this.contractService.isOwner()) {
-      this.showError('Sadece proje sahibi bağışları çekebilir!');
-      return;
+    if (!this.contractService.isOwner()) {
+      return this.showError("Sadece owner çekebilir!");
     }
-
     try {
-      this.showLoading('Bağışlar çekiliyor...');
+      this.showLoading("Bağışlar çekiliyor...");
       await this.contractService.withdrawDonations();
-      
-      this.showSuccess('Bağışlar başarıyla çekildi!');
-      
-    } catch (error) {
-      console.error('Bağış çekme hatası:', error);
-      this.showError('Bağışlar çekilemedi: ' + error.message);
+      this.showSuccess("Bağışlar başarıyla çekildi!");
+      await this.loadUserData();
+    } catch (e) {
+      this.showError("Bağış çekme hatası: " + e.message);
     } finally {
       this.hideLoading();
     }
   }
 
-  // Section gösterme
-  showSection(sectionName) {
-    // Tüm section'ları gizle
-    const sections = [this.homeSection, this.profileSection, this.governanceSection, this.leaderboardSection, this.badgesSection];
-    sections.forEach(section => {
-      if (section) section.style.display = 'none';
-    });
+  // ========== Section Navigation ==========
+  showSection(name) {
+    const sections = {
+      home: this.homeSection,
+      profile: this.profileSection,
+      governance: this.governanceSection,
+      leaderboard: this.leaderboardSection,
+      badges: this.badgesSection
+    };
+    Object.values(sections).forEach((sec) => (sec.style.display = "none"));
+    if (sections[name]) sections[name].style.display = "block";
 
-    // Aktif section'ı göster
-    switch (sectionName) {
-      case 'home':
-        if (this.homeSection) this.homeSection.style.display = 'block';
-        break;
-      case 'profile':
-        if (this.profileSection) this.profileSection.style.display = 'block';
-        break;
-      case 'governance':
-        if (this.governanceSection) this.governanceSection.style.display = 'block';
-        break;
-      case 'leaderboard':
-        if (this.leaderboardSection) this.leaderboardSection.style.display = 'block';
-        break;
-      case 'badges':
-        if (this.badgesSection) this.badgesSection.style.display = 'block';
-        break;
-    }
-
-    // Navigation aktifliğini güncelle
-    this.updateNavigation(sectionName);
+    // Navigation active state
+    [this.navHome, this.navProfile, this.navGovernance, this.navLeaderboard, this.navBadges].forEach((n) =>
+      n?.classList.remove("active")
+    );
+    const activeMap = {
+      home: this.navHome,
+      profile: this.navProfile,
+      governance: this.navGovernance,
+      leaderboard: this.navLeaderboard,
+      badges: this.navBadges
+    };
+    activeMap[name]?.classList.add("active");
   }
 
-  // Navigation aktifliğini güncelle
-  updateNavigation(activeSection) {
-    const navItems = [this.navHome, this.navProfile, this.navGovernance, this.navLeaderboard, this.navBadges];
-    navItems.forEach(nav => {
-      if (nav) nav.classList.remove('active');
-    });
-
-    switch (activeSection) {
-      case 'home':
-        if (this.navHome) this.navHome.classList.add('active');
-        break;
-      case 'profile':
-        if (this.navProfile) this.navProfile.classList.add('active');
-        break;
-      case 'governance':
-        if (this.navGovernance) this.navGovernance.classList.add('active');
-        break;
-      case 'leaderboard':
-        if (this.navLeaderboard) this.navLeaderboard.classList.add('active');
-        break;
-      case 'badges':
-        if (this.navBadges) this.navBadges.classList.add('active');
-        break;
+  // ========== UI Yardımcı Fonksiyonlar ==========
+  showLoading(msg = "İşlem yapılıyor...") {
+    console.log("⏳", msg);
+    const el = document.getElementById("statusMessage");
+    if (el) {
+      el.textContent = msg;
+      el.style.color = "#FBCC5C";
+      el.style.display = "block";
     }
-  }
-
-  // Owner elementlerini göster/gizle
-  toggleOwnerElements() {
-    const isOwner = this.contractService?.isOwner();
-    
-    // Governance create proposal butonu
-    if (this.createProposalBtn) {
-      this.createProposalBtn.style.display = isOwner ? 'block' : 'none';
-    }
-    
-    // Donate withdraw butonu
-    if (this.withdrawDonationsBtn) {
-      this.withdrawDonationsBtn.style.display = isOwner ? 'block' : 'none';
-    }
-  }
-
-  // Kontratı görüntüle
-  async viewContract(address) {
-    const blockExplorer = CURRENT_NETWORK.blockExplorer;
-    window.open(`${blockExplorer}/address/${address}`, '_blank');
-  }
-
-  // UI Yardımcı Fonksiyonları
-  showLoading(message = 'İşlem yapılıyor...') {
-    console.log('⏳', message);
-    // Burada loading state'ini gösterebilirsiniz
   }
 
   hideLoading() {
-    // Loading state'ini gizle
+    const el = document.getElementById("statusMessage");
+    if (el) el.style.display = "none";
   }
 
-  showSuccess(message) {
-    console.log('✅', message);
-    // Başarı mesajını göster
+  showSuccess(msg) {
+    console.log("✅", msg);
+    const el = document.getElementById("statusMessage");
+    if (el) {
+      el.textContent = msg;
+      el.style.color = "#00C851";
+      el.style.display = "block";
+    }
   }
 
-  showError(message) {
-    console.error('❌', message);
-    // Hata mesajını göster
+  showError(msg) {
+    console.error("❌", msg);
+    const el = document.getElementById("statusMessage");
+    if (el) {
+      el.textContent = msg;
+      el.style.color = "#ff4444";
+      el.style.display = "block";
+    }
   }
 }
 
-// Uygulamayı başlat
+// =======================
+// 🔥 Uygulama Başlatma
+// =======================
 const app = new CeloEngageHub();
-
-// Global erişim için
 window.app = app;
-
-console.log('🎉 Celo Engage Hub başlatıldı!');
+console.log("🎉 Celo Engage Hub vFull RealTime aktif!");
