@@ -161,12 +161,24 @@ async function connectWallet() {
     }
     
     await initContract();
-    await loadDashboard();
     
-    // Owner panel kontrolü
-    if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
-      document.getElementById("withdrawPanel").style.display = "block";
-      document.getElementById("ownerPanel").style.display = "block";
+    // ✅ PROFİL KONTROLÜ - Kullanıcının profili var mı?
+    const userProfile = await loadUserProfile(userAddress);
+    
+    if (!userProfile.exists) {
+      // Profil yoksa, profil oluşturma modal'ını göster
+      console.log("🆕 New user - showing profile creation");
+      showProfileCreationModal();
+    } else {
+      // Profil varsa, normal dashboard'u yükle
+      console.log("✅ Existing user - loading dashboard");
+      await loadDashboard();
+      
+      // Owner panel kontrolü
+      if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
+        document.getElementById("withdrawPanel").style.display = "block";
+        document.getElementById("ownerPanel").style.display = "block";
+      }
     }
     
     appInitialized = true;
@@ -178,6 +190,88 @@ async function connectWallet() {
     console.error("❌ Connection failed:", err);
     alert("Connection failed: " + err.message);
     toggleLoading(false);
+  }
+}
+
+// ========================= PROFİL OLUŞTURMA FONKSİYONLARI ========================= //
+
+function showProfileCreationModal() {
+  const modal = document.getElementById('profileCreationModal');
+  if (modal) {
+    modal.style.display = 'block';
+  }
+}
+
+function hideProfileCreationModal() {
+  const modal = document.getElementById('profileCreationModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+async function handleCreateProfile() {
+  try {
+    const usernameInput = document.getElementById('usernameInput');
+    const username = usernameInput?.value.trim();
+    
+    if (!username) {
+      alert("Please enter a username!");
+      return;
+    }
+    
+    if (username.length < 3) {
+      alert("Username must be at least 3 characters long!");
+      return;
+    }
+    
+    if (username.length > 32) {
+      alert("Username must be less than 32 characters!");
+      return;
+    }
+    
+    toggleLoading(true, "Creating your profile on blockchain...");
+    
+    // ✅ PROFİL OLUŞTURMA TX GÖNDER
+    // Not: Şu anlık mevcut registerUser fonksiyonunu kullanıyoruz.
+    // Kontrat güncellenirse registerUserWithUsername kullanılacak.
+    await registerUserProfile();
+    
+    alert("🎉 Profile created successfully!");
+    hideProfileCreationModal();
+    await loadDashboard();
+    
+    // Owner panel kontrolü (profil oluşturduktan sonra)
+    if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
+      document.getElementById("withdrawPanel").style.display = "block";
+      document.getElementById("ownerPanel").style.display = "block";
+    }
+    
+  } catch (err) {
+    console.error("❌ Profile creation error:", err);
+    alert("Profile creation failed: " + err.message);
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+// ✅ PROFİL OLUŞTURMA - Mevcut registerUser fonksiyonunu kullanıyor
+async function registerUserProfile() {
+  try {
+    // Mevcut kontratımızda registerUser fonksiyonu sadece address alıyor.
+    // Bu nedenle şimdilik username'i frontend'de saklayacağız.
+    // Daha sonra kontrat güncellenirse, registerUserWithUsername kullanılacak.
+    const profileModule = getModule("PROFILE");
+    const tx = await profileModule.registerUser(userAddress);
+    await tx.wait();
+    console.log("✅ Profile created for:", userAddress);
+    
+    // Username'i localStorage'a kaydet (geçici çözüm)
+    localStorage.setItem(`celoEngageHub_username_${userAddress}`, username);
+    
+    return tx.hash;
+  } catch (error) {
+    console.error("❌ Profile creation tx failed:", error);
+    throw error;
   }
 }
 
@@ -221,6 +315,9 @@ async function disconnectWallet() {
     
     // Badge bilgilerini temizle
     document.getElementById("userBadgeInfo").innerHTML = "";
+    
+    // Profil oluşturma modal'ını gizle (eğer açıksa)
+    hideProfileCreationModal();
     
     console.log("🔌 Wallet disconnected");
     alert("Wallet disconnected successfully!");
@@ -656,6 +753,18 @@ function setupUI() {
     disconnectWalletBtn.addEventListener("click", disconnectWallet);
   }
   
+  // ✅ PROFİL OLUŞTURMA MODAL EVENT LISTENER'LARI
+  safeAddEventListener("createProfileBtn", "click", handleCreateProfile);
+  safeAddEventListener("closeProfileModal", "click", hideProfileCreationModal);
+  
+  // Modal dışına tıklayınca kapatma
+  window.addEventListener('click', (event) => {
+    const profileModal = document.getElementById('profileCreationModal');
+    if (event.target === profileModal) {
+      hideProfileCreationModal();
+    }
+  });
+
   // ✅ DÜZELTİLDİ: Quick Donate butonları - HEM INPUT DOLDURSUN HEM İŞLEM BAŞLATSIN
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
     btn.addEventListener('click', async function() {
@@ -757,6 +866,23 @@ function renderCeloLinks() {
   container.innerHTML = CELO_ECOSYSTEM_LINKS.map(item => `
     <li><a href="${item.url}" target="_blank">${item.name}</a></li>
   `).join('');
+}
+
+// ✅ MODULE HELPER FUNCTION (contractService.js'den alındı)
+function getModule(name) {
+  // Bu fonksiyon contractService.js'de tanımlı, burada da kullanabilmek için kopyaladık
+  // Eğer contractService.js'deki fonksiyonu import edebilirsek daha iyi olur
+  const MODULES = {
+    PROFILE: {
+      address: "0x6e4f511e60fccfd5f00f2f6dd83435ef2e441ae2",
+      abi: [/* ABI tanımı */]
+    }
+    // Diğer modüller...
+  };
+  
+  const mod = MODULES[name];
+  if (!mod) throw new Error(`❌ Module not found: ${name}`);
+  return new ethers.Contract(mod.address, mod.abi, walletService.signer);
 }
 
 console.log("✅ main.js successfully loaded and initialized!");
