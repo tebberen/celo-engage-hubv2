@@ -19,7 +19,10 @@ import {
   getUserBadge,
   getBadgeStats,
   loadUserProfile,
-  withdrawDonations
+  withdrawDonations,
+  registerUserProfile,
+  saveUsername,
+  getModule
 } from "./services/contractService.js";
 
 import {
@@ -232,9 +235,10 @@ async function handleCreateProfile() {
     toggleLoading(true, "Creating your profile on blockchain...");
     
     // ✅ PROFİL OLUŞTURMA TX GÖNDER
-    // Not: Şu anlık mevcut registerUser fonksiyonunu kullanıyoruz.
-    // Kontrat güncellenirse registerUserWithUsername kullanılacak.
-    await registerUserProfile();
+    const result = await registerUserProfile();
+    
+    // ✅ USERNAME'I KAYDET
+    await saveUsername(username);
     
     alert("🎉 Profile created successfully!");
     hideProfileCreationModal();
@@ -251,27 +255,6 @@ async function handleCreateProfile() {
     alert("Profile creation failed: " + err.message);
   } finally {
     toggleLoading(false);
-  }
-}
-
-// ✅ PROFİL OLUŞTURMA - Mevcut registerUser fonksiyonunu kullanıyor
-async function registerUserProfile() {
-  try {
-    // Mevcut kontratımızda registerUser fonksiyonu sadece address alıyor.
-    // Bu nedenle şimdilik username'i frontend'de saklayacağız.
-    // Daha sonra kontrat güncellenirse, registerUserWithUsername kullanılacak.
-    const profileModule = getModule("PROFILE");
-    const tx = await profileModule.registerUser(userAddress);
-    await tx.wait();
-    console.log("✅ Profile created for:", userAddress);
-    
-    // Username'i localStorage'a kaydet (geçici çözüm)
-    localStorage.setItem(`celoEngageHub_username_${userAddress}`, username);
-    
-    return tx.hash;
-  } catch (error) {
-    console.error("❌ Profile creation tx failed:", error);
-    throw error;
   }
 }
 
@@ -866,23 +849,6 @@ function renderCeloLinks() {
   container.innerHTML = CELO_ECOSYSTEM_LINKS.map(item => `
     <li><a href="${item.url}" target="_blank">${item.name}</a></li>
   `).join('');
-}
-
-// ✅ MODULE HELPER FUNCTION (contractService.js'den alındı)
-function getModule(name) {
-  // Bu fonksiyon contractService.js'de tanımlı, burada da kullanabilmek için kopyaladık
-  // Eğer contractService.js'deki fonksiyonu import edebilirsek daha iyi olur
-  const MODULES = {
-    PROFILE: {
-      address: "0x6e4f511e60fccfd5f00f2f6dd83435ef2e441ae2",
-      abi: [/* ABI tanımı */]
-    }
-    // Diğer modüller...
-  };
-  
-  const mod = MODULES[name];
-  if (!mod) throw new Error(`❌ Module not found: ${name}`);
-  return new ethers.Contract(mod.address, mod.abi, walletService.signer);
 }
 
 console.log("✅ main.js successfully loaded and initialized!");
