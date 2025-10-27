@@ -94,14 +94,18 @@ const connectWalletConnectBtn = document.getElementById('connectWalletConnect');
 const disconnectWalletBtn = document.getElementById('disconnectWallet');
 
 // Connect Wallet butonuna tıklandığında modal'ı aç
-connectWalletBtn.addEventListener('click', () => {
-  walletModal.style.display = 'block';
-});
+if (connectWalletBtn) {
+  connectWalletBtn.addEventListener('click', () => {
+    walletModal.style.display = 'block';
+  });
+}
 
 // Modal'ı kapatma işlevi
-closeModal.addEventListener('click', () => {
-  walletModal.style.display = 'none';
-});
+if (closeModal) {
+  closeModal.addEventListener('click', () => {
+    walletModal.style.display = 'none';
+  });
+}
 
 // Modal dışına tıklandığında kapat
 window.addEventListener('click', (event) => {
@@ -111,16 +115,20 @@ window.addEventListener('click', (event) => {
 });
 
 // MetaMask bağlantısı için tıklama olayı
-connectMetaMaskBtn.addEventListener('click', async () => {
-  walletModal.style.display = 'none'; // Modal'ı kapat
-  await connectWallet(); // MetaMask bağlantı fonksiyonunu çağır
-});
+if (connectMetaMaskBtn) {
+  connectMetaMaskBtn.addEventListener('click', async () => {
+    walletModal.style.display = 'none'; // Modal'ı kapat
+    await connectWallet(); // MetaMask bağlantı fonksiyonunu çağır
+  });
+}
 
 // WalletConnect için tıklama olayı (Coming Soon)
-connectWalletConnectBtn.addEventListener('click', () => {
-  alert('🚧 WalletConnect support is coming soon!');
-  // Burayı daha sonra WalletConnect entegrasyonu ile dolduracağız
-});
+if (connectWalletConnectBtn) {
+  connectWalletConnectBtn.addEventListener('click', () => {
+    alert('🚧 WalletConnect support is coming soon!');
+    // Burayı daha sonra WalletConnect entegrasyonu ile dolduracağız
+  });
+}
 
 // ========================= CÜZDAN BAĞLANTI FONKSİYONU ========================= //
 
@@ -143,9 +151,14 @@ async function connectWallet() {
     document.getElementById("walletInfo").style.display = "block";
     document.getElementById("connectWallet").style.display = "none";
     
-    // Balance göster
-    const balance = await walletService.getBalance();
-    document.getElementById("walletBalance").innerText = `${parseFloat(balance).toFixed(4)} CELO`;
+    // ✅ Balance göster (HATA YÖNETİMLİ)
+    try {
+      const balance = await walletService.getBalance();
+      document.getElementById("walletBalance").innerText = `${parseFloat(balance).toFixed(4)} CELO`;
+    } catch (balanceError) {
+      console.warn("⚠️ Balance unavailable, but connection successful");
+      document.getElementById("walletBalance").innerText = "Balance unavailable";
+    }
     
     await initContract();
     await loadDashboard();
@@ -249,45 +262,54 @@ async function loadDashboard() {
     ]);
 
     // Global Stats
-    document.getElementById("globalGM").innerText = gmStats.total;
-    document.getElementById("globalDeploy").innerText = deployStats.total;
-    document.getElementById("globalLinks").innerText = linkStats.total;
-    document.getElementById("globalVotes").innerText = govStats.totalVotes;
-    document.getElementById("globalBadges").innerText = badgeStats;
+    updateElementText("globalGM", gmStats.total);
+    updateElementText("globalDeploy", deployStats.total);
+    updateElementText("globalLinks", linkStats.total);
+    updateElementText("globalVotes", govStats.totalVotes);
+    updateElementText("globalBadges", badgeStats);
 
     // GM Section
-    document.getElementById("gmCounter").innerText = gmStats.total;
-    document.getElementById("userGmCounter").innerText = gmStats.userCount;
+    updateElementText("gmCounter", gmStats.total);
+    updateElementText("userGmCounter", gmStats.userCount);
 
     // Deploy Section
-    document.getElementById("deployCounter").innerText = deployStats.total;
-    document.getElementById("userDeployCounter").innerText = deployStats.userDeploys;
+    updateElementText("deployCounter", deployStats.total);
+    updateElementText("userDeployCounter", deployStats.userDeploys);
 
     // Donate Section
-    document.getElementById("donateCounter").innerText = donateStats.totalDonatorsCount;
-    document.getElementById("userDonateCounter").innerText = profile.donateCount;
-    document.getElementById("userTotalDonated").innerText = `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`;
-    document.getElementById("totalDonatedValue").innerText = `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`;
-    document.getElementById("totalDonatorsCount").innerText = donateStats.totalDonatorsCount;
+    updateElementText("donateCounter", donateStats.totalDonatorsCount);
+    updateElementText("userDonateCounter", profile.donateCount);
+    
+    // ✅ ETHERERS HATA YÖNETİMLİ
+    try {
+      updateElementText("userTotalDonated", `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`);
+      updateElementText("totalDonatedValue", `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`);
+    } catch (etherError) {
+      console.warn("⚠️ Ethers format error, using default values");
+      updateElementText("userTotalDonated", "0 CELO");
+      updateElementText("totalDonatedValue", "0 CELO");
+    }
+    
+    updateElementText("totalDonatorsCount", donateStats.totalDonatorsCount);
 
     // Links Section
-    document.getElementById("linkCounter").innerText = linkStats.total;
-    document.getElementById("userLinkCounter").innerText = profile.linkCount;
+    updateElementText("linkCounter", linkStats.total);
+    updateElementText("userLinkCounter", profile.linkCount);
 
     // Governance Section
-    document.getElementById("voteCounter").innerText = govStats.totalVotes;
-    document.getElementById("userVoteCounter").innerText = profile.voteCount;
+    updateElementText("voteCounter", govStats.totalVotes);
+    updateElementText("userVoteCounter", profile.voteCount);
 
     // Profile Section
-    document.getElementById("profileAddress").innerText = shortenAddress(userAddress);
-    document.getElementById("profileLevel").innerText = profile.level;
-    document.getElementById("profileTier").innerText = profile.tier;
-    document.getElementById("profileXP").innerText = profile.totalXP;
-    document.getElementById("profileGMCount").innerText = profile.gmCount;
-    document.getElementById("profileDeployCount").innerText = profile.deployCount;
-    document.getElementById("profileDonateCount").innerText = profile.donateCount;
-    document.getElementById("profileLinkCount").innerText = profile.linkCount;
-    document.getElementById("profileVoteCount").innerText = profile.voteCount;
+    updateElementText("profileAddress", shortenAddress(userAddress));
+    updateElementText("profileLevel", profile.level);
+    updateElementText("profileTier", profile.tier);
+    updateElementText("profileXP", profile.totalXP);
+    updateElementText("profileGMCount", profile.gmCount);
+    updateElementText("profileDeployCount", profile.deployCount);
+    updateElementText("profileDonateCount", profile.donateCount);
+    updateElementText("profileLinkCount", profile.linkCount);
+    updateElementText("profileVoteCount", profile.voteCount);
 
     console.log("📊 Dashboard loaded successfully");
     toggleLoading(false);
@@ -304,7 +326,12 @@ async function handleGM() {
     if (!ensureConnected()) return;
     
     const messageInput = document.getElementById("gmMessageInput");
-    const message = messageInput.value || DEFAULT_GM_MESSAGE;
+    const message = messageInput?.value || DEFAULT_GM_MESSAGE;
+    
+    if (!message.trim()) {
+      alert("GM message cannot be empty!");
+      return;
+    }
     
     toggleLoading(true, "Sending GM...");
     await sendGM(message);
@@ -327,7 +354,12 @@ async function handleDeploy() {
     if (!ensureConnected()) return;
     
     const nameInput = document.getElementById("contractNameInput");
-    const contractName = nameInput.value || "MyContract";
+    const contractName = nameInput?.value || "MyContract";
+    
+    if (!contractName.trim()) {
+      alert("Contract name cannot be empty!");
+      return;
+    }
     
     toggleLoading(true, "Deploying contract...");
     await deployContract(contractName);
@@ -350,12 +382,21 @@ async function handleDonateCELO() {
     if (!ensureConnected()) return;
     
     const amountInput = document.getElementById("donateAmountInput");
-    const amount = amountInput.value || "0.1";
+    const amount = amountInput?.value || "0.1";
+    
+    if (!amount || parseFloat(amount) <= 0) {
+      alert("Please enter a valid donation amount!");
+      return;
+    }
     
     // Minimum kontrolü
-    if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
-      alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} CELO`);
-      return;
+    try {
+      if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
+        alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} CELO`);
+        return;
+      }
+    } catch (error) {
+      console.warn("⚠️ Minimum donation check failed, proceeding anyway");
     }
     
     const weiAmount = ethers.utils.parseEther(amount);
@@ -379,12 +420,21 @@ async function handleDonateCUSD() {
     if (!ensureConnected()) return;
     
     const amountInput = document.getElementById("donateAmountInput");
-    const amount = amountInput.value || "0.1";
+    const amount = amountInput?.value || "0.1";
+    
+    if (!amount || parseFloat(amount) <= 0) {
+      alert("Please enter a valid donation amount!");
+      return;
+    }
     
     // Minimum kontrolü
-    if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
-      alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} cUSD`);
-      return;
+    try {
+      if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
+        alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} cUSD`);
+        return;
+      }
+    } catch (error) {
+      console.warn("⚠️ Minimum donation check failed, proceeding anyway");
     }
     
     const weiAmount = ethers.utils.parseEther(amount);
@@ -410,7 +460,7 @@ async function handleShareLink() {
     if (!ensureConnected()) return;
     
     const linkInput = document.getElementById("linkInput");
-    const link = linkInput.value;
+    const link = linkInput?.value;
     
     if (!link) {
       alert("Please enter a link");
@@ -427,7 +477,7 @@ async function handleShareLink() {
     await shareLink(link);
     
     alert("🔗 Link shared successfully!");
-    linkInput.value = ""; // Input'u temizle
+    if (linkInput) linkInput.value = ""; // Input'u temizle
     await loadDashboard();
     
   } catch (err) {
@@ -444,9 +494,9 @@ async function handleCreateProposal() {
   try {
     if (!ensureConnected()) return;
     
-    const title = document.getElementById("proposalTitleInput").value;
-    const description = document.getElementById("proposalDescInput").value;
-    const link = document.getElementById("proposalLinkInput").value;
+    const title = document.getElementById("proposalTitleInput")?.value;
+    const description = document.getElementById("proposalDescInput")?.value;
+    const link = document.getElementById("proposalLinkInput")?.value || "";
     
     if (!title || !description) {
       alert("Title and description are required");
@@ -459,9 +509,13 @@ async function handleCreateProposal() {
     alert("🗳️ Proposal created successfully!");
     
     // Inputları temizle
-    document.getElementById("proposalTitleInput").value = "";
-    document.getElementById("proposalDescInput").value = "";
-    document.getElementById("proposalLinkInput").value = "";
+    const titleInput = document.getElementById("proposalTitleInput");
+    const descInput = document.getElementById("proposalDescInput");
+    const linkInput = document.getElementById("proposalLinkInput");
+    
+    if (titleInput) titleInput.value = "";
+    if (descInput) descInput.value = "";
+    if (linkInput) linkInput.value = "";
     
     await loadDashboard();
     
@@ -482,30 +536,36 @@ async function loadBadgeInfo() {
     toggleLoading(true, "Loading badge info...");
     const badge = await getUserBadge(userAddress);
     
-    document.getElementById("userBadgeInfo").innerHTML = `
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h4>Level</h4>
-          <div>${badge.level}</div>
+    const badgeInfoElement = document.getElementById("userBadgeInfo");
+    if (badgeInfoElement) {
+      badgeInfoElement.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Level</h4>
+            <div>${badge.level}</div>
+          </div>
+          <div class="stat-card">
+            <h4>Tier</h4>
+            <div>${badge.tier}</div>
+          </div>
+          <div class="stat-card">
+            <h4>Total XP</h4>
+            <div>${badge.totalXP}</div>
+          </div>
+          <div class="stat-card">
+            <h4>Last Update</h4>
+            <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <h4>Tier</h4>
-          <div>${badge.tier}</div>
-        </div>
-        <div class="stat-card">
-          <h4>Total XP</h4>
-          <div>${badge.totalXP}</div>
-        </div>
-        <div class="stat-card">
-          <h4>Last Update</h4>
-          <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
-        </div>
-      </div>
-    `;
+      `;
+    }
     
   } catch (err) {
     console.error("❌ Badge Error:", err);
-    document.getElementById("userBadgeInfo").innerHTML = "<p>Failed to load badge info</p>";
+    const badgeInfoElement = document.getElementById("userBadgeInfo");
+    if (badgeInfoElement) {
+      badgeInfoElement.innerHTML = "<p>Failed to load badge info</p>";
+    }
   } finally {
     toggleLoading(false);
   }
@@ -545,28 +605,32 @@ function setupUI() {
   // Connect Wallet butonu event listener'ı artık modal'ı açacak
   // (Zaten yukarıda tanımlandı)
 
-  // Diğer buton event listener'ları
-  document.getElementById("gmButton").addEventListener("click", handleGM);
-  document.getElementById("deployButton").addEventListener("click", handleDeploy);
-  document.getElementById("donateCeloBtn").addEventListener("click", handleDonateCELO);
-  document.getElementById("donateCusdBtn").addEventListener("click", handleDonateCUSD);
-  document.getElementById("shareLinkBtn").addEventListener("click", handleShareLink);
-  document.getElementById("createProposalBtn").addEventListener("click", handleCreateProposal);
-  document.getElementById("withdrawDonationsBtn").addEventListener("click", handleWithdraw);
+  // Diğer buton event listener'ları (null check ile)
+  safeAddEventListener("gmButton", "click", handleGM);
+  safeAddEventListener("deployButton", "click", handleDeploy);
+  safeAddEventListener("donateCeloBtn", "click", handleDonateCELO);
+  safeAddEventListener("donateCusdBtn", "click", handleDonateCUSD);
+  safeAddEventListener("shareLinkBtn", "click", handleShareLink);
+  safeAddEventListener("createProposalBtn", "click", handleCreateProposal);
+  safeAddEventListener("withdrawDonationsBtn", "click", handleWithdraw);
   
   // Disconnect butonu için event listener
-  disconnectWalletBtn.addEventListener("click", disconnectWallet);
+  if (disconnectWalletBtn) {
+    disconnectWalletBtn.addEventListener("click", disconnectWallet);
+  }
   
   // Quick donate butonları
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
     btn.addEventListener('click', function() {
       const amount = this.getAttribute('data-amount');
       const token = this.getAttribute('data-token');
-      document.getElementById('donateAmountInput').value = amount;
+      const amountInput = document.getElementById('donateAmountInput');
+      if (amountInput) amountInput.value = amount;
       
       // Token seçimini güncelle
       document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
-      document.querySelector(`.token-btn[data-token="${token}"]`).classList.add('active');
+      const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
+      if (targetTokenBtn) targetTokenBtn.classList.add('active');
     });
   });
 
@@ -577,6 +641,24 @@ function setupUI() {
       this.classList.add('active');
     });
   });
+}
+
+// ========================= UTILITY FUNCTIONS ========================= //
+
+function safeAddEventListener(elementId, event, handler) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.addEventListener(event, handler);
+  } else {
+    console.warn(`⚠️ Element with id '${elementId}' not found`);
+  }
+}
+
+function updateElementText(elementId, text) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.innerText = text;
+  }
 }
 
 function shortenAddress(addr) {
