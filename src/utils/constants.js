@@ -2047,19 +2047,6 @@ export const MODULES = {
 			"type": "function"
 		},
 		{
-			"inputs": [],
-			"name": "totalVotes",
-			"outputs": [
-				{
-					"internalType": "uint256",
-					"name": "",
-					"type": "uint256"
-				}
-			],
-			"stateMutability": "view",
-			"type": "function"
-		},
-		{
 			"inputs": [
 				{
 					"internalType": "address",
@@ -2070,6 +2057,19 @@ export const MODULES = {
 			"name": "transferOwnership",
 			"outputs": [],
 			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "totalVotes",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
 			"type": "function"
 		},
 		{
@@ -2444,8 +2444,9 @@ export const MODULES = {
 		}
 	]
   },
+  // ✅ YENİ GÜNCELLENMİŞ PROFILE MODULE - USERNAME DESTEKLİ
   PROFILE: {
-    address: "0x6e4f511e60fccfd5f00f2f6dd83435ef2e441ae2",
+    address: "0xb7574975e18b64d18886D03CCC710d62cdD7E743",
     abi: [
 		{
 			"anonymous": false,
@@ -2521,6 +2522,25 @@ export const MODULES = {
 				}
 			],
 			"name": "UserRegistered",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "user",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "newUsername",
+					"type": "string"
+				}
+			],
+			"name": "UsernameUpdated",
 			"type": "event"
 		},
 		{
@@ -2626,6 +2646,11 @@ export const MODULES = {
 							"internalType": "uint256",
 							"name": "totalDonated",
 							"type": "uint256"
+						},
+						{
+							"internalType": "string",
+							"name": "username",
+							"type": "string"
 						},
 						{
 							"internalType": "bool",
@@ -2783,6 +2808,11 @@ export const MODULES = {
 							"type": "uint256"
 						},
 						{
+							"internalType": "string",
+							"name": "username",
+							"type": "string"
+						},
+						{
 							"internalType": "bool",
 							"name": "exists",
 							"type": "bool"
@@ -2850,6 +2880,11 @@ export const MODULES = {
 					"internalType": "uint256",
 					"name": "totalDonated",
 					"type": "uint256"
+				},
+				{
+					"internalType": "string",
+					"name": "username",
+					"type": "string"
 				}
 			],
 			"stateMutability": "view",
@@ -3045,6 +3080,19 @@ export const MODULES = {
 		{
 			"inputs": [
 				{
+					"internalType": "string",
+					"name": "_newUsername",
+					"type": "string"
+				}
+			],
+			"name": "updateUsername",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
 					"internalType": "address",
 					"name": "",
 					"type": "address"
@@ -3112,6 +3160,25 @@ export const MODULES = {
 		{
 			"inputs": [
 				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"name": "usernameTaken",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
 					"internalType": "address",
 					"name": "",
 					"type": "address"
@@ -3163,6 +3230,11 @@ export const MODULES = {
 					"internalType": "uint256",
 					"name": "totalDonated",
 					"type": "uint256"
+				},
+				{
+					"internalType": "string",
+					"name": "username",
+					"type": "string"
 				},
 				{
 					"internalType": "bool",
@@ -3282,4 +3354,4 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "💻 Celo GitHub",        url: "https://github.com/celo-org" }
 ];
 
-console.log("✅ constants.js güncellendi - Tüm ABI'lar eklendi, yeni modüler kontrat aktif!");
+console.log("✅ constants.js GÜNCELLENDİ - Yeni ProfileModule aktif! Username desteği hazır!");
