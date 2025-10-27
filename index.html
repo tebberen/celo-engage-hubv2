@@ -391,7 +391,7 @@
           </div>
         </div>
 
-        <!-- ✅ SIDEBAR DONATE KUTUSU -->
+        <!-- ✅ GÜNCELLENMİŞ: SIDEBAR DONATE KUTUSU - ARTIK ÇALIŞIYOR -->
         <div class="donate-box">
           <h3>💛 Quick Donate</h3>
           <p>Fast support with preset amounts</p>
@@ -717,28 +717,12 @@
   <script type="module" src="src/main.js"></script>
 
   <script>
-    // Donate butonları için event listener
+    // Quick donate butonları için ek güvence
     document.addEventListener('DOMContentLoaded', function() {
-      // Quick donate butonları
-      document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const amount = this.getAttribute('data-amount');
-          const token = this.getAttribute('data-token');
-          document.getElementById('donateAmountInput').value = amount;
-          
-          // Token seçimini güncelle
-          document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
-          document.querySelector(`.token-btn[data-token="${token}"]`).classList.add('active');
-        });
-      });
-
-      // Token seçimi
-      document.querySelectorAll('.token-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
-          this.classList.add('active');
-        });
-      });
+      console.log("✅ Quick Donate buttons are ready!");
+      
+      // Sidebar ve donate section'daki tüm quick donate butonları çalışacak
+      // Ana işlevsellik main.js'de handle ediliyor
     });
   </script>
 </body>
