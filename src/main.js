@@ -453,6 +453,43 @@ async function handleDonateCUSD() {
   }
 }
 
+// ========================= QUICK DONATE FONKSİYONU ========================= //
+
+async function handleQuickDonate(amount, token) {
+  try {
+    if (!ensureConnected()) return;
+    
+    console.log(`🚀 Quick Donate: ${amount} ${token}`);
+    
+    if (!amount || parseFloat(amount) <= 0) {
+      alert("Invalid donation amount!");
+      return;
+    }
+    
+    toggleLoading(true, `Sending ${amount} ${token}...`);
+    
+    const weiAmount = ethers.utils.parseEther(amount);
+    
+    if (token === 'CELO') {
+      await donateCELO(weiAmount);
+      alert(`💛 ${amount} CELO donated successfully!`);
+    } else if (token === 'cUSD') {
+      await donateCUSD(weiAmount);
+      alert(`💵 ${amount} cUSD donated successfully!`);
+    } else {
+      throw new Error(`Unsupported token: ${token}`);
+    }
+    
+    await loadDashboard();
+    
+  } catch (err) {
+    console.error(`❌ Quick Donate Error:`, err);
+    alert(`Donation failed: ` + err.message);
+  } finally {
+    toggleLoading(false);
+  }
+}
+
 // ========================= LINK MODULE ========================= //
 
 async function handleShareLink() {
@@ -619,18 +656,23 @@ function setupUI() {
     disconnectWalletBtn.addEventListener("click", disconnectWallet);
   }
   
-  // Quick donate butonları
+  // ✅ DÜZELTİLDİ: Quick Donate butonları - HEM INPUT DOLDURSUN HEM İŞLEM BAŞLATSIN
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function() {
       const amount = this.getAttribute('data-amount');
       const token = this.getAttribute('data-token');
       const amountInput = document.getElementById('donateAmountInput');
+      
+      // Input alanını doldur (eğer varsa)
       if (amountInput) amountInput.value = amount;
       
       // Token seçimini güncelle
       document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
       const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
       if (targetTokenBtn) targetTokenBtn.classList.add('active');
+      
+      // ✅ YENİ: HEMEN DONATE İŞLEMİNİ BAŞLAT
+      await handleQuickDonate(amount, token);
     });
   });
 
