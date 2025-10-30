@@ -2,10 +2,6 @@
 
 Social TX – Where Every Interaction Builds Real Value
 
-https://img.shields.io/badge/Celo-Platform-%23FBCC5C?style=for-the-badge&logo=celo&logoColor=white
-https://img.shields.io/badge/Ethereum-VM-%233C3C3D?style=for-the-badge&logo=ethereum&logoColor=white
-https://img.shields.io/badge/Web3-Enabled-%23F16822?style=for-the-badge&logo=web3.js&logoColor=white
-https://img.shields.io/badge/MetaMask-Compatible-%23F6851B?style=for-the-badge&logo=metamask&logoColor=white
 
 🚀 Overview
 
