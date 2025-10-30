@@ -16,6 +16,9 @@ let provider;
 let signer;
 let mainContract;
 
+// ✅ YENİ: Tüm modül contract'larını cache'le
+const moduleCache = new Map();
+
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
   if (typeof window.ethereum === "undefined") {
@@ -26,16 +29,39 @@ export async function initContract() {
   provider = new ethers.providers.Web3Provider(window.ethereum);
   signer = provider.getSigner();
   mainContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  
+  // ✅ Tüm modül contract'larını önceden oluştur ve cache'le
+  initializeModuleContracts();
+  
   console.log("✅ Contract initialized:", CONTRACT_ADDRESS);
   return mainContract;
+}
+
+// ✅ YENİ: Tüm modül contract'larını bir kere initialize et
+function initializeModuleContracts() {
+  Object.keys(MODULES).forEach(moduleName => {
+    const mod = MODULES[moduleName];
+    const contract = new ethers.Contract(mod.address, mod.abi, signer);
+    moduleCache.set(moduleName, contract);
+  });
+  console.log("✅ All module contracts cached");
 }
 
 // ========================= MODULE HELPERS ========================= //
 
 export function getModule(name) {
+  // ✅ Cache'lenmiş contract'ı döndür - YENİSİNİ OLUŞTURMA!
+  if (moduleCache.has(name)) {
+    return moduleCache.get(name);
+  }
+  
   const mod = MODULES[name];
   if (!mod) throw new Error(`❌ Module not found: ${name}`);
-  return new ethers.Contract(mod.address, mod.abi, signer);
+  
+  console.warn(`⚠️ Module ${name} not in cache, creating new instance`);
+  const contract = new ethers.Contract(mod.address, mod.abi, signer);
+  moduleCache.set(name, contract);
+  return contract;
 }
 
 // ========================= PROFILE REGISTRATION ========================= //
@@ -555,4 +581,4 @@ export default {
   withdrawDonations
 };
 
-console.log("✅ contractService.js loaded with profile creation system!");
+console.log("✅ contractService.js loaded with module caching system!");
