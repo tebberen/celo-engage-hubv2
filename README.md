@@ -360,11 +360,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 · Community contributors who help improve the platform
 · Early testers for valuable feedback and bug reports
 
-📞 Support & Contact
-
-· GitHub Issues: Report Bugs
-· Documentation: Project Wiki
-· Community: Celo Discord
 
 🎊 Get Started Today!
 
@@ -376,7 +371,6 @@ Connect your wallet, create your profile, and let's build the future of decentra
 
 <div align="center">🌟 "Your Engagement Builds Real Value" 🌟
 
-https://img.shields.io/badge/🚀_Visit_Celo_Engage_Hub-%23FBCC5C?style=for-the-badge
 
 Built with ❤️ on Celo Blockchain
 
