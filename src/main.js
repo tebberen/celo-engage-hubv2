@@ -55,7 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCommunityLinks();
   renderCeloLinks();
   
-  // Otomatik bağlanma YOK - sadece UI hazırlığı
   console.log("✅ App ready - waiting for user to connect wallet");
 });
 
@@ -129,7 +128,6 @@ if (connectMetaMaskBtn) {
 if (connectWalletConnectBtn) {
   connectWalletConnectBtn.addEventListener('click', () => {
     alert('🚧 WalletConnect support is coming soon!');
-    // Burayı daha sonra WalletConnect entegrasyonu ile dolduracağız
   });
 }
 
@@ -154,7 +152,7 @@ async function connectWallet() {
     document.getElementById("walletInfo").style.display = "block";
     document.getElementById("connectWallet").style.display = "none";
     
-    // ✅ Balance göster (HATA YÖNETİMLİ)
+    // ✅ Balance göster
     try {
       const balance = await walletService.getBalance();
       document.getElementById("walletBalance").innerText = `${parseFloat(balance).toFixed(4)} CELO`;
@@ -360,7 +358,7 @@ async function loadDashboard() {
     updateElementText("donateCounter", donateStats.totalDonatorsCount);
     updateElementText("userDonateCounter", profile.donateCount);
     
-    // ✅ ETHERERS HATA YÖNETİMLİ
+    // ETHERERS HATA YÖNETİMLİ
     try {
       updateElementText("userTotalDonated", `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`);
       updateElementText("totalDonatedValue", `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`);
@@ -533,43 +531,6 @@ async function handleDonateCUSD() {
   }
 }
 
-// ========================= QUICK DONATE FONKSİYONU ========================= //
-
-async function handleQuickDonate(amount, token) {
-  try {
-    if (!ensureConnected()) return;
-    
-    console.log(`🚀 Quick Donate: ${amount} ${token}`);
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      alert("Invalid donation amount!");
-      return;
-    }
-    
-    toggleLoading(true, `Sending ${amount} ${token}...`);
-    
-    const weiAmount = ethers.utils.parseEther(amount);
-    
-    if (token === 'CELO') {
-      await donateCELO(weiAmount);
-      alert(`💛 ${amount} CELO donated successfully!`);
-    } else if (token === 'cUSD') {
-      await donateCUSD(weiAmount);
-      alert(`💵 ${amount} cUSD donated successfully!`);
-    } else {
-      throw new Error(`Unsupported token: ${token}`);
-    }
-    
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error(`❌ Quick Donate Error:`, err);
-    alert(`Donation failed: ` + err.message);
-  } finally {
-    toggleLoading(false);
-  }
-}
-
 // ========================= LINK MODULE ========================= //
 
 async function handleShareLink() {
@@ -719,10 +680,9 @@ async function handleWithdraw() {
 // ========================= UI HELPERS ========================= //
 
 function setupUI() {
-  // Connect Wallet butonu event listener'ı artık modal'ı açacak
-  // (Zaten yukarıda tanımlandı)
+  console.log("🔄 Setting up UI...");
 
-  // Diğer buton event listener'ları (null check ile)
+  // Diğer buton event listener'ları
   safeAddEventListener("gmButton", "click", handleGM);
   safeAddEventListener("deployButton", "click", handleDeploy);
   safeAddEventListener("donateCeloBtn", "click", handleDonateCELO);
@@ -731,12 +691,12 @@ function setupUI() {
   safeAddEventListener("createProposalBtn", "click", handleCreateProposal);
   safeAddEventListener("withdrawDonationsBtn", "click", handleWithdraw);
   
-  // Disconnect butonu için event listener
+  // Disconnect butonu
   if (disconnectWalletBtn) {
     disconnectWalletBtn.addEventListener("click", disconnectWallet);
   }
   
-  // ✅ PROFİL OLUŞTURMA MODAL EVENT LISTENER'LARI
+  // Profil oluşturma modal event listener'ları
   safeAddEventListener("createProfileBtn", "click", handleCreateProfile);
   safeAddEventListener("closeProfileModal", "click", hideProfileCreationModal);
   
@@ -762,8 +722,6 @@ function setupUI() {
       document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
       const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
       if (targetTokenBtn) targetTokenBtn.classList.add('active');
-      
-      // ❌ İŞLEM BAŞLATMA YOK - sadece input doldur
     });
   });
 
@@ -800,7 +758,6 @@ function shortenAddress(addr) {
 
 function toggleLoading(state, message = "Loading...") {
   isLoading = state;
-  // Basit loading state - geliştirilebilir
   if (state) {
     console.log("⏳ " + message);
   } else {
