@@ -130,13 +130,9 @@ export async function sendGM(message = DEFAULT_GM_MESSAGE) {
     
     console.log("👋 Sending GM from:", userAddress);
     
+    // ✅ TEK İŞLEM - Sadece GM gönder (ikinci işlem YOK)
     const tx = await gm.sendGM(userAddress, message);
     await tx.wait();
-    
-    // GM sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementGMCount(userAddress);
-    await incrementTx.wait();
     
     console.log("✅ GM sent:", message);
     return { success: true, txHash: tx.hash };
@@ -175,13 +171,9 @@ export async function deployContract(contractName = "MyContract") {
     
     console.log("🚀 Deploying contract for:", userAddress);
     
+    // ✅ TEK İŞLEM - Sadece contract deploy et (ikinci işlem YOK)
     const tx = await deploy.deployContract(userAddress, contractName);
     await tx.wait();
-    
-    // Deploy sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementDeployCount(userAddress);
-    await incrementTx.wait();
     
     console.log("✅ Contract deployed:", contractName);
     return { success: true, txHash: tx.hash, contractName: contractName };
@@ -220,13 +212,9 @@ export async function donateCELO(amount = MIN_DONATION) {
     
     console.log("💛 Donating CELO from:", userAddress, "Amount:", amount);
     
+    // ✅ TEK İŞLEM - Sadece CELO bağışı yap (ikinci işlem YOK)
     const tx = await donate.donateCELO(userAddress, { value: amount });
     await tx.wait();
-    
-    // Donate sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementDonateCount(userAddress, amount);
-    await incrementTx.wait();
     
     console.log("💛 CELO donated:", amount);
     return { success: true, txHash: tx.hash, amount: amount, token: "CELO" };
@@ -243,13 +231,9 @@ export async function donateCUSD(amount = MIN_DONATION) {
     
     console.log("💵 Donating cUSD from:", userAddress, "Amount:", amount);
     
+    // ✅ TEK İŞLEM - Sadece cUSD bağışı yap (ikinci işlem YOK)
     const tx = await donate.donateCUSD(userAddress, amount);
     await tx.wait();
-    
-    // Donate sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementDonateCount(userAddress, amount);
-    await incrementTx.wait();
     
     console.log("💚 cUSD donated:", amount);
     return { success: true, txHash: tx.hash, amount: amount, token: "cUSD" };
@@ -299,13 +283,9 @@ export async function shareLink(link) {
     
     console.log("🔗 Sharing link from:", userAddress, "Link:", link);
     
+    // ✅ TEK İŞLEM - Sadece link paylaş (ikinci işlem YOK)
     const tx = await linkModule.shareLink(userAddress, link);
     await tx.wait();
-    
-    // Link sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementLinkCount(userAddress);
-    await incrementTx.wait();
     
     console.log("🔗 Link shared:", link);
     return { success: true, txHash: tx.hash, link: link };
@@ -343,6 +323,7 @@ export async function createProposal(title, description, link) {
     
     console.log("🗳️ Creating proposal from:", userAddress, "Title:", title);
     
+    // ✅ TEK İŞLEM - Sadece proposal oluştur (ikinci işlem YOK)
     const tx = await gov.createProposal(userAddress, title, description, link);
     await tx.wait();
     
@@ -361,13 +342,9 @@ export async function vote(proposalId, support) {
     
     console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
     
+    // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
     const tx = await gov.vote(userAddress, proposalId, support);
     await tx.wait();
-    
-    // Vote sayısını artır
-    const profile = getModule("PROFILE");
-    const incrementTx = await profile.incrementVoteCount(userAddress);
-    await incrementTx.wait();
     
     console.log("🗳️ Voted:", proposalId, support);
     return { success: true, txHash: tx.hash, proposalId: proposalId, support: support };
@@ -581,4 +558,4 @@ export default {
   withdrawDonations
 };
 
-console.log("✅ contractService.js loaded with module caching system!");
+console.log("✅ contractService.js loaded with SINGLE TRANSACTION fixes! 🚀");
