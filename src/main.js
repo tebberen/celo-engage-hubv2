@@ -748,14 +748,14 @@ function setupUI() {
     }
   });
 
-  // ✅ DÜZELTİLDİ: Quick Donate butonları - HEM INPUT DOLDURSUN HEM İŞLEM BAŞLATSIN
+  // ✅ DÜZELTİLDİ: Quick Donate butonları - SADECE INPUT DOLDURSUN
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
-    btn.addEventListener('click', async function() {
+    btn.addEventListener('click', function() {
       const amount = this.getAttribute('data-amount');
       const token = this.getAttribute('data-token');
       const amountInput = document.getElementById('donateAmountInput');
       
-      // Input alanını doldur (eğer varsa)
+      // SADECE input alanını doldur
       if (amountInput) amountInput.value = amount;
       
       // Token seçimini güncelle
@@ -763,8 +763,7 @@ function setupUI() {
       const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
       if (targetTokenBtn) targetTokenBtn.classList.add('active');
       
-      // ✅ YENİ: HEMEN DONATE İŞLEMİNİ BAŞLAT
-      await handleQuickDonate(amount, token);
+      // ❌ İŞLEM BAŞLATMA YOK - sadece input doldur
     });
   });
 
