@@ -1,5 +1,5 @@
 // ========================= CELO ENGAGE HUB - UPDATED MAIN.JS ========================= //
-// ✅ 3'LÜ GRID + OTOMATİK LINK FORM + TIK TAKİP SİSTEMİ
+// ✅ 3'LÜ GRID + OTOMATİK LINK FORM + KULLANICI LINK SİSTEMİ
 
 // ✅ DOĞRU IMPORT YOLLARI
 import { 
@@ -13,6 +13,9 @@ import {
   getDonateStats,
   shareLink,
   getLinkStats,
+  getAllSharedLinks,
+  getLinksFromEvents,
+  getUserSharedLinks,
   createProposal,
   vote,
   getGovernanceStats,
@@ -31,7 +34,9 @@ import {
   INITIAL_SUPPORT_LINKS,
   CELO_ECOSYSTEM_LINKS,
   CURRENT_NETWORK,
-  MIN_DONATION
+  MIN_DONATION,
+  getUserSharedLinksFromStorage,
+  saveUserLinkToStorage
 } from "./utils/constants.js";
 
 // ✅ WALLET SERVICE CLASS OLARAK IMPORT
@@ -49,29 +54,63 @@ const walletService = new WalletService();
 // ✅ YENİ: Link tıklama takibi (localStorage ile)
 let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) || {};
 
+// ✅ YENİ: Kullanıcı linkleri
+let userSharedLinks = [];
+
 // ========================= APP INIT ========================= //
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("🚀 Celo Engage Hub - Starting with 3-column grid system...");
+  console.log("🚀 Celo Engage Hub - Starting with user links system...");
   setupNavigation();
   setupUI();
+  
+  // Kullanıcı linklerini yükle
+  await loadUserSharedLinks();
+  
   renderCommunityLinks();
   renderCeloLinks();
   
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
   
-  console.log("✅ App ready!");
+  console.log("✅ App ready with user links!");
 });
 
-// ========================= YENİ: OTOMATİK LINK SİSTEMİ ========================= //
+// ========================= YENİ: KULLANICI LINK SİSTEMİ ========================= //
+
+async function loadUserSharedLinks() {
+  try {
+    console.log("📥 Loading user shared links...");
+    
+    // Önce blockchain'den linkleri almaya çalış
+    const blockchainLinks = await getLinksFromEvents();
+    
+    if (blockchainLinks.success && blockchainLinks.links.length > 0) {
+      userSharedLinks = blockchainLinks.links;
+      console.log(`✅ Loaded ${userSharedLinks.length} links from blockchain`);
+    } else {
+      // Blockchain'den alınamazsa localStorage'dan al
+      userSharedLinks = getUserSharedLinksFromStorage();
+      console.log(`✅ Loaded ${userSharedLinks.length} links from localStorage`);
+    }
+    
+  } catch (error) {
+    console.error("❌ Load user shared links failed:", error);
+    userSharedLinks = getUserSharedLinksFromStorage();
+  }
+}
 
 function renderCommunityLinks() {
   const container = document.getElementById("linksContainer");
   if (!container) return;
   
+  // Tüm linkleri birleştir: Community linkler + Kullanıcı linkleri
+  const allCommunityLinks = [...INITIAL_SUPPORT_LINKS];
+  const allUserLinks = userSharedLinks.map(item => item.link);
+  const allLinks = [...allCommunityLinks, ...allUserLinks];
+  
   // Tıklanma sayısı 3'ten az olan linkleri filtrele
-  const activeLinks = INITIAL_SUPPORT_LINKS.filter(link => {
+  const activeLinks = allLinks.filter(link => {
     const clickCount = linkClicks[link] || 0;
     return clickCount < 3;
   });
@@ -88,14 +127,28 @@ function renderCommunityLinks() {
     return;
   }
   
-  container.innerHTML = activeLinks.map(link => {
+  // Link kartlarını oluştur (maksimum 9 link)
+  container.innerHTML = activeLinks.slice(0, 9).map(link => {
     const clickCount = linkClicks[link] || 0;
     const clicksLeft = 3 - clickCount;
     
+    // Kullanıcı linki mi yoksa community linki mi kontrol et
+    const userLinkData = userSharedLinks.find(item => item.link === link);
+    const isUserLink = userLinkData !== undefined;
+    const isCommunityLink = INITIAL_SUPPORT_LINKS.includes(link);
+    
+    let platformText = "🌍 Community Link";
+    if (isUserLink) {
+      platformText = "👤 User Link";
+    }
+    
     return `
-      <div class="link-card">
-        <div class="link-platform">Community Link</div>
-        <a href="${link}" target="_blank" class="support-link" data-link="${link}">${link}</a>
+      <div class="link-card ${isUserLink ? 'user-link' : ''}">
+        <div class="link-platform">${platformText}</div>
+        <a href="${link}" target="_blank" class="support-link" data-link="${link}">
+          ${link.length > 50 ? link.substring(0, 50) + '...' : link}
+        </a>
+        ${isUserLink ? `<div class="user-address">${shortenAddress(userLinkData.user)}</div>` : ''}
         <button class="supportBtn" data-link="${link}">
           👆 Visit & Support (${clicksLeft} left)
         </button>
@@ -144,8 +197,11 @@ function handleLinkClick(link) {
   // 3. UI'ı güncelle
   renderCommunityLinks();
   
-  // 4. OTOMATİK LINK PAYLAŞIM FORMUNU GÖSTER
-  showAutoLinkForm();
+  // 4. OTOMATİK LINK PAYLAŞIM FORMUNU GÖSTER (sadece community linklerine tıklandığında)
+  const isCommunityLink = INITIAL_SUPPORT_LINKS.includes(link);
+  if (isCommunityLink) {
+    showAutoLinkForm();
+  }
   
   console.log(`📊 Link ${link} click count: ${linkClicks[link]}/3`);
 }
@@ -207,12 +263,19 @@ async function handleAutoShareLink() {
     if (result.success) {
       alert("🎉 Link shared successfully! Thank you for contributing to the community!");
       
+      // Linki localStorage'a kaydet
+      saveUserLinkToStorage(link, userAddress);
+      
+      // Link listesini yenile
+      await loadUserSharedLinks();
+      
       // Input'u temizle ve formu gizle
       if (linkInput) linkInput.value = "";
       hideAutoLinkForm();
       
-      // Dashboard'u güncelle
+      // Dashboard'u ve linkleri güncelle
       await loadDashboard();
+      renderCommunityLinks();
     }
     
   } catch (err) {
@@ -893,7 +956,7 @@ async function handleWithdraw() {
 // ========================= UI SETUP ========================= //
 
 function setupUI() {
-  console.log("🔄 Setting up UI with new link system...");
+  console.log("🔄 Setting up UI with user links system...");
 
   // Mevcut buton event listener'ları
   safeAddEventListener("gmButton", "click", handleGM);
@@ -1018,4 +1081,4 @@ function renderCeloLinks() {
 // Global function for manual form triggering
 window.showAutoLinkForm = showAutoLinkForm;
 
-console.log("✅ main.js successfully loaded with 3-column grid and auto-link form system!");
+console.log("✅ main.js FULLY UPDATED with user links system! 🚀");
