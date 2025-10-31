@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="src/styles/main.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
   <style>
+    /* ✅ SADECE GEREKLİ INLINE STILLER - DİĞER HER ŞEY main.css'TE */
     .wallet-btn {
       background-color: #35D07F;
       color: #000;
@@ -66,50 +67,7 @@
       height: fit-content;
       width: 100%;
     }
-    .links-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin: 20px auto;
-      width: 100%;
-    }
-    .link-platform {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 10px;
-      font-weight: bold;
-      background: #FFF0C2;
-      padding: 5px 10px;
-      border-radius: 20px;
-      display: inline-block;
-    }
-    .support-link {
-      color: #000000;
-      text-decoration: none;
-      word-break: break-all;
-      display: block;
-      margin-bottom: 15px;
-      font-weight: bold;
-      font-size: 16px;
-      line-height: 1.4;
-    }
-    .link-stats {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 15px;
-      font-size: 14px;
-      color: #666;
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .stat-value {
-      font-weight: bold;
-      font-size: 18px;
-      color: #000000;
-    }
+
     .supportBtn {
       background: #FBCC5C;
       color: black;
@@ -357,13 +315,13 @@
       <p class="subtitle"><i>Social TX – Where Every Interaction Builds Real Value</i></p>
       <p class="description">If you want support, support first</p>
 
-      <!-- ✅ YENİ NAVIGATION - Tüm özellikler için -->
+      <!-- ✅ YENİ NAVIGATION - Links section kaldırıldı -->
       <div class="nav-bar">
         <button class="nav-button active" data-section="home">🏠 Home</button>
         <button class="nav-button" data-section="gm">👋 GM</button>
         <button class="nav-button" data-section="deploy">🚀 Deploy</button>
         <button class="nav-button" data-section="donate">💛 Donate</button>
-        <button class="nav-button" data-section="links">🔗 Links</button>
+        <!-- 🔗 LINKS SECTION KALDIRILDI - Artık ana sayfada -->
         <button class="nav-button" data-section="governance">🗳️ Governance</button>
         <button class="nav-button" data-section="profile">👤 Profile</button>
         <button class="nav-button" data-section="badges">🏆 Badges</button>
@@ -406,7 +364,7 @@
               </div>
             </button>
             
-            <!-- WalletConnect Seçeneği (Coming Soon) - LOGO URL'Sİ DÜZELTİLDİ -->
+            <!-- WalletConnect Seçeneği (Coming Soon) -->
             <button id="connectWalletConnect" class="wallet-option-btn" disabled>
               <img src="https://walletconnect.com/_next/static/media/logo_mark.84dd8525.svg" alt="WalletConnect" style="width: 32px; height: 32px; margin-right: 15px; background: #3b99fc; border-radius: 8px; padding: 4px;">
               <div style="text-align: left;">
@@ -452,7 +410,7 @@
           </div>
         </div>
 
-        <!-- ✅ GÜNCELLENMİŞ: SIDEBAR DONATE KUTUSU - ARTIK ÇALIŞIYOR -->
+        <!-- ✅ GÜNCELLENMİŞ: SIDEBAR DONATE KUTUSU -->
         <div class="donate-box">
           <h3>💛 Quick Donate</h3>
           <p>Fast support with preset amounts</p>
@@ -464,7 +422,7 @@
           </div>
         </div>
 
-        <!-- 🟡 YENİ SIRALAMA: CELO ECOSYSTEM ÜSTTE -->
+        <!-- 🟡 CELO ECOSYSTEM -->
         <div class="ecosystem-box">
           <h3>🟡 Celo Ecosystem</h3>
           <ul>
@@ -480,7 +438,7 @@
           </ul>
         </div>
 
-        <!-- 📊 YENİ SIRALAMA: GLOBAL STATS ALTA -->
+        <!-- 📊 GLOBAL STATS -->
         <div class="global-stats">
           <h3>📊 Global Stats</h3>
           <div class="stats-grid">
@@ -513,7 +471,7 @@
       </aside>
 
       <main class="main-content">
-        <!-- ✅ HOME SECTION -->
+        <!-- ✅ YENİ HOME SECTION - 3'lü grid ve otomatik form -->
         <section id="homeSection" class="section active">
           <div class="step-indicator">
             <span class="step-number">1</span> Support Community Members
@@ -522,11 +480,28 @@
           <div class="step-container">
             <div class="support-header">
               <h3>🤝 Support Others First</h3>
-              <p>To submit your link, you must first support at least one community member</p>
+              <p>Click on community links to support others, then share your own link</p>
             </div>
 
+            <!-- ✅ YENİ: 3'LÜ GRID BURADA -->
             <div class="links-grid" id="linksContainer">
               <!-- Link kartları buraya dinamik olarak eklenecek -->
+            </div>
+
+            <!-- ✅ YENİ: OTOMATİK LINK PAYLAŞIM FORM -->
+            <div id="autoLinkForm" class="auto-link-form">
+              <h3>🎉 Now Share Your Own Link!</h3>
+              <p>You supported the community! Now share your link for others to discover you.</p>
+              
+              <div class="input-group">
+                <input type="text" id="autoLinkInput" placeholder="Enter your link (https://...)" />
+              </div>
+              
+              <button id="autoShareLinkBtn" class="action-button">
+                Share My Link on Blockchain 🔗
+              </button>
+              
+              <p><small>This will require a transaction on Celo network</small></p>
             </div>
           </div>
         </section>
@@ -573,7 +548,7 @@
           </div>
         </section>
 
-        <!-- ✅ DONATE SECTION - TAM DONATE SİSTEMİ -->
+        <!-- ✅ DONATE SECTION -->
         <section id="donateSection" class="section">
           <div class="feature-card">
             <h3>💛 Make a Donation</h3>
@@ -647,26 +622,7 @@
           </div>
         </section>
 
-        <!-- ✅ LINKS SECTION -->
-        <section id="linksSection" class="section">
-          <div class="feature-card">
-            <h3>🔗 Share Links</h3>
-            <div class="input-group">
-              <input type="text" id="linkInput" placeholder="Enter your link (https://...)">
-            </div>
-            <button id="shareLinkBtn" class="action-button">Share Link 🔗</button>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>Global Links</h4>
-                <div id="linkCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your Links</h4>
-                <div id="userLinkCounter">0</div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- 🔗 LINKS SECTION KALDIRILDI - Artık ana sayfada otomatik form var -->
 
         <!-- ✅ GOVERNANCE SECTION -->
         <section id="governanceSection" class="section">
@@ -782,9 +738,6 @@
     // Quick donate butonları için ek güvence
     document.addEventListener('DOMContentLoaded', function() {
       console.log("✅ Quick Donate buttons are ready!");
-      
-      // Sidebar ve donate section'daki tüm quick donate butonları çalışacak
-      // Ana işlevsellik main.js'de handle ediliyor
     });
   </script>
 </body>
