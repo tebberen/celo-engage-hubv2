@@ -1,5 +1,5 @@
-// ========================= CELO ENGAGE HUB - FULL MAIN ========================= //
-// src/main.js
+// ========================= CELO ENGAGE HUB - UPDATED MAIN.JS ========================= //
+// ✅ 3'LÜ GRID + OTOMATİK LINK FORM + TIK TAKİP SİSTEMİ
 
 // ✅ DOĞRU IMPORT YOLLARI
 import { 
@@ -22,7 +22,7 @@ import {
   withdrawDonations,
   registerUserProfile,
   saveUsername,
-  getModule
+  getUsername
 } from "./services/contractService.js";
 
 import {
@@ -46,17 +46,190 @@ let appInitialized = false;
 let isLoading = false;
 const walletService = new WalletService();
 
+// ✅ YENİ: Link tıklama takibi (localStorage ile)
+let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) || {};
+
 // ========================= APP INIT ========================= //
 
 document.addEventListener("DOMContentLoaded", async () => {
-  console.log("🚀 Celo Engage Hub - Starting...");
+  console.log("🚀 Celo Engage Hub - Starting with 3-column grid system...");
   setupNavigation();
   setupUI();
   renderCommunityLinks();
   renderCeloLinks();
   
-  console.log("✅ App ready - waiting for user to connect wallet");
+  // Sayfa yüklendiğinde bağlantı kontrolü yap
+  await checkExistingConnection();
+  
+  console.log("✅ App ready!");
 });
+
+// ========================= YENİ: OTOMATİK LINK SİSTEMİ ========================= //
+
+function renderCommunityLinks() {
+  const container = document.getElementById("linksContainer");
+  if (!container) return;
+  
+  // Tıklanma sayısı 3'ten az olan linkleri filtrele
+  const activeLinks = INITIAL_SUPPORT_LINKS.filter(link => {
+    const clickCount = linkClicks[link] || 0;
+    return clickCount < 3;
+  });
+  
+  // Eğer hiç aktif link yoksa mesaj göster
+  if (activeLinks.length === 0) {
+    container.innerHTML = `
+      <div class="feature-card">
+        <h3>🎉 All Links Supported!</h3>
+        <p>All community links have received enough support. New links coming soon!</p>
+        <button class="action-button" onclick="showAutoLinkForm()">Share Your Link Anyway 🔗</button>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = activeLinks.map(link => {
+    const clickCount = linkClicks[link] || 0;
+    const clicksLeft = 3 - clickCount;
+    
+    return `
+      <div class="link-card">
+        <div class="link-platform">Community Link</div>
+        <a href="${link}" target="_blank" class="support-link" data-link="${link}">${link}</a>
+        <button class="supportBtn" data-link="${link}">
+          👆 Visit & Support (${clicksLeft} left)
+        </button>
+        <div class="link-stats">
+          <div class="stat-item">
+            <div class="stat-value">${clickCount}</div>
+            <div>Clicks</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">${clicksLeft}</div>
+            <div>Remaining</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Link butonlarına tıklama event'i ekle
+  container.querySelectorAll('.supportBtn[data-link]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const clickedLink = this.getAttribute('data-link');
+      handleLinkClick(clickedLink);
+    });
+  });
+
+  // Linklere tıklama event'i ekle (doğrudan linke tıklanırsa)
+  container.querySelectorAll('.support-link[data-link]').forEach(link => {
+    link.addEventListener('click', function(e) {
+      const clickedLink = this.getAttribute('data-link');
+      handleLinkClick(clickedLink);
+    });
+  });
+}
+
+function handleLinkClick(link) {
+  console.log("🔗 Link clicked:", link);
+  
+  // 1. Linki yeni sekmede aç
+  window.open(link, '_blank');
+  
+  // 2. Tıklama sayısını güncelle
+  linkClicks[link] = (linkClicks[link] || 0) + 1;
+  localStorage.setItem('celoEngageHub_linkClicks', JSON.stringify(linkClicks));
+  
+  // 3. UI'ı güncelle
+  renderCommunityLinks();
+  
+  // 4. OTOMATİK LINK PAYLAŞIM FORMUNU GÖSTER
+  showAutoLinkForm();
+  
+  console.log(`📊 Link ${link} click count: ${linkClicks[link]}/3`);
+}
+
+function showAutoLinkForm() {
+  const autoForm = document.getElementById('autoLinkForm');
+  if (autoForm) {
+    autoForm.classList.add('active');
+    
+    // Formu sayfanın görünen kısmına kaydır
+    setTimeout(() => {
+      autoForm.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 300);
+  }
+}
+
+function hideAutoLinkForm() {
+  const autoForm = document.getElementById('autoLinkForm');
+  if (autoForm) {
+    autoForm.classList.remove('active');
+  }
+}
+
+async function handleAutoShareLink() {
+  try {
+    if (!ensureConnected()) {
+      alert("⚠️ Please connect your wallet first to share a link!");
+      return;
+    }
+    
+    const linkInput = document.getElementById("autoLinkInput");
+    const link = linkInput?.value?.trim();
+    
+    if (!link) {
+      alert("Please enter a link");
+      return;
+    }
+    
+    // URL validasyonu
+    if (!link.startsWith('http://') && !link.startsWith('https://')) {
+      alert("Please enter a valid URL starting with http:// or https://");
+      return;
+    }
+    
+    // Link uzunluğu kontrolü
+    if (link.length > 500) {
+      alert("Link is too long. Please use a shorter URL.");
+      return;
+    }
+    
+    toggleLoading(true, "Sharing your link on blockchain...");
+    
+    // ✅ Link paylaşma işlemi
+    const result = await shareLink(link);
+    
+    if (result.success) {
+      alert("🎉 Link shared successfully! Thank you for contributing to the community!");
+      
+      // Input'u temizle ve formu gizle
+      if (linkInput) linkInput.value = "";
+      hideAutoLinkForm();
+      
+      // Dashboard'u güncelle
+      await loadDashboard();
+    }
+    
+  } catch (err) {
+    console.error("❌ Auto Link Share Error:", err);
+    
+    // Kullanıcı dostu hata mesajları
+    if (err.message.includes('user rejected')) {
+      alert("❌ Transaction was rejected. Please try again.");
+    } else if (err.message.includes('insufficient funds')) {
+      alert("❌ Insufficient funds for transaction. Please add CELO to your wallet.");
+    } else {
+      alert("❌ Failed to share link: " + err.message);
+    }
+  } finally {
+    toggleLoading(false);
+  }
+}
 
 // ========================= NAVIGATION ========================= //
 
@@ -77,15 +250,20 @@ function setupNavigation() {
       button.classList.add('active');
       document.getElementById(`${targetSection}Section`).classList.add('active');
       
-      // Badges section'a tıklandığında badge bilgilerini yükle
+      // Özel section yüklemeleri
       if (targetSection === 'badges' && userAddress) {
         loadBadgeInfo();
+      }
+      
+      // Eğer home section'a geçiliyorsa, otomatik formu gizle
+      if (targetSection === 'home') {
+        hideAutoLinkForm();
       }
     });
   });
 }
 
-// ========================= YENİ CÜZDAN MODAL SİSTEMİ ========================= //
+// ========================= CÜZDAN SİSTEMİ ========================= //
 
 // Modal elementlerini seç
 const walletModal = document.getElementById('walletModal');
@@ -94,6 +272,20 @@ const closeModal = document.querySelector('.close');
 const connectMetaMaskBtn = document.getElementById('connectMetaMask');
 const connectWalletConnectBtn = document.getElementById('connectWalletConnect');
 const disconnectWalletBtn = document.getElementById('disconnectWallet');
+
+// Mevcut bağlantıyı kontrol et
+async function checkExistingConnection() {
+  try {
+    const isConnected = await walletService.checkWalletConnection();
+    if (isConnected) {
+      console.log("🔗 Existing wallet connection found");
+      userAddress = walletService.getAccount();
+      await initializeApp();
+    }
+  } catch (error) {
+    console.log("No existing wallet connection");
+  }
+}
 
 // Connect Wallet butonuna tıklandığında modal'ı aç
 if (connectWalletBtn) {
@@ -119,59 +311,74 @@ window.addEventListener('click', (event) => {
 // MetaMask bağlantısı için tıklama olayı
 if (connectMetaMaskBtn) {
   connectMetaMaskBtn.addEventListener('click', async () => {
-    walletModal.style.display = 'none'; // Modal'ı kapat
-    await connectWallet(); // MetaMask bağlantı fonksiyonunu çağır
+    walletModal.style.display = 'none';
+    await connectWallet();
   });
 }
 
-// WalletConnect için tıklama olayı (Coming Soon)
+// WalletConnect için tıklama olayı
 if (connectWalletConnectBtn) {
   connectWalletConnectBtn.addEventListener('click', () => {
     alert('🚧 WalletConnect support is coming soon!');
   });
 }
 
-// ========================= CÜZDAN BAĞLANTI FONKSİYONU ========================= //
-
 async function connectWallet() {
   try {
     toggleLoading(true, "Connecting to wallet...");
     
-    // ✅ WalletService ile bağlan
     const result = await walletService.connectWallet();
     userAddress = result.account;
     
     if (!userAddress) throw new Error("Wallet not connected");
     
-    // ✅ Ağ kontrolü
     await walletService.ensureCeloNetwork();
     
-    // ✅ UI Güncelleme
+    await initializeApp();
+    
+    console.log("✅ Wallet connected successfully:", userAddress);
+    
+  } catch (err) {
+    console.error("❌ Connection failed:", err);
+    
+    let errorMessage = "Connection failed: " + err.message;
+    if (err.message.includes('rejected')) {
+      errorMessage = "Connection was rejected. Please try again.";
+    } else if (err.message.includes('MetaMask')) {
+      errorMessage = "MetaMask not found. Please install MetaMask.";
+    }
+    
+    alert(errorMessage);
+    toggleLoading(false);
+  }
+}
+
+async function initializeApp() {
+  try {
+    // UI Güncelleme
     document.getElementById("walletAddress").innerText = shortenAddress(userAddress);
     document.getElementById("walletStatus").innerHTML = `<p>🟢 Connected</p><span>${CURRENT_NETWORK.name}</span>`;
     document.getElementById("walletInfo").style.display = "block";
     document.getElementById("connectWallet").style.display = "none";
     
-    // ✅ Balance göster
+    // Balance göster
     try {
       const balance = await walletService.getBalance();
       document.getElementById("walletBalance").innerText = `${parseFloat(balance).toFixed(4)} CELO`;
     } catch (balanceError) {
-      console.warn("⚠️ Balance unavailable, but connection successful");
+      console.warn("⚠️ Balance unavailable");
       document.getElementById("walletBalance").innerText = "Balance unavailable";
     }
     
     await initContract();
     
-    // ✅ PROFİL KONTROLÜ - Kullanıcının profili var mı?
+    // Profil kontrolü
     const userProfile = await loadUserProfile(userAddress);
     
     if (!userProfile.exists) {
-      // Profil yoksa, profil oluşturma modal'ını göster
       console.log("🆕 New user - showing profile creation");
       showProfileCreationModal();
     } else {
-      // Profil varsa, normal dashboard'u yükle
       console.log("✅ Existing user - loading dashboard");
       await loadDashboard();
       
@@ -185,16 +392,70 @@ async function connectWallet() {
     appInitialized = true;
     toggleLoading(false);
     
-    console.log("✅ Wallet connected successfully:", userAddress);
-    
   } catch (err) {
-    console.error("❌ Connection failed:", err);
-    alert("Connection failed: " + err.message);
+    console.error("❌ Initialize app failed:", err);
     toggleLoading(false);
   }
 }
 
-// ========================= PROFİL OLUŞTURMA FONKSİYONLARI ========================= //
+async function disconnectWallet() {
+  try {
+    walletService.disconnect();
+    
+    userAddress = "";
+    appInitialized = false;
+    
+    // UI'ı sıfırla
+    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
+    document.getElementById("walletInfo").style.display = "none";
+    document.getElementById("connectWallet").style.display = "block";
+    
+    // İstatistikleri sıfırla
+    resetUserStats();
+    
+    // Owner panellerini gizle
+    document.getElementById("withdrawPanel").style.display = "none";
+    document.getElementById("ownerPanel").style.display = "none";
+    
+    // Profil modal'ını gizle
+    hideProfileCreationModal();
+    
+    console.log("🔌 Wallet disconnected");
+    
+  } catch (err) {
+    console.error("Disconnect error:", err);
+    alert("Disconnect failed: " + err.message);
+  }
+}
+
+function resetUserStats() {
+  const statsToReset = [
+    "userGmCounter", "userDeployCounter", "userDonateCounter", 
+    "userLinkCounter", "userVoteCounter", "userTotalDonated",
+    "profileAddress", "profileLevel", "profileTier", "profileXP",
+    "profileGMCount", "profileDeployCount", "profileDonateCount",
+    "profileLinkCount", "profileVoteCount"
+  ];
+  
+  statsToReset.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      if (id === "profileAddress") {
+        element.innerText = "-";
+      } else if (id === "userTotalDonated") {
+        element.innerText = "0 CELO";
+      } else {
+        element.innerText = "0";
+      }
+    }
+  });
+  
+  // Badge bilgilerini temizle
+  const badgeInfo = document.getElementById("userBadgeInfo");
+  if (badgeInfo) badgeInfo.innerHTML = "";
+}
+
+// ========================= PROFİL OLUŞTURMA SİSTEMİ ========================= //
 
 function showProfileCreationModal() {
   const modal = document.getElementById('profileCreationModal');
@@ -232,84 +493,39 @@ async function handleCreateProfile() {
     
     toggleLoading(true, "Creating your profile on blockchain...");
     
-    // ✅ PROFİL OLUŞTURMA TX GÖNDER
     const result = await registerUserProfile();
     
-    // ✅ USERNAME'I KAYDET
-    await saveUsername(username);
-    
-    alert("🎉 Profile created successfully!");
-    hideProfileCreationModal();
-    await loadDashboard();
-    
-    // Owner panel kontrolü (profil oluşturduktan sonra)
-    if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
-      document.getElementById("withdrawPanel").style.display = "block";
-      document.getElementById("ownerPanel").style.display = "block";
+    if (result.success && !result.alreadyRegistered) {
+      await saveUsername(username);
+      alert("🎉 Profile created successfully!");
+      hideProfileCreationModal();
+      await loadDashboard();
+      
+      // Owner panel kontrolü
+      if (userAddress.toLowerCase() === OWNER_ADDRESS.toLowerCase()) {
+        document.getElementById("withdrawPanel").style.display = "block";
+        document.getElementById("ownerPanel").style.display = "block";
+      }
+    } else if (result.alreadyRegistered) {
+      alert("✅ Profile already exists!");
+      hideProfileCreationModal();
+      await loadDashboard();
     }
     
   } catch (err) {
     console.error("❌ Profile creation error:", err);
-    alert("Profile creation failed: " + err.message);
+    
+    if (err.message.includes('user rejected')) {
+      alert("❌ Transaction was rejected. Please try again.");
+    } else {
+      alert("Profile creation failed: " + err.message);
+    }
   } finally {
     toggleLoading(false);
   }
 }
 
-// ========================= DISCONNECT FONKSİYONU ========================= //
-
-async function disconnectWallet() {
-  try {
-    // WalletService üzerinden bağlantıyı kes
-    walletService.disconnect();
-    
-    // Global değişkenleri sıfırla
-    userAddress = "";
-    appInitialized = false;
-    
-    // UI'ı sıfırla
-    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
-    document.getElementById("walletInfo").style.display = "none";
-    document.getElementById("connectWallet").style.display = "block";
-    
-    // Kullanıcıya özel istatistikleri sıfırla
-    document.getElementById("userGmCounter").innerText = "0";
-    document.getElementById("userDeployCounter").innerText = "0";
-    document.getElementById("userDonateCounter").innerText = "0";
-    document.getElementById("userLinkCounter").innerText = "0";
-    document.getElementById("userVoteCounter").innerText = "0";
-    
-    // Profile section'daki verileri sıfırla
-    document.getElementById("profileAddress").innerText = "-";
-    document.getElementById("profileLevel").innerText = "1";
-    document.getElementById("profileTier").innerText = "1";
-    document.getElementById("profileXP").innerText = "0";
-    document.getElementById("profileGMCount").innerText = "0";
-    document.getElementById("profileDeployCount").innerText = "0";
-    document.getElementById("profileDonateCount").innerText = "0";
-    document.getElementById("profileLinkCount").innerText = "0";
-    document.getElementById("profileVoteCount").innerText = "0";
-    
-    // Owner panellerini gizle
-    document.getElementById("withdrawPanel").style.display = "none";
-    document.getElementById("ownerPanel").style.display = "none";
-    
-    // Badge bilgilerini temizle
-    document.getElementById("userBadgeInfo").innerHTML = "";
-    
-    // Profil oluşturma modal'ını gizle (eğer açıksa)
-    hideProfileCreationModal();
-    
-    console.log("🔌 Wallet disconnected");
-    alert("Wallet disconnected successfully!");
-    
-  } catch (err) {
-    console.error("Disconnect error:", err);
-    alert("Disconnect failed: " + err.message);
-  }
-}
-
-// ========================= DASHBOARD LOADER ========================= //
+// ========================= DASHBOARD SİSTEMİ ========================= //
 
 async function loadDashboard() {
   try {
@@ -317,6 +533,7 @@ async function loadDashboard() {
     
     toggleLoading(true, "Loading your profile...");
 
+    // Tüm istatistikleri paralel olarak yükle
     const [
       gmStats,
       deployStats,
@@ -328,9 +545,14 @@ async function loadDashboard() {
     ] = await Promise.all([
       getGMStats().catch(err => ({ total: "0", userCount: "0" })),
       getDeployStats().catch(err => ({ total: "0", userDeploys: "0" })),
-      getDonateStats().catch(err => ({ totalDonatedValue: "0", totalDonatorsCount: "0" })),
-      getLinkStats().catch(err => ({ total: "0", hourlyLimit: "0" })),
-      getGovernanceStats().catch(err => ({ totalProposals: "0", totalVotes: "0" })),
+      getDonateStats().catch(err => ({ 
+        totalDonatedValue: "0", 
+        totalDonatorsCount: "0",
+        userDonationCount: "0",
+        userTotalDonated: "0"
+      })),
+      getLinkStats().catch(err => ({ total: "0", userCount: "0" })),
+      getGovernanceStats().catch(err => ({ totalVotes: "0", userVotes: "0" })),
       getBadgeStats().catch(err => "0"),
       loadUserProfile(userAddress).catch(err => ({
         gmCount: "0", deployCount: "0", donateCount: "0", 
@@ -348,22 +570,20 @@ async function loadDashboard() {
 
     // GM Section
     updateElementText("gmCounter", gmStats.total);
-    updateElementText("userGmCounter", gmStats.userCount);
+    updateElementText("userGmCounter", profile.gmCount);
 
     // Deploy Section
     updateElementText("deployCounter", deployStats.total);
-    updateElementText("userDeployCounter", deployStats.userDeploys);
+    updateElementText("userDeployCounter", profile.deployCount);
 
     // Donate Section
     updateElementText("donateCounter", donateStats.totalDonatorsCount);
     updateElementText("userDonateCounter", profile.donateCount);
     
-    // ETHERERS HATA YÖNETİMLİ
     try {
       updateElementText("userTotalDonated", `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`);
       updateElementText("totalDonatedValue", `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`);
     } catch (etherError) {
-      console.warn("⚠️ Ethers format error, using default values");
       updateElementText("userTotalDonated", "0 CELO");
       updateElementText("totalDonatedValue", "0 CELO");
     }
@@ -390,14 +610,15 @@ async function loadDashboard() {
     updateElementText("profileVoteCount", profile.voteCount);
 
     console.log("📊 Dashboard loaded successfully");
-    toggleLoading(false);
+    
   } catch (err) {
     console.error("⚠️ Dashboard Error:", err);
+  } finally {
     toggleLoading(false);
   }
 }
 
-// ========================= GM MODULE ========================= //
+// ========================= MODÜL FONKSİYONLARI ========================= //
 
 async function handleGM() {
   try {
@@ -419,13 +640,11 @@ async function handleGM() {
     
   } catch (err) {
     console.error("❌ GM Error:", err);
-    alert("GM failed: " + err.message);
+    handleTransactionError(err, "GM");
   } finally {
     toggleLoading(false);
   }
 }
-
-// ========================= DEPLOY MODULE ========================= //
 
 async function handleDeploy() {
   try {
@@ -447,20 +666,21 @@ async function handleDeploy() {
     
   } catch (err) {
     console.error("❌ Deploy Error:", err);
-    alert("Failed to deploy contract: " + err.message);
+    handleTransactionError(err, "deploy");
   } finally {
     toggleLoading(false);
   }
 }
-
-// ========================= DONATE MODULE ========================= //
 
 async function handleDonateCELO() {
   try {
     if (!ensureConnected()) return;
     
     const amountInput = document.getElementById("donateAmountInput");
-    const amount = amountInput?.value || "0.1";
+    let amount = amountInput?.value || "0.1";
+    
+    // Virgülü noktaya çevir (Türkçe locale için)
+    amount = amount.replace(',', '.');
     
     if (!amount || parseFloat(amount) <= 0) {
       alert("Please enter a valid donation amount!");
@@ -469,12 +689,13 @@ async function handleDonateCELO() {
     
     // Minimum kontrolü
     try {
-      if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
-        alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} CELO`);
+      const minDonation = parseFloat(ethers.utils.formatEther(MIN_DONATION));
+      if (parseFloat(amount) < minDonation) {
+        alert(`Minimum donation is ${minDonation} CELO`);
         return;
       }
     } catch (error) {
-      console.warn("⚠️ Minimum donation check failed, proceeding anyway");
+      console.warn("⚠️ Minimum donation check failed");
     }
     
     const weiAmount = ethers.utils.parseEther(amount);
@@ -487,7 +708,7 @@ async function handleDonateCELO() {
     
   } catch (err) {
     console.error("❌ CELO Donation Error:", err);
-    alert("CELO donation failed: " + err.message);
+    handleTransactionError(err, "CELO donation");
   } finally {
     toggleLoading(false);
   }
@@ -498,7 +719,10 @@ async function handleDonateCUSD() {
     if (!ensureConnected()) return;
     
     const amountInput = document.getElementById("donateAmountInput");
-    const amount = amountInput?.value || "0.1";
+    let amount = amountInput?.value || "0.1";
+    
+    // Virgülü noktaya çevir
+    amount = amount.replace(',', '.');
     
     if (!amount || parseFloat(amount) <= 0) {
       alert("Please enter a valid donation amount!");
@@ -507,12 +731,13 @@ async function handleDonateCUSD() {
     
     // Minimum kontrolü
     try {
-      if (parseFloat(amount) < parseFloat(ethers.utils.formatEther(MIN_DONATION))) {
-        alert(`Minimum donation is ${ethers.utils.formatEther(MIN_DONATION)} cUSD`);
+      const minDonation = parseFloat(ethers.utils.formatEther(MIN_DONATION));
+      if (parseFloat(amount) < minDonation) {
+        alert(`Minimum donation is ${minDonation} cUSD`);
         return;
       }
     } catch (error) {
-      console.warn("⚠️ Minimum donation check failed, proceeding anyway");
+      console.warn("⚠️ Minimum donation check failed");
     }
     
     const weiAmount = ethers.utils.parseEther(amount);
@@ -525,13 +750,11 @@ async function handleDonateCUSD() {
     
   } catch (err) {
     console.error("❌ cUSD Donation Error:", err);
-    alert("cUSD donation failed: " + err.message);
+    handleTransactionError(err, "cUSD donation");
   } finally {
     toggleLoading(false);
   }
 }
-
-// ========================= LINK MODULE ========================= //
 
 async function handleShareLink() {
   try {
@@ -545,7 +768,6 @@ async function handleShareLink() {
       return;
     }
     
-    // Basit URL validasyonu
     if (!link.startsWith('http://') && !link.startsWith('https://')) {
       alert("Please enter a valid URL starting with http:// or https://");
       return;
@@ -555,18 +777,16 @@ async function handleShareLink() {
     await shareLink(link);
     
     alert("🔗 Link shared successfully!");
-    if (linkInput) linkInput.value = ""; // Input'u temizle
+    if (linkInput) linkInput.value = "";
     await loadDashboard();
     
   } catch (err) {
     console.error("❌ Link Error:", err);
-    alert("Failed to share link: " + err.message);
+    handleTransactionError(err, "link sharing");
   } finally {
     toggleLoading(false);
   }
 }
-
-// ========================= GOVERNANCE MODULE ========================= //
 
 async function handleCreateProposal() {
   try {
@@ -599,19 +819,16 @@ async function handleCreateProposal() {
     
   } catch (err) {
     console.error("❌ Proposal Error:", err);
-    alert("Failed to create proposal: " + err.message);
+    handleTransactionError(err, "proposal creation");
   } finally {
     toggleLoading(false);
   }
 }
 
-// ========================= BADGE & PROFILE MODULE ========================= //
-
 async function loadBadgeInfo() {
   try {
     if (!ensureConnected()) return;
     
-    toggleLoading(true, "Loading badge info...");
     const badge = await getUserBadge(userAddress);
     
     const badgeInfoElement = document.getElementById("userBadgeInfo");
@@ -644,12 +861,8 @@ async function loadBadgeInfo() {
     if (badgeInfoElement) {
       badgeInfoElement.innerHTML = "<p>Failed to load badge info</p>";
     }
-  } finally {
-    toggleLoading(false);
   }
 }
-
-// ========================= OWNER WITHDRAW ========================= //
 
 async function handleWithdraw() {
   try {
@@ -671,18 +884,18 @@ async function handleWithdraw() {
     
   } catch (err) {
     console.error("❌ Withdraw Error:", err);
-    alert("Withdraw failed: " + err.message);
+    handleTransactionError(err, "withdrawal");
   } finally {
     toggleLoading(false);
   }
 }
 
-// ========================= UI HELPERS ========================= //
+// ========================= UI SETUP ========================= //
 
 function setupUI() {
-  console.log("🔄 Setting up UI...");
+  console.log("🔄 Setting up UI with new link system...");
 
-  // Diğer buton event listener'ları
+  // Mevcut buton event listener'ları
   safeAddEventListener("gmButton", "click", handleGM);
   safeAddEventListener("deployButton", "click", handleDeploy);
   safeAddEventListener("donateCeloBtn", "click", handleDonateCELO);
@@ -691,12 +904,15 @@ function setupUI() {
   safeAddEventListener("createProposalBtn", "click", handleCreateProposal);
   safeAddEventListener("withdrawDonationsBtn", "click", handleWithdraw);
   
+  // ✅ YENİ: Otomatik link form butonu
+  safeAddEventListener("autoShareLinkBtn", "click", handleAutoShareLink);
+  
   // Disconnect butonu
   if (disconnectWalletBtn) {
     disconnectWalletBtn.addEventListener("click", disconnectWallet);
   }
   
-  // Profil oluşturma modal event listener'ları
+  // Profil oluşturma
   safeAddEventListener("createProfileBtn", "click", handleCreateProfile);
   safeAddEventListener("closeProfileModal", "click", hideProfileCreationModal);
   
@@ -708,17 +924,15 @@ function setupUI() {
     }
   });
 
-  // ✅ DÜZELTİLDİ: Quick Donate butonları - SADECE INPUT DOLDURSUN
+  // Quick Donate butonları
   document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
     btn.addEventListener('click', function() {
       const amount = this.getAttribute('data-amount');
       const token = this.getAttribute('data-token');
       const amountInput = document.getElementById('donateAmountInput');
       
-      // SADECE input alanını doldur
       if (amountInput) amountInput.value = amount;
       
-      // Token seçimini güncelle
       document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
       const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
       if (targetTokenBtn) targetTokenBtn.classList.add('active');
@@ -758,8 +972,11 @@ function shortenAddress(addr) {
 
 function toggleLoading(state, message = "Loading...") {
   isLoading = state;
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  
   if (state) {
     console.log("⏳ " + message);
+    // Burada bir loading indicator gösterilebilir
   } else {
     console.log("✅ Loading complete");
   }
@@ -773,29 +990,20 @@ function ensureConnected() {
   return true;
 }
 
-function renderCommunityLinks() {
-  const container = document.getElementById("linksContainer");
-  if (!container) return;
+function handleTransactionError(error, action) {
+  let userMessage = `${action} failed: `;
   
-  container.innerHTML = INITIAL_SUPPORT_LINKS.map(link => `
-    <div class="link-card">
-      <div class="link-platform">Community Link</div>
-      <a href="${link}" target="_blank" class="support-link">${link}</a>
-      <button class="supportBtn" onclick="window.open('${link}', '_blank')">
-        Visit & Support
-      </button>
-      <div class="link-stats">
-        <div class="stat-item">
-          <div class="stat-value">0</div>
-          <div>Supports</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value">0</div>
-          <div>Visits</div>
-        </div>
-      </div>
-    </div>
-  `).join('');
+  if (error.message.includes('user rejected')) {
+    userMessage += "Transaction was rejected.";
+  } else if (error.message.includes('insufficient funds')) {
+    userMessage += "Insufficient funds for gas.";
+  } else if (error.message.includes('network')) {
+    userMessage += "Network error. Please check your connection.";
+  } else {
+    userMessage += error.message;
+  }
+  
+  alert("❌ " + userMessage);
 }
 
 function renderCeloLinks() {
@@ -807,4 +1015,7 @@ function renderCeloLinks() {
   `).join('');
 }
 
-console.log("✅ main.js successfully loaded and initialized!");
+// Global function for manual form triggering
+window.showAutoLinkForm = showAutoLinkForm;
+
+console.log("✅ main.js successfully loaded with 3-column grid and auto-link form system!");
