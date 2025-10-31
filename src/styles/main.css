@@ -1,5 +1,5 @@
-/* ========================= CELO ENGAGE HUB - MAIN CSS ========================= */
-/* ✅ TAMAMEN GÜNCELLENDİ - EKSİKSİZ VE RESPONSIVE */
+/* ========================= CELO ENGAGE HUB - FULL UPDATED MAIN CSS ========================= */
+/* ✅ 3'LÜ GRID + OTOMATİK LINK FORM + RESPONSIVE TASARIM */
 
 /* === GLOBAL STYLES === */
 * {
@@ -9,15 +9,12 @@
 }
 
 :root {
-  /* ✅ RENK PALETİ - CELO TEMA */
   --celo-gold: #FBCC5C;
   --celo-black: #000000;
   --celo-green: #35D07F;
   --celo-red: #FF6B6B;
   --celo-blue: #4A90E2;
   --celo-purple: #9B51E0;
-  
-  /* ✅ NÖTR RENKLER */
   --white: #FFFFFF;
   --light-bg: #FFFDF6;
   --light-yellow: #FFF8DC;
@@ -26,8 +23,6 @@
   --dark-gray: #666666;
   --text-dark: #000000;
   --text-light: #444444;
-  
-  /* ✅ BOYUTLAR */
   --border-radius: 12px;
   --border-radius-sm: 8px;
   --border-radius-lg: 16px;
@@ -36,7 +31,6 @@
   --transition: all 0.3s ease;
 }
 
-/* === BASE STYLES === */
 body {
   background-color: var(--white);
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
@@ -56,31 +50,6 @@ body {
   align-items: center;
   width: 100%;
   max-width: 1400px;
-}
-
-/* === TYPOGRAPHY === */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: bold;
-  line-height: 1.3;
-  margin-bottom: 0.5em;
-  color: var(--text-dark);
-}
-
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
-h5 { font-size: 1.1rem; }
-h6 { font-size: 1rem; }
-
-p {
-  margin-bottom: 1em;
-  color: var(--text-light);
-}
-
-small {
-  font-size: 0.875rem;
-  color: var(--dark-gray);
 }
 
 /* === HEADER STYLES === */
@@ -454,10 +423,10 @@ header {
   margin-bottom: 1.5rem;
 }
 
-/* === LINKS GRID === */
+/* ✅ YENİ: 3'LÜ LINK GRID */
 .links-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   margin: 1.5rem auto;
   width: 100%;
@@ -523,47 +492,81 @@ header {
   color: var(--dark-gray);
 }
 
-/* === FEATURE CARDS === */
-.feature-card {
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: var(--text-dark);
+}
+
+/* ✅ YENİ: OTOMATİK LINK PAYLAŞIM FORM STİLLERİ */
+.auto-link-form {
   background: var(--light-bg);
-  border: 2px solid var(--celo-gold);
-  padding: 1.5rem;
+  border: 2px solid var(--celo-green);
+  padding: 2rem;
   border-radius: var(--border-radius);
-  margin: 1rem 0;
+  margin: 2rem 0;
+  text-align: center;
+  animation: slideDown 0.5s ease-out;
+  display: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.auto-link-form.active {
+  display: block;
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auto-link-form h3 {
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.auto-link-form p {
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+/* === SUPPORT BUTTONS === */
+.supportBtn {
+  background: var(--celo-gold);
+  color: var(--celo-black);
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  margin: 0.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: var(--transition);
+  width: 100%;
+}
+
+.supportBtn:hover {
+  background: var(--celo-black);
+  color: var(--celo-gold);
+  transform: translateY(-2px);
   box-shadow: var(--shadow);
 }
 
-.feature-card h3 {
-  color: var(--text-dark);
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.input-group {
-  margin: 1rem 0;
-}
-
-.input-group input, 
-.input-group textarea,
-.input-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--medium-gray);
-  border-radius: var(--border-radius-sm);
-  margin: 0.25rem 0;
-  font-family: inherit;
-  font-size: 1rem;
-  transition: var(--transition);
-}
-
-.input-group input:focus,
-.input-group textarea:focus,
-.input-group select:focus {
-  outline: none;
-  border-color: var(--celo-gold);
-  box-shadow: 0 0 0 2px rgba(251, 204, 92, 0.2);
-}
-
+/* === ACTION BUTTONS === */
 .action-button {
   background: var(--celo-green);
   color: var(--celo-black);
@@ -590,6 +593,48 @@ header {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* === INPUT GROUPS === */
+.input-group {
+  margin: 1rem 0;
+}
+
+.input-group input, 
+.input-group textarea,
+.input-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--border-radius-sm);
+  margin: 0.25rem 0;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.input-group input:focus,
+.input-group textarea:focus,
+.input-group select:focus {
+  outline: none;
+  border-color: var(--celo-gold);
+  box-shadow: 0 0 0 2px rgba(251, 204, 92, 0.2);
+}
+
+/* === FEATURE CARDS === */
+.feature-card {
+  background: var(--light-bg);
+  border: 2px solid var(--celo-gold);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin: 1rem 0;
+  box-shadow: var(--shadow);
+}
+
+.feature-card h3 {
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
 /* === STAT CARDS === */
@@ -796,28 +841,6 @@ header {
   box-shadow: 0 0 0 2px rgba(53, 208, 127, 0.2);
 }
 
-/* === SUPPORT BUTTONS === */
-.supportBtn {
-  background: var(--celo-gold);
-  color: var(--celo-black);
-  border: none;
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  margin: 0.5rem;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: var(--transition);
-  width: 100%;
-}
-
-.supportBtn:hover {
-  background: var(--celo-black);
-  color: var(--celo-gold);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
-
 /* === LOADING ANIMATION === */
 .loading {
   display: inline-block;
@@ -858,6 +881,10 @@ html {
   
   .sidebar {
     width: 280px;
+  }
+  
+  .links-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -934,6 +961,10 @@ html {
   .donate-buttons button {
     min-width: auto;
   }
+  
+  .auto-link-form {
+    padding: 1.5rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -968,6 +999,14 @@ html {
   .action-button {
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
+  }
+  
+  .auto-link-form {
+    padding: 1.25rem;
+  }
+  
+  .auto-link-form h3 {
+    font-size: 1.25rem;
   }
 }
 
