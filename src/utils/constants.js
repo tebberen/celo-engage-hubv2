@@ -3354,4 +3354,46 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "💻 Celo GitHub",        url: "https://github.com/celo-org" }
 ];
 
-console.log("✅ constants.js GÜNCELLENDİ - Yeni ProfileModule aktif! Username desteği hazır!");
+// ✅ YENİ: Kullanıcıların paylaştığı linkler için geçici storage fonksiyonları
+export const getUserSharedLinksFromStorage = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem('celoEngageHub_userLinks') || '[]');
+  } catch {
+    return [];
+  }
+};
+
+export const saveUserLinkToStorage = (link, userAddress) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const currentLinks = getUserSharedLinksFromStorage();
+    const newLink = {
+      link,
+      user: userAddress,
+      timestamp: Date.now(),
+      id: Math.random().toString(36).substr(2, 9)
+    };
+    
+    // Son 20 linki sakla
+    const updatedLinks = [newLink, ...currentLinks].slice(0, 20);
+    localStorage.setItem('celoEngageHub_userLinks', JSON.stringify(updatedLinks));
+    
+    console.log("💾 Link saved to localStorage:", link);
+  } catch (error) {
+    console.error('❌ Save user link to storage failed:', error);
+  }
+};
+
+// ✅ YENİ: Tüm kullanıcı linklerini temizleme fonksiyonu (isteğe bağlı)
+export const clearUserLinksFromStorage = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem('celoEngageHub_userLinks');
+    console.log("🗑️ All user links cleared from storage");
+  } catch (error) {
+    console.error('❌ Clear user links from storage failed:', error);
+  }
+};
+
+console.log("✅ constants.js FULLY UPDATED with user links storage support! 🚀");
