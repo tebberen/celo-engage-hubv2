@@ -484,8 +484,23 @@
             </div>
 
             <!-- ✅ YENİ: 3'LÜ GRID BURADA -->
-            <div class="links-grid" id="linksContainer">
-              <!-- Link kartları buraya dinamik olarak eklenecek -->
+            <div class="links-section">
+              <h4 class="links-section-title">✨ Featured Support Links</h4>
+              <p class="links-section-description">Visit at least three community links to unlock your sharing form.</p>
+              <div class="links-grid" id="linksContainer">
+                <!-- Link kartları buraya dinamik olarak eklenecek -->
+              </div>
+            </div>
+
+            <div class="links-section user-links-section">
+              <div class="links-section-header">
+                <h4 class="links-section-title">🧑‍🤝‍🧑 Community Shared Links</h4>
+                <button id="refreshUserLinksBtn" class="ghost-button" type="button">↻ Refresh</button>
+              </div>
+              <p class="links-section-description">See what fellow builders have recently shared on-chain.</p>
+              <div class="links-grid" id="userLinksContainer">
+                <!-- Kullanıcı link kartları dinamik olarak eklenecek -->
+              </div>
             </div>
 
             <!-- ✅ YENİ: OTOMATİK LINK PAYLAŞIM FORM -->
@@ -532,7 +547,8 @@
           <div class="feature-card">
             <h3>🚀 Deploy Contract</h3>
             <div class="input-group">
-              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)" value="MyContract">
+              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)">
+              <small class="input-hint">Leave blank to auto-generate a unique name for each deploy.</small>
             </div>
             <button id="deployButton" class="action-button">Deploy Contract 🚀</button>
             <div class="stats-grid">
@@ -579,7 +595,7 @@
             </div>
 
             <!-- Owner Withdraw Panel -->
-            <div id="withdrawPanel" class="withdraw-section" style="display: none;">
+            <div id="donationOwnerPanel" class="withdraw-section" style="display: none;" data-owner-only="true">
               <h4>💰 Owner Withdraw Panel</h4>
               <p>Withdraw donations to project owner</p>
               <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B;">Withdraw Donations 🏦</button>
@@ -630,7 +646,7 @@
             <h3>🗳️ Governance</h3>
             
             <!-- Owner Only: Create Proposal -->
-            <div id="ownerPanel" style="display: none;">
+            <div id="governanceOwnerPanel" style="display: none;" data-owner-only="true">
               <h4>Create Proposal (Owner Only)</h4>
               <div class="input-group">
                 <input type="text" id="proposalTitleInput" placeholder="Proposal Title">
