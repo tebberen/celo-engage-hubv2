@@ -1,6 +1,6 @@
 🌐 Celo Engage Hub
 
-Social TX – Where Every Interaction Builds Real Value
+Social TX – Where Every Interaction Builds Real Value...
 
 
 🚀 Overview
