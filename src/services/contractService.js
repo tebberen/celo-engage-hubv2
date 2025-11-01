@@ -9,12 +9,14 @@ import {
   OWNER_ADDRESS,
   DEFAULT_GM_MESSAGE,
   CURRENT_TOKENS,
-  MIN_DONATION
+  MIN_DONATION,
+  CURRENT_NETWORK
 } from "../utils/constants.js";
 
 let provider;
 let signer;
 let mainContract;
+let readOnlyProvider;
 
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
@@ -29,12 +31,22 @@ export async function initContract() {
   provider = new ethers.providers.Web3Provider(window.ethereum);
   signer = provider.getSigner();
   mainContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  readOnlyProvider = provider;
   
   // ✅ Tüm modül contract'larını önceden oluştur ve cache'le
   initializeModuleContracts();
   
   console.log("✅ Contract initialized:", CONTRACT_ADDRESS);
   return mainContract;
+}
+
+function getReadOnlyProvider() {
+  if (readOnlyProvider) {
+    return readOnlyProvider;
+  }
+
+  readOnlyProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
+  return readOnlyProvider;
 }
 
 // ✅ YENİ: Tüm modül contract'larını bir kere initialize et
@@ -338,38 +350,58 @@ export async function getAllSharedLinks() {
 }
 
 // ✅ YENİ: Event'lardan linkleri oku
-export async function getLinksFromEvents() {
+export async function getLinksFromEvents(options = {}) {
   try {
-    const linkModule = getModule("LINK");
-    
-    // LinkShared event'ını dinle
+    const { maxLinks = 24, fromBlock: explicitFromBlock } = options;
+    const activeProvider = provider || getReadOnlyProvider();
+    const linkModule = signer
+      ? getModule("LINK")
+      : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
+
     const filter = linkModule.filters.LinkShared();
-    
-    // Son 1000 blok içindeki event'ları al
-    const currentBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 1000);
-    
-    const events = await linkModule.queryFilter(filter, fromBlock, 'latest');
-    
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const defaultLookback = 25000;
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - defaultLookback);
+
+    const events = await linkModule.queryFilter(filter, fromBlock, currentBlock);
+
     console.log(`📥 Found ${events.length} link events from block ${fromBlock} to ${currentBlock}`);
-    
-    const links = events.map(event => ({
+
+    const timestamps = await Promise.all(events.map(async (event) => {
+      try {
+        const block = await activeProvider.getBlock(event.blockNumber);
+        return (block?.timestamp || Math.floor(Date.now() / 1000)) * 1000;
+      } catch {
+        return Date.now();
+      }
+    }));
+
+    const links = events.map((event, index) => ({
       user: event.args.user,
       link: event.args.link,
       transactionHash: event.transactionHash,
       blockNumber: event.blockNumber,
-      timestamp: Date.now() // Gerçek uygulamada block timestamp alınmalı
-    }));
-    
-    // En yeni linkler önce gelecek şekilde sırala ve ilk 9'unu al
-    const sortedLinks = links.reverse().slice(0, 9);
-    
+      timestamp: timestamps[index]
+    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const unique = [];
+    const seen = new Set();
+    for (const item of links) {
+      const key = `${(item.user || "").toLowerCase()}::${item.link}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(item);
+    }
+
     return {
       success: true,
-      links: sortedLinks,
+      links: unique.slice(0, maxLinks),
       total: events.length.toString()
     };
-    
+
   } catch (error) {
     console.error("❌ Get links from events failed:", error);
     return { success: false, links: [], total: "0" };
