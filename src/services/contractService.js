@@ -33,25 +33,48 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
   }
 
   const userAddress = await signer.getAddress();
-  const referralTag = getReferralTag({
-    user: userAddress,
-    consumer: DIVVI_CONSUMER_ADDRESS
-  });
+  const callArgs = Array.isArray(args) ? [...args] : [];
+  const hasOverrides = overrides && Object.keys(overrides).length > 0;
+  const overridesArg = hasOverrides ? { ...overrides } : undefined;
+  const callArgsWithOverrides = hasOverrides
+    ? [...callArgs, overridesArg]
+    : callArgs;
 
   const populatedMethod = contract.populateTransaction?.[methodName];
+
+  const sendWithoutReferral = async (reason) => {
+    if (reason) {
+      console.warn(`⚠️ Divvi referral skipped for ${methodName}:`, reason);
+    }
+
+    const fallbackTx = await contract[methodName](...callArgsWithOverrides);
+    const receipt = await fallbackTx.wait();
+    return { sentTx: fallbackTx, receipt };
+  };
+
   if (!populatedMethod) {
-    throw new Error(`populateTransaction for ${methodName} not available`);
+    return sendWithoutReferral("populateTransaction not available");
   }
 
-  const callArgs = Array.isArray(args) ? [...args] : [];
-  if (overrides && Object.keys(overrides).length > 0) {
-    callArgs.push(overrides);
+  let txRequest;
+  try {
+    txRequest = await populatedMethod(...callArgsWithOverrides);
+  } catch (populateError) {
+    return sendWithoutReferral(populateError);
   }
-
-  const txRequest = await populatedMethod(...callArgs);
 
   if (!txRequest || !txRequest.data) {
-    throw new Error("Transaction data could not be populated for Divvi referral tagging.");
+    return sendWithoutReferral("missing calldata");
+  }
+
+  let referralTag;
+  try {
+    referralTag = getReferralTag({
+      user: userAddress,
+      consumer: DIVVI_CONSUMER_ADDRESS
+    });
+  } catch (tagError) {
+    return sendWithoutReferral(tagError);
   }
 
   const sanitizedTag = referralTag.startsWith("0x") ? referralTag.slice(2) : referralTag;
@@ -64,7 +87,6 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
 
   txRequest.from = userAddress;
 
-  // populateTransaction already carries overrides (value/gas). For safety copy explicit overrides.
   if (overrides?.value !== undefined) {
     txRequest.value = overrides.value;
   }
