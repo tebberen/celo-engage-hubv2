@@ -56,18 +56,6 @@ let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) ||
 
 // ✅ YENİ: Kullanıcı linkleri
 let userSharedLinks = [];
-let lastProfileSnapshot = null;
-let lastAutoContractName = "";
-
-const DEFAULT_CONTRACT_NAME = "MyContract";
-const MAX_SUPPORT_CLICKS = 3;
-const BADGE_REQUIREMENTS = [
-  { tier: 1, minLevel: 1, gm: 1, deploy: 1, donate: 1, link: 1, vote: 1 },
-  { tier: 2, minLevel: 2, gm: 2, deploy: 2, donate: 2, link: 2, vote: 2 },
-  { tier: 3, minLevel: 3, gm: 3, deploy: 3, donate: 3, link: 3, vote: 3 },
-  { tier: 4, minLevel: 4, gm: 4, deploy: 4, donate: 4, link: 4, vote: 4 },
-  { tier: 5, minLevel: 5, gm: 5, deploy: 5, donate: 5, link: 5, vote: 5 }
-];
 
 // ========================= APP INIT ========================= //
 
@@ -75,67 +63,59 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Celo Engage Hub - Starting with user links system...");
   setupNavigation();
   setupUI();
-
-  renderBadgeProgress(null);
-  renderLeaderboardPlaceholder();
-
+  
   // Kullanıcı linklerini yükle
   await loadUserSharedLinks();
-
+  
   renderCommunityLinks();
   renderCeloLinks();
   
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
-
+  
   console.log("✅ App ready with user links!");
 });
 
 // ========================= YENİ: KULLANICI LINK SİSTEMİ ========================= //
 
-const MAX_USER_LINKS = 24;
-
 async function loadUserSharedLinks() {
   try {
     console.log("📥 Loading user shared links...");
-
+    
     // Önce blockchain'den linkleri almaya çalış
-    const blockchainLinks = await getLinksFromEvents({ maxLinks: MAX_USER_LINKS });
-
-    const localLinks = getUserSharedLinksFromStorage();
-
-    const mergedLinks = blockchainLinks.success && blockchainLinks.links.length > 0
-      ? [...blockchainLinks.links, ...localLinks]
-      : localLinks;
-
-    userSharedLinks = dedupeUserLinks(mergedLinks).slice(0, MAX_USER_LINKS);
-
-    const sourceLabel = blockchainLinks.success && blockchainLinks.links.length > 0
-      ? "blockchain"
-      : "localStorage";
-
-    console.log(`✅ Loaded ${userSharedLinks.length} links from ${sourceLabel}`);
-
+    const blockchainLinks = await getLinksFromEvents();
+    
+    if (blockchainLinks.success && blockchainLinks.links.length > 0) {
+      userSharedLinks = blockchainLinks.links;
+      console.log(`✅ Loaded ${userSharedLinks.length} links from blockchain`);
+    } else {
+      // Blockchain'den alınamazsa localStorage'dan al
+      userSharedLinks = getUserSharedLinksFromStorage();
+      console.log(`✅ Loaded ${userSharedLinks.length} links from localStorage`);
+    }
+    
   } catch (error) {
     console.error("❌ Load user shared links failed:", error);
-    userSharedLinks = dedupeUserLinks(getUserSharedLinksFromStorage()).slice(0, MAX_USER_LINKS);
+    userSharedLinks = getUserSharedLinksFromStorage();
   }
 }
 
 function renderCommunityLinks() {
-  renderFeaturedLinks();
-  renderUserLinkCards();
-}
-
-function renderFeaturedLinks() {
   const container = document.getElementById("linksContainer");
   if (!container) return;
-
-  const activeLinks = INITIAL_SUPPORT_LINKS.filter(link => {
+  
+  // Tüm linkleri birleştir: Community linkler + Kullanıcı linkleri
+  const allCommunityLinks = [...INITIAL_SUPPORT_LINKS];
+  const allUserLinks = userSharedLinks.map(item => item.link);
+  const allLinks = [...allCommunityLinks, ...allUserLinks];
+  
+  // Tıklanma sayısı 3'ten az olan linkleri filtrele
+  const activeLinks = allLinks.filter(link => {
     const clickCount = linkClicks[link] || 0;
-    return clickCount < MAX_SUPPORT_CLICKS;
+    return clickCount < 3;
   });
-
+  
+  // Eğer hiç aktif link yoksa mesaj göster
   if (activeLinks.length === 0) {
     container.innerHTML = `
       <div class="feature-card">
@@ -146,17 +126,29 @@ function renderFeaturedLinks() {
     `;
     return;
   }
-
+  
+  // Link kartlarını oluştur (maksimum 9 link)
   container.innerHTML = activeLinks.slice(0, 9).map(link => {
     const clickCount = linkClicks[link] || 0;
-    const clicksLeft = Math.max(0, MAX_SUPPORT_CLICKS - clickCount);
-
+    const clicksLeft = 3 - clickCount;
+    
+    // Kullanıcı linki mi yoksa community linki mi kontrol et
+    const userLinkData = userSharedLinks.find(item => item.link === link);
+    const isUserLink = userLinkData !== undefined;
+    const isCommunityLink = INITIAL_SUPPORT_LINKS.includes(link);
+    
+    let platformText = "🌍 Community Link";
+    if (isUserLink) {
+      platformText = "👤 User Link";
+    }
+    
     return `
-      <div class="link-card">
-        <div class="link-platform">🌍 Community Link</div>
+      <div class="link-card ${isUserLink ? 'user-link' : ''}">
+        <div class="link-platform">${platformText}</div>
         <a href="${link}" target="_blank" class="support-link" data-link="${link}">
           ${link.length > 50 ? link.substring(0, 50) + '...' : link}
         </a>
+        ${isUserLink ? `<div class="user-address">${shortenAddress(userLinkData.user)}</div>` : ''}
         <button class="supportBtn" data-link="${link}">
           👆 Visit & Support (${clicksLeft} left)
         </button>
@@ -174,6 +166,7 @@ function renderFeaturedLinks() {
     `;
   }).join('');
 
+  // Link butonlarına tıklama event'i ekle
   container.querySelectorAll('.supportBtn[data-link]').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -182,236 +175,13 @@ function renderFeaturedLinks() {
     });
   });
 
-  container.querySelectorAll('.support-link[data-link]').forEach(linkElement => {
-    linkElement.addEventListener('click', function(e) {
-      e.preventDefault();
+  // Linklere tıklama event'i ekle (doğrudan linke tıklanırsa)
+  container.querySelectorAll('.support-link[data-link]').forEach(link => {
+    link.addEventListener('click', function(e) {
       const clickedLink = this.getAttribute('data-link');
       handleLinkClick(clickedLink);
     });
   });
-}
-
-function renderUserLinkCards() {
-  const userContainer = document.getElementById('userLinksContainer');
-  if (!userContainer) return;
-
-  if (!userSharedLinks || userSharedLinks.length === 0) {
-    userContainer.innerHTML = `
-      <div class="links-empty">
-        <p>No community links shared yet. Be the first to contribute!</p>
-      </div>
-    `;
-    return;
-  }
-
-  const sortedLinks = dedupeUserLinks([...userSharedLinks]).sort((a, b) => {
-    const aTime = a.timestamp || 0;
-    const bTime = b.timestamp || 0;
-    return bTime - aTime;
-  });
-
-  userContainer.innerHTML = sortedLinks.slice(0, MAX_USER_LINKS).map(item => {
-    const clickCount = linkClicks[item.link] || 0;
-    const owner = item.user ? shortenAddress(item.user) : 'Unknown';
-    const timeAgo = formatTimeAgo(item.timestamp);
-    const timeAgoLabel = timeAgo === "just now" ? "just now" : `${timeAgo}`;
-
-    return `
-      <div class="link-card user-link">
-        <div class="link-platform">👤 Community Submission</div>
-        <a href="${item.link}" target="_blank" class="support-link" data-link="${item.link}">
-          ${item.link.length > 50 ? item.link.substring(0, 50) + '...' : item.link}
-        </a>
-        <div class="user-address">Owner: ${owner}</div>
-        <div class="link-meta">Shared ${timeAgoLabel}</div>
-        <button class="supportBtn" data-link="${item.link}">
-          🔗 Visit Link
-        </button>
-        <div class="link-stats">
-          <div class="stat-item">
-            <div class="stat-value">${clickCount}</div>
-            <div>Visits</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${timeAgoLabel}</div>
-            <div>Shared</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  userContainer.querySelectorAll('.supportBtn[data-link]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-
-  userContainer.querySelectorAll('.support-link[data-link]').forEach(linkElement => {
-    linkElement.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-}
-
-function renderBadgeProgress(profile) {
-  const badgeContainer = document.getElementById('badgesList');
-  if (!badgeContainer) return;
-
-  if (!profile || !profile.exists) {
-    badgeContainer.innerHTML = '<p class="badge-placeholder">Create your profile to start earning badges.</p>';
-    return;
-  }
-
-  const stats = {
-    level: parseInt(profile.level || '0', 10) || 0,
-    gm: parseInt(profile.gmCount || '0', 10) || 0,
-    deploy: parseInt(profile.deployCount || '0', 10) || 0,
-    donate: parseInt(profile.donateCount || '0', 10) || 0,
-    link: parseInt(profile.linkCount || '0', 10) || 0,
-    vote: parseInt(profile.voteCount || '0', 10) || 0
-  };
-
-  badgeContainer.innerHTML = BADGE_REQUIREMENTS.map(requirement => {
-    const achieved =
-      stats.level >= requirement.minLevel &&
-      stats.gm >= requirement.gm &&
-      stats.deploy >= requirement.deploy &&
-      stats.donate >= requirement.donate &&
-      stats.link >= requirement.link &&
-      stats.vote >= requirement.vote;
-
-    return `
-      <div class="badge-card ${achieved ? 'earned' : ''}">
-        <div class="badge-tier">Tier ${requirement.tier}</div>
-        <ul class="badge-requirements">
-          <li class="${stats.level >= requirement.minLevel ? 'met' : ''}">Level ${requirement.minLevel}</li>
-          <li class="${stats.gm >= requirement.gm ? 'met' : ''}">GM ×${requirement.gm}</li>
-          <li class="${stats.deploy >= requirement.deploy ? 'met' : ''}">Deploy ×${requirement.deploy}</li>
-          <li class="${stats.donate >= requirement.donate ? 'met' : ''}">Donate ×${requirement.donate}</li>
-          <li class="${stats.link >= requirement.link ? 'met' : ''}">Link ×${requirement.link}</li>
-          <li class="${stats.vote >= requirement.vote ? 'met' : ''}">Vote ×${requirement.vote}</li>
-        </ul>
-        <div class="badge-progress">${achieved ? '✅ Ready to mint' : '⬆️ Keep progressing'}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderLeaderboardPlaceholder() {
-  const leaderboardContainer = document.getElementById('leaderboardContent');
-  if (!leaderboardContainer) return;
-  leaderboardContainer.innerHTML = '<p class="leaderboard-note">Leaderboard metrics will appear once you connect your wallet.</p>';
-}
-
-function renderLeaderboard(data) {
-  const leaderboardContainer = document.getElementById('leaderboardContent');
-  if (!leaderboardContainer) return;
-
-  if (!data || !data.profile || !data.profile.exists) {
-    renderLeaderboardPlaceholder();
-    return;
-  }
-
-  const parseCount = (value) => {
-    const parsed = parseInt(value || '0', 10);
-    return Number.isNaN(parsed) ? 0 : parsed;
-  };
-
-  const globalDonated = safeFormatEtherValue(data.donateStats?.totalDonatedValue);
-  const userDonated = safeFormatEtherValue(data.profile?.totalDonated);
-
-  const metrics = [
-    {
-      title: 'GM Legends',
-      description: 'Total GMs sent',
-      global: parseCount(data.gmStats?.total),
-      personal: parseCount(data.profile?.gmCount),
-      unit: 'GM'
-    },
-    {
-      title: 'Deploy Masters',
-      description: 'Contracts deployed',
-      global: parseCount(data.deployStats?.total),
-      personal: parseCount(data.profile?.deployCount),
-      unit: 'deploys'
-    },
-    {
-      title: 'Top Supporters',
-      description: 'Cumulative donations',
-      global: globalDonated,
-      personal: userDonated,
-      unit: 'CELO donated',
-      decimals: 2
-    },
-    {
-      title: 'Link Sharers',
-      description: 'Links submitted',
-      global: parseCount(data.linkStats?.total),
-      personal: parseCount(data.profile?.linkCount),
-      unit: 'links'
-    },
-    {
-      title: 'Governance Voices',
-      description: 'Votes cast',
-      global: parseCount(data.govStats?.totalVotes),
-      personal: parseCount(data.profile?.voteCount),
-      unit: 'votes'
-    },
-    {
-      title: 'Badge Ladder',
-      description: 'NFT badge tiers unlocked',
-      global: parseCount(data.badgeStats),
-      personal: parseCount(data.profile?.tier),
-      unit: 'tier'
-    }
-  ];
-
-  leaderboardContainer.innerHTML = `
-    <div class="leaderboard-grid">
-      ${metrics.map(metric => {
-        const personalProgress = metric.personal > 0;
-        return `
-          <div class="leaderboard-card ${personalProgress ? 'active' : ''}">
-            <div class="leaderboard-title">${metric.title}</div>
-            <div class="leaderboard-description">${metric.description}</div>
-            <div class="leaderboard-metric">
-              <span class="leaderboard-value">${formatNumber(metric.global, metric.decimals)}</span>
-              <span class="leaderboard-label">Global</span>
-            </div>
-            <div class="leaderboard-metric personal">
-              <span class="leaderboard-value">${formatNumber(metric.personal, metric.decimals)}</span>
-              <span class="leaderboard-label">You</span>
-            </div>
-            <div class="leaderboard-unit">${metric.unit}</div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-    <p class="leaderboard-note">Live leaderboard values are based on on-chain counters. Detailed multi-user rankings will arrive with the analytics update.</p>
-  `;
-}
-
-async function hydrateProfileUsername() {
-  const usernameElement = document.getElementById('profileUsername');
-  if (!usernameElement) return;
-
-  if (!userAddress) {
-    usernameElement.innerText = '-';
-    return;
-  }
-
-  try {
-    const username = await getUsername();
-    usernameElement.innerText = username || 'Unnamed explorer';
-  } catch (error) {
-    console.error('❌ Username load failed:', error);
-    usernameElement.innerText = 'Unnamed explorer';
-  }
 }
 
 function handleLinkClick(link) {
@@ -433,7 +203,7 @@ function handleLinkClick(link) {
     showAutoLinkForm();
   }
   
-  console.log(`📊 Link ${link} click count: ${linkClicks[link]}/${MAX_SUPPORT_CLICKS}`);
+  console.log(`📊 Link ${link} click count: ${linkClicks[link]}/3`);
 }
 
 function showAutoLinkForm() {
@@ -571,20 +341,9 @@ async function checkExistingConnection() {
   try {
     const isConnected = await walletService.checkWalletConnection();
     if (isConnected) {
-      console.log("🔗 Existing wallet connection found - waiting for user confirmation");
-      walletService.disconnect();
-      userAddress = "";
-
-      const statusElement = document.getElementById('walletStatus');
-      if (statusElement) {
-        statusElement.innerHTML = `<p>🟡 Wallet detected</p><span>Click \"Connect Wallet\" to continue</span>`;
-      }
-
-      const connectBtn = document.getElementById('connectWallet');
-      if (connectBtn) {
-        connectBtn.style.display = 'block';
-        connectBtn.textContent = 'Reconnect Wallet';
-      }
+      console.log("🔗 Existing wallet connection found");
+      userAddress = walletService.getAccount();
+      await initializeApp();
     }
   } catch (error) {
     console.log("No existing wallet connection");
@@ -705,20 +464,14 @@ async function initializeApp() {
 async function disconnectWallet() {
   try {
     walletService.disconnect();
-
+    
     userAddress = "";
     appInitialized = false;
-    lastProfileSnapshot = null;
-    lastAutoContractName = "";
-
+    
     // UI'ı sıfırla
     document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
     document.getElementById("walletInfo").style.display = "none";
-    const connectButton = document.getElementById("connectWallet");
-    if (connectButton) {
-      connectButton.style.display = "block";
-      connectButton.textContent = "Connect Wallet";
-    }
+    document.getElementById("connectWallet").style.display = "block";
     
     // İstatistikleri sıfırla
     resetUserStats();
@@ -740,13 +493,13 @@ async function disconnectWallet() {
 
 function resetUserStats() {
   const statsToReset = [
-    "userGmCounter", "userDeployCounter", "userDonateCounter",
+    "userGmCounter", "userDeployCounter", "userDonateCounter", 
     "userLinkCounter", "userVoteCounter", "userTotalDonated",
     "profileAddress", "profileLevel", "profileTier", "profileXP",
     "profileGMCount", "profileDeployCount", "profileDonateCount",
     "profileLinkCount", "profileVoteCount"
   ];
-
+  
   statsToReset.forEach(id => {
     const element = document.getElementById(id);
     if (element) {
@@ -759,18 +512,10 @@ function resetUserStats() {
       }
     }
   });
-
+  
   // Badge bilgilerini temizle
   const badgeInfo = document.getElementById("userBadgeInfo");
   if (badgeInfo) badgeInfo.innerHTML = "";
-
-  const usernameElement = document.getElementById('profileUsername');
-  if (usernameElement) {
-    usernameElement.innerText = '-';
-  }
-
-  renderBadgeProgress(null);
-  renderLeaderboardPlaceholder();
 }
 
 // ========================= PROFİL OLUŞTURMA SİSTEMİ ========================= //
@@ -927,25 +672,8 @@ async function loadDashboard() {
     updateElementText("profileLinkCount", profile.linkCount);
     updateElementText("profileVoteCount", profile.voteCount);
 
-    await hydrateProfileUsername();
-
-    lastProfileSnapshot = profile;
-
-    renderBadgeProgress(profile);
-    renderLeaderboard({
-      gmStats,
-      deployStats,
-      donateStats,
-      linkStats,
-      govStats,
-      badgeStats,
-      profile
-    });
-
-    await loadBadgeInfo();
-
     console.log("📊 Dashboard loaded successfully");
-
+    
   } catch (err) {
     console.error("⚠️ Dashboard Error:", err);
   } finally {
@@ -984,29 +712,18 @@ async function handleGM() {
 async function handleDeploy() {
   try {
     if (!ensureConnected()) return;
-
+    
     const nameInput = document.getElementById("contractNameInput");
-    let contractName = nameInput?.value?.trim() || "";
-    const shouldAutoGenerate =
-      !contractName ||
-      contractName === DEFAULT_CONTRACT_NAME ||
-      contractName === lastAutoContractName;
-
-    if (shouldAutoGenerate) {
-      contractName = generateAutoContractName();
-      lastAutoContractName = contractName;
-
-      if (nameInput) {
-        nameInput.value = contractName;
-        nameInput.dataset.autoName = contractName;
-      }
-    } else {
-      lastAutoContractName = "";
+    const contractName = nameInput?.value || "MyContract";
+    
+    if (!contractName.trim()) {
+      alert("Contract name cannot be empty!");
+      return;
     }
-
+    
     toggleLoading(true, "Deploying contract...");
     await deployContract(contractName);
-
+    
     alert("✅ Contract deployed successfully!");
     await loadDashboard();
     
@@ -1252,18 +969,6 @@ function setupUI() {
   
   // ✅ YENİ: Otomatik link form butonu
   safeAddEventListener("autoShareLinkBtn", "click", handleAutoShareLink);
-
-  safeAddEventListener("refreshUserLinksBtn", "click", async () => {
-    try {
-      toggleLoading(true, "Refreshing community links...");
-      await loadUserSharedLinks();
-      renderCommunityLinks();
-    } catch (error) {
-      console.error("❌ Refresh user links failed:", error);
-    } finally {
-      toggleLoading(false);
-    }
-  });
   
   // Disconnect butonu
   if (disconnectWalletBtn) {
@@ -1326,91 +1031,6 @@ function updateElementText(elementId, text) {
 
 function shortenAddress(addr) {
   return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
-}
-
-function formatTimeAgo(timestamp) {
-  if (!timestamp) return "just now";
-
-  const now = Date.now();
-  const rawTimestamp = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-  const safeTimestamp = Number.isFinite(rawTimestamp) ? rawTimestamp : Date.now();
-  const diffMs = Math.max(0, now - safeTimestamp);
-  const diffSeconds = Math.floor(diffMs / 1000);
-
-  if (diffSeconds < 60) return `${diffSeconds}s ago`;
-
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  const diffWeeks = Math.floor(diffDays / 7);
-  if (diffWeeks < 4) return `${diffWeeks}w ago`;
-
-  const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) return `${diffMonths}mo ago`;
-
-  const diffYears = Math.floor(diffDays / 365);
-  return `${diffYears}y ago`;
-}
-
-function safeFormatEtherValue(value) {
-  try {
-    const formatted = ethers.utils.formatEther(value || '0');
-    const parsed = parseFloat(formatted);
-    return Number.isFinite(parsed) ? parsed : 0;
-  } catch (error) {
-    console.warn('⚠️ Failed to format ether value:', error.message);
-    return 0;
-  }
-}
-
-function formatNumber(value, decimals = 0) {
-  if (!Number.isFinite(value)) {
-    return '0';
-  }
-
-  return value.toLocaleString(undefined, {
-    maximumFractionDigits: decimals,
-    minimumFractionDigits: decimals > 0 && value > 0 ? Math.min(decimals, 2) : 0
-  });
-}
-
-function dedupeUserLinks(links) {
-  if (!Array.isArray(links)) return [];
-
-  const map = new Map();
-
-  links.forEach(item => {
-    if (!item || !item.link) return;
-    const user = (item.user || "").toLowerCase();
-    const key = `${user}::${item.link}`;
-    const timestamp = item.timestamp || Date.now();
-    const existing = map.get(key);
-
-    if (!existing || (timestamp && timestamp > (existing.timestamp || 0))) {
-      map.set(key, {
-        ...item,
-        timestamp
-      });
-    }
-  });
-
-  return Array.from(map.values());
-}
-
-function generateAutoContractName() {
-  const deployCount = parseInt(lastProfileSnapshot?.deployCount || "0", 10);
-  const nextCount = Number.isFinite(deployCount) ? deployCount + 1 : 1;
-  const paddedCount = nextCount.toString().padStart(2, "0");
-  const addressFragment = userAddress ? userAddress.slice(2, 6).toUpperCase() : "CEH";
-  const timeFragment = Date.now().toString(36).slice(-4).toUpperCase();
-
-  return `CEH-${addressFragment}-D${paddedCount}-${timeFragment}`;
 }
 
 function toggleLoading(state, message = "Loading...") {
