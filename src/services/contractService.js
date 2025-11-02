@@ -3,10 +3,6 @@
 
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 import {
-  getReferralTag,
-  submitReferral
-} from "https://cdn.jsdelivr.net/npm/@divvi/referral-sdk@2.0.0/+esm";
-import {
   CONTRACT_ADDRESS,
   CONTRACT_ABI,
   MODULES,
@@ -14,9 +10,9 @@ import {
   DEFAULT_GM_MESSAGE,
   CURRENT_TOKENS,
   MIN_DONATION,
-  CURRENT_NETWORK,
-  DIVVI_CONSUMER_ADDRESS
+  CURRENT_NETWORK
 } from "../utils/constants.js";
+import { sendWithReferral } from "./divviReferral.js";
 
 let provider;
 let signer;
@@ -25,94 +21,6 @@ let readOnlyProvider;
 
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
-
-// Divvi referral yardimcilari
-async function sendWithReferral(contract, methodName, args = [], overrides = {}) {
-  if (!signer) {
-    throw new Error("Signer not initialized. Call initContract() first.");
-  }
-
-  const userAddress = await signer.getAddress();
-  const callArgs = Array.isArray(args) ? [...args] : [];
-  const hasOverrides = overrides && Object.keys(overrides).length > 0;
-  const overridesArg = hasOverrides ? { ...overrides } : undefined;
-  const callArgsWithOverrides = hasOverrides
-    ? [...callArgs, overridesArg]
-    : callArgs;
-
-  const populatedMethod = contract.populateTransaction?.[methodName];
-
-  const sendWithoutReferral = async (reason) => {
-    if (reason) {
-      console.warn(`⚠️ Divvi referral skipped for ${methodName}:`, reason);
-    }
-
-    const fallbackTx = await contract[methodName](...callArgsWithOverrides);
-    const receipt = await fallbackTx.wait();
-    return { sentTx: fallbackTx, receipt };
-  };
-
-  if (!populatedMethod) {
-    return sendWithoutReferral("populateTransaction not available");
-  }
-
-  let txRequest;
-  try {
-    txRequest = await populatedMethod(...callArgsWithOverrides);
-  } catch (populateError) {
-    return sendWithoutReferral(populateError);
-  }
-
-  if (!txRequest || !txRequest.data) {
-    return sendWithoutReferral("missing calldata");
-  }
-
-  let referralTag;
-  try {
-    referralTag = getReferralTag({
-      user: userAddress,
-      consumer: DIVVI_CONSUMER_ADDRESS
-    });
-  } catch (tagError) {
-    return sendWithoutReferral(tagError);
-  }
-
-  const sanitizedTag = referralTag.startsWith("0x") ? referralTag.slice(2) : referralTag;
-  if (
-    sanitizedTag.length > 0 &&
-    !txRequest.data.toLowerCase().endsWith(sanitizedTag.toLowerCase())
-  ) {
-    txRequest.data = `${txRequest.data}${sanitizedTag}`;
-  }
-
-  txRequest.from = userAddress;
-
-  if (overrides?.value !== undefined) {
-    txRequest.value = overrides.value;
-  }
-  if (overrides?.gasLimit !== undefined) {
-    txRequest.gasLimit = overrides.gasLimit;
-  }
-  if (overrides?.gasPrice !== undefined) {
-    txRequest.gasPrice = overrides.gasPrice;
-  }
-
-  const sentTx = await signer.sendTransaction(txRequest);
-  const receipt = await sentTx.wait();
-
-  try {
-    const network = await (provider || signer.provider).getNetwork();
-    await submitReferral({
-      txHash: sentTx.hash,
-      chainId: Number(network.chainId)
-    });
-    console.log("✅ Divvi referral submitted", sentTx.hash);
-  } catch (referralError) {
-    console.warn("⚠️ Divvi referral submission failed", referralError);
-  }
-
-  return { sentTx, receipt };
-}
 
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
