@@ -187,7 +187,7 @@ export async function registerUserProfile() {
     }
     
     // Profil oluşturma işlemi
-    const { sentTx } = await sendWithReferral(profile, "registerUser");
+    const { sentTx } = await sendWithReferral(profile, "registerUser", [userAddress]);
 
     console.log("✅ Profile created successfully");
     return { success: true, txHash: sentTx.hash, alreadyRegistered: false };
@@ -235,7 +235,7 @@ export async function sendGM(message = DEFAULT_GM_MESSAGE) {
     console.log("👋 Sending GM from:", userAddress);
     
     // ✅ TEK İŞLEM - Sadece GM gönder (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gm, "sendGM", [message]);
+    const { sentTx } = await sendWithReferral(gm, "sendGM", [userAddress, message]);
 
     console.log("✅ GM sent:", message);
     return { success: true, txHash: sentTx.hash };
@@ -547,7 +547,7 @@ export async function createProposal(title, description, link) {
     console.log("🗳️ Creating proposal from:", userAddress, "Title:", title);
     
     // ✅ TEK İŞLEM - Sadece proposal oluştur (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gov, "createProposal", [title, description, link]);
+    const { sentTx } = await sendWithReferral(gov, "createProposal", [userAddress, title, description, link]);
 
     console.log("🗳️ Proposal created:", title);
     return { success: true, txHash: sentTx.hash, title: title };
@@ -565,7 +565,7 @@ export async function vote(proposalId, support) {
     console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
     
     // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gov, "vote", [proposalId, support]);
+    const { sentTx } = await sendWithReferral(gov, "vote", [userAddress, proposalId, support]);
 
     console.log("🗳️ Voted:", proposalId, support);
     return { success: true, txHash: sentTx.hash, proposalId: proposalId, support: support };
