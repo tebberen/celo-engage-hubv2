@@ -3,21 +3,94 @@
 
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 import {
+  getReferralTag,
+  submitReferral
+} from "https://cdn.jsdelivr.net/npm/@divvi/referral-sdk@2.0.0/+esm";
+import {
   CONTRACT_ADDRESS,
   CONTRACT_ABI,
   MODULES,
   OWNER_ADDRESS,
   DEFAULT_GM_MESSAGE,
   CURRENT_TOKENS,
-  MIN_DONATION
+  MIN_DONATION,
+  CURRENT_NETWORK,
+  DIVVI_CONSUMER_ADDRESS
 } from "../utils/constants.js";
 
 let provider;
 let signer;
 let mainContract;
+let readOnlyProvider;
 
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
+
+// Divvi referral yardimcilari
+async function sendWithReferral(contract, methodName, args = [], overrides = {}) {
+  if (!signer) {
+    throw new Error("Signer not initialized. Call initContract() first.");
+  }
+
+  const userAddress = await signer.getAddress();
+  const referralTag = getReferralTag({
+    user: userAddress,
+    consumer: DIVVI_CONSUMER_ADDRESS
+  });
+
+  const populatedMethod = contract.populateTransaction?.[methodName];
+  if (!populatedMethod) {
+    throw new Error(`populateTransaction for ${methodName} not available`);
+  }
+
+  const callArgs = Array.isArray(args) ? [...args] : [];
+  if (overrides && Object.keys(overrides).length > 0) {
+    callArgs.push(overrides);
+  }
+
+  const txRequest = await populatedMethod(...callArgs);
+
+  if (!txRequest || !txRequest.data) {
+    throw new Error("Transaction data could not be populated for Divvi referral tagging.");
+  }
+
+  const sanitizedTag = referralTag.startsWith("0x") ? referralTag.slice(2) : referralTag;
+  if (
+    sanitizedTag.length > 0 &&
+    !txRequest.data.toLowerCase().endsWith(sanitizedTag.toLowerCase())
+  ) {
+    txRequest.data = `${txRequest.data}${sanitizedTag}`;
+  }
+
+  txRequest.from = userAddress;
+
+  // populateTransaction already carries overrides (value/gas). For safety copy explicit overrides.
+  if (overrides?.value !== undefined) {
+    txRequest.value = overrides.value;
+  }
+  if (overrides?.gasLimit !== undefined) {
+    txRequest.gasLimit = overrides.gasLimit;
+  }
+  if (overrides?.gasPrice !== undefined) {
+    txRequest.gasPrice = overrides.gasPrice;
+  }
+
+  const sentTx = await signer.sendTransaction(txRequest);
+  const receipt = await sentTx.wait();
+
+  try {
+    const network = await (provider || signer.provider).getNetwork();
+    await submitReferral({
+      txHash: sentTx.hash,
+      chainId: Number(network.chainId)
+    });
+    console.log("✅ Divvi referral submitted", sentTx.hash);
+  } catch (referralError) {
+    console.warn("⚠️ Divvi referral submission failed", referralError);
+  }
+
+  return { sentTx, receipt };
+}
 
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
@@ -29,12 +102,22 @@ export async function initContract() {
   provider = new ethers.providers.Web3Provider(window.ethereum);
   signer = provider.getSigner();
   mainContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  readOnlyProvider = provider;
   
   // ✅ Tüm modül contract'larını önceden oluştur ve cache'le
   initializeModuleContracts();
   
   console.log("✅ Contract initialized:", CONTRACT_ADDRESS);
   return mainContract;
+}
+
+function getReadOnlyProvider() {
+  if (readOnlyProvider) {
+    return readOnlyProvider;
+  }
+
+  readOnlyProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
+  return readOnlyProvider;
 }
 
 // ✅ YENİ: Tüm modül contract'larını bir kere initialize et
@@ -82,11 +165,10 @@ export async function registerUserProfile() {
     }
     
     // Profil oluşturma işlemi
-    const tx = await profile.registerUser(userAddress);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(profile, "registerUser", [userAddress]);
+
     console.log("✅ Profile created successfully");
-    return { success: true, txHash: tx.hash, alreadyRegistered: false };
+    return { success: true, txHash: sentTx.hash, alreadyRegistered: false };
   } catch (error) {
     console.error("❌ Profile registration failed:", error);
     throw error;
@@ -131,11 +213,10 @@ export async function sendGM(message = DEFAULT_GM_MESSAGE) {
     console.log("👋 Sending GM from:", userAddress);
     
     // ✅ TEK İŞLEM - Sadece GM gönder (ikinci işlem YOK)
-    const tx = await gm.sendGM(userAddress, message);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gm, "sendGM", [userAddress, message]);
+
     console.log("✅ GM sent:", message);
-    return { success: true, txHash: tx.hash };
+    return { success: true, txHash: sentTx.hash };
   } catch (error) {
     console.error("❌ GM failed:", error);
     throw error;
@@ -172,11 +253,10 @@ export async function deployContract(contractName = "MyContract") {
     console.log("🚀 Deploying contract for:", userAddress);
     
     // ✅ TEK İŞLEM - Sadece contract deploy et (ikinci işlem YOK)
-    const tx = await deploy.deployContract(userAddress, contractName);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(deploy, "deployContract", [userAddress, contractName]);
+
     console.log("✅ Contract deployed:", contractName);
-    return { success: true, txHash: tx.hash, contractName: contractName };
+    return { success: true, txHash: sentTx.hash, contractName: contractName };
   } catch (error) {
     console.error("❌ Deploy failed:", error);
     throw error;
@@ -213,11 +293,15 @@ export async function donateCELO(amount = MIN_DONATION) {
     console.log("💛 Donating CELO from:", userAddress, "Amount:", amount);
     
     // ✅ TEK İŞLEM - Sadece CELO bağışı yap (ikinci işlem YOK)
-    const tx = await donate.donateCELO(userAddress, { value: amount });
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(
+      donate,
+      "donateCELO",
+      [userAddress],
+      { value: amount }
+    );
+
     console.log("💛 CELO donated:", amount);
-    return { success: true, txHash: tx.hash, amount: amount, token: "CELO" };
+    return { success: true, txHash: sentTx.hash, amount: amount, token: "CELO" };
   } catch (error) {
     console.error("❌ CELO donation failed:", error);
     throw error;
@@ -232,11 +316,10 @@ export async function donateCUSD(amount = MIN_DONATION) {
     console.log("💵 Donating cUSD from:", userAddress, "Amount:", amount);
     
     // ✅ TEK İŞLEM - Sadece cUSD bağışı yap (ikinci işlem YOK)
-    const tx = await donate.donateCUSD(userAddress, amount);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(donate, "donateCUSD", [userAddress, amount]);
+
     console.log("💚 cUSD donated:", amount);
-    return { success: true, txHash: tx.hash, amount: amount, token: "cUSD" };
+    return { success: true, txHash: sentTx.hash, amount: amount, token: "cUSD" };
   } catch (error) {
     console.error("❌ cUSD donation failed:", error);
     throw error;
@@ -284,11 +367,10 @@ export async function shareLink(link) {
     console.log("🔗 Sharing link from:", userAddress, "Link:", link);
     
     // ✅ TEK İŞLEM - Sadece link paylaş (ikinci işlem YOK)
-    const tx = await linkModule.shareLink(userAddress, link);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(linkModule, "shareLink", [userAddress, link]);
+
     console.log("🔗 Link shared:", link);
-    return { success: true, txHash: tx.hash, link: link };
+    return { success: true, txHash: sentTx.hash, link: link };
   } catch (error) {
     console.error("❌ Share link failed:", error);
     throw error;
@@ -338,38 +420,58 @@ export async function getAllSharedLinks() {
 }
 
 // ✅ YENİ: Event'lardan linkleri oku
-export async function getLinksFromEvents() {
+export async function getLinksFromEvents(options = {}) {
   try {
-    const linkModule = getModule("LINK");
-    
-    // LinkShared event'ını dinle
+    const { maxLinks = 24, fromBlock: explicitFromBlock } = options;
+    const activeProvider = provider || getReadOnlyProvider();
+    const linkModule = signer
+      ? getModule("LINK")
+      : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
+
     const filter = linkModule.filters.LinkShared();
-    
-    // Son 1000 blok içindeki event'ları al
-    const currentBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 1000);
-    
-    const events = await linkModule.queryFilter(filter, fromBlock, 'latest');
-    
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const defaultLookback = 25000;
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - defaultLookback);
+
+    const events = await linkModule.queryFilter(filter, fromBlock, currentBlock);
+
     console.log(`📥 Found ${events.length} link events from block ${fromBlock} to ${currentBlock}`);
-    
-    const links = events.map(event => ({
+
+    const timestamps = await Promise.all(events.map(async (event) => {
+      try {
+        const block = await activeProvider.getBlock(event.blockNumber);
+        return (block?.timestamp || Math.floor(Date.now() / 1000)) * 1000;
+      } catch {
+        return Date.now();
+      }
+    }));
+
+    const links = events.map((event, index) => ({
       user: event.args.user,
       link: event.args.link,
       transactionHash: event.transactionHash,
       blockNumber: event.blockNumber,
-      timestamp: Date.now() // Gerçek uygulamada block timestamp alınmalı
-    }));
-    
-    // En yeni linkler önce gelecek şekilde sırala ve ilk 9'unu al
-    const sortedLinks = links.reverse().slice(0, 9);
-    
+      timestamp: timestamps[index]
+    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const unique = [];
+    const seen = new Set();
+    for (const item of links) {
+      const key = `${(item.user || "").toLowerCase()}::${item.link}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(item);
+    }
+
     return {
       success: true,
-      links: sortedLinks,
+      links: unique.slice(0, maxLinks),
       total: events.length.toString()
     };
-    
+
   } catch (error) {
     console.error("❌ Get links from events failed:", error);
     return { success: false, links: [], total: "0" };
@@ -423,11 +525,10 @@ export async function createProposal(title, description, link) {
     console.log("🗳️ Creating proposal from:", userAddress, "Title:", title);
     
     // ✅ TEK İŞLEM - Sadece proposal oluştur (ikinci işlem YOK)
-    const tx = await gov.createProposal(userAddress, title, description, link);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gov, "createProposal", [userAddress, title, description, link]);
+
     console.log("🗳️ Proposal created:", title);
-    return { success: true, txHash: tx.hash, title: title };
+    return { success: true, txHash: sentTx.hash, title: title };
   } catch (error) {
     console.error("❌ Create proposal failed:", error);
     throw error;
@@ -442,11 +543,10 @@ export async function vote(proposalId, support) {
     console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
     
     // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
-    const tx = await gov.vote(userAddress, proposalId, support);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gov, "vote", [userAddress, proposalId, support]);
+
     console.log("🗳️ Voted:", proposalId, support);
-    return { success: true, txHash: tx.hash, proposalId: proposalId, support: support };
+    return { success: true, txHash: sentTx.hash, proposalId: proposalId, support: support };
   } catch (error) {
     console.error("❌ Vote failed:", error);
     throw error;
@@ -548,11 +648,10 @@ export async function loadUserProfile(address) {
 export async function withdrawDonations() {
   try {
     const donate = getModule("DONATE");
-    const tx = await donate.withdraw(OWNER_ADDRESS);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(donate, "withdraw", [OWNER_ADDRESS]);
+
     console.log("💸 Withdraw successful!");
-    return { success: true, txHash: tx.hash };
+    return { success: true, txHash: sentTx.hash };
   } catch (error) {
     console.error("❌ Withdraw failed:", error);
     throw error;

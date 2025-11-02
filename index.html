@@ -484,8 +484,23 @@
             </div>
 
             <!-- ✅ YENİ: 3'LÜ GRID BURADA -->
-            <div class="links-grid" id="linksContainer">
-              <!-- Link kartları buraya dinamik olarak eklenecek -->
+            <div class="links-section">
+              <h4 class="links-section-title">✨ Featured Support Links</h4>
+              <p class="links-section-description">Visit at least three community links to unlock your sharing form.</p>
+              <div class="links-grid" id="linksContainer">
+                <!-- Link kartları buraya dinamik olarak eklenecek -->
+              </div>
+            </div>
+
+            <div class="links-section user-links-section">
+              <div class="links-section-header">
+                <h4 class="links-section-title">🧑‍🤝‍🧑 Community Shared Links</h4>
+                <button id="refreshUserLinksBtn" class="ghost-button" type="button">↻ Refresh</button>
+              </div>
+              <p class="links-section-description">See what fellow builders have recently shared on-chain.</p>
+              <div class="links-grid" id="userLinksContainer">
+                <!-- Kullanıcı link kartları dinamik olarak eklenecek -->
+              </div>
             </div>
 
             <!-- ✅ YENİ: OTOMATİK LINK PAYLAŞIM FORM -->
@@ -532,7 +547,8 @@
           <div class="feature-card">
             <h3>🚀 Deploy Contract</h3>
             <div class="input-group">
-              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)" value="MyContract">
+              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)">
+              <small class="input-hint">Leave blank to auto-generate a unique name for each deploy.</small>
             </div>
             <button id="deployButton" class="action-button">Deploy Contract 🚀</button>
             <div class="stats-grid">
@@ -665,6 +681,7 @@
             <h3>👤 Your Profile</h3>
             <div id="profileInfo">
               <p><strong>Address:</strong> <span id="profileAddress">-</span></p>
+              <p><strong>Username:</strong> <span id="profileUsername">-</span></p>
               <p><strong>Level:</strong> <span id="profileLevel">1</span></p>
               <p><strong>Tier:</strong> <span id="profileTier">1</span></p>
               <p><strong>Total XP:</strong> <span id="profileXP">0</span></p>
@@ -723,8 +740,9 @@
         <section id="leaderboardSection" class="section">
           <div class="feature-card">
             <h3>🏆 Leaderboard</h3>
-            <p>Coming soon...</p>
-            <!-- Leaderboard will be implemented here -->
+            <div id="leaderboardContent" class="leaderboard-content">
+              <!-- Leaderboard metrics render dynamically -->
+            </div>
           </div>
         </section>
       </main>

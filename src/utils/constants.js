@@ -3316,6 +3316,9 @@ export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
 // Owner Adresi
 export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
 
+// Divvi referral consumer kimliği (owner ile aynı)
+export const DIVVI_CONSUMER_ADDRESS = OWNER_ADDRESS;
+
 // Varsayılan GM Mesajı
 export const DEFAULT_GM_MESSAGE = "Hello from Celo Engage Hub!";
 
@@ -3367,18 +3370,25 @@ export const getUserSharedLinksFromStorage = () => {
 export const saveUserLinkToStorage = (link, userAddress) => {
   if (typeof window === 'undefined') return;
   try {
-    const currentLinks = getUserSharedLinksFromStorage();
+    const normalizedAddress = (userAddress || '').toLowerCase();
+    const currentLinks = getUserSharedLinksFromStorage().filter(item => {
+      if (!item || !item.link) return false;
+      const sameLink = item.link === link;
+      if (!sameLink) return true;
+      if (!normalizedAddress) return false;
+      return (item.user || '').toLowerCase() !== normalizedAddress;
+    });
     const newLink = {
       link,
       user: userAddress,
       timestamp: Date.now(),
       id: Math.random().toString(36).substr(2, 9)
     };
-    
-    // Son 20 linki sakla
-    const updatedLinks = [newLink, ...currentLinks].slice(0, 20);
+
+    // Son 24 linki sakla
+    const updatedLinks = [newLink, ...currentLinks].slice(0, 24);
     localStorage.setItem('celoEngageHub_userLinks', JSON.stringify(updatedLinks));
-    
+
     console.log("💾 Link saved to localStorage:", link);
   } catch (error) {
     console.error('❌ Save user link to storage failed:', error);
