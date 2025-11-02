@@ -3316,6 +3316,9 @@ export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
 // Owner Adresi
 export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
 
+// Divvi referral consumer kimliği (owner ile aynı)
+export const DIVVI_CONSUMER_ADDRESS = OWNER_ADDRESS;
+
 // Varsayılan GM Mesajı
 export const DEFAULT_GM_MESSAGE = "Hello from Celo Engage Hub!";
 

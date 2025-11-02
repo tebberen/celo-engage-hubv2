@@ -12,6 +12,7 @@ import {
   MIN_DONATION,
   CURRENT_NETWORK
 } from "../utils/constants.js";
+import { sendWithReferral } from "./divviReferral.js";
 
 let provider;
 let signer;
@@ -94,11 +95,10 @@ export async function registerUserProfile() {
     }
     
     // Profil oluşturma işlemi
-    const tx = await profile.registerUser(userAddress);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(profile, "registerUser", [userAddress]);
+
     console.log("✅ Profile created successfully");
-    return { success: true, txHash: tx.hash, alreadyRegistered: false };
+    return { success: true, txHash: sentTx.hash, alreadyRegistered: false };
   } catch (error) {
     console.error("❌ Profile registration failed:", error);
     throw error;
@@ -143,11 +143,10 @@ export async function sendGM(message = DEFAULT_GM_MESSAGE) {
     console.log("👋 Sending GM from:", userAddress);
     
     // ✅ TEK İŞLEM - Sadece GM gönder (ikinci işlem YOK)
-    const tx = await gm.sendGM(userAddress, message);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gm, "sendGM", [userAddress, message]);
+
     console.log("✅ GM sent:", message);
-    return { success: true, txHash: tx.hash };
+    return { success: true, txHash: sentTx.hash };
   } catch (error) {
     console.error("❌ GM failed:", error);
     throw error;
@@ -184,11 +183,10 @@ export async function deployContract(contractName = "MyContract") {
     console.log("🚀 Deploying contract for:", userAddress);
     
     // ✅ TEK İŞLEM - Sadece contract deploy et (ikinci işlem YOK)
-    const tx = await deploy.deployContract(userAddress, contractName);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(deploy, "deployContract", [userAddress, contractName]);
+
     console.log("✅ Contract deployed:", contractName);
-    return { success: true, txHash: tx.hash, contractName: contractName };
+    return { success: true, txHash: sentTx.hash, contractName: contractName };
   } catch (error) {
     console.error("❌ Deploy failed:", error);
     throw error;
@@ -225,11 +223,15 @@ export async function donateCELO(amount = MIN_DONATION) {
     console.log("💛 Donating CELO from:", userAddress, "Amount:", amount);
     
     // ✅ TEK İŞLEM - Sadece CELO bağışı yap (ikinci işlem YOK)
-    const tx = await donate.donateCELO(userAddress, { value: amount });
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(
+      donate,
+      "donateCELO",
+      [userAddress],
+      { value: amount }
+    );
+
     console.log("💛 CELO donated:", amount);
-    return { success: true, txHash: tx.hash, amount: amount, token: "CELO" };
+    return { success: true, txHash: sentTx.hash, amount: amount, token: "CELO" };
   } catch (error) {
     console.error("❌ CELO donation failed:", error);
     throw error;
@@ -244,11 +246,10 @@ export async function donateCUSD(amount = MIN_DONATION) {
     console.log("💵 Donating cUSD from:", userAddress, "Amount:", amount);
     
     // ✅ TEK İŞLEM - Sadece cUSD bağışı yap (ikinci işlem YOK)
-    const tx = await donate.donateCUSD(userAddress, amount);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(donate, "donateCUSD", [userAddress, amount]);
+
     console.log("💚 cUSD donated:", amount);
-    return { success: true, txHash: tx.hash, amount: amount, token: "cUSD" };
+    return { success: true, txHash: sentTx.hash, amount: amount, token: "cUSD" };
   } catch (error) {
     console.error("❌ cUSD donation failed:", error);
     throw error;
@@ -296,11 +297,10 @@ export async function shareLink(link) {
     console.log("🔗 Sharing link from:", userAddress, "Link:", link);
     
     // ✅ TEK İŞLEM - Sadece link paylaş (ikinci işlem YOK)
-    const tx = await linkModule.shareLink(userAddress, link);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(linkModule, "shareLink", [userAddress, link]);
+
     console.log("🔗 Link shared:", link);
-    return { success: true, txHash: tx.hash, link: link };
+    return { success: true, txHash: sentTx.hash, link: link };
   } catch (error) {
     console.error("❌ Share link failed:", error);
     throw error;
@@ -455,11 +455,10 @@ export async function createProposal(title, description, link) {
     console.log("🗳️ Creating proposal from:", userAddress, "Title:", title);
     
     // ✅ TEK İŞLEM - Sadece proposal oluştur (ikinci işlem YOK)
-    const tx = await gov.createProposal(userAddress, title, description, link);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gov, "createProposal", [userAddress, title, description, link]);
+
     console.log("🗳️ Proposal created:", title);
-    return { success: true, txHash: tx.hash, title: title };
+    return { success: true, txHash: sentTx.hash, title: title };
   } catch (error) {
     console.error("❌ Create proposal failed:", error);
     throw error;
@@ -474,11 +473,10 @@ export async function vote(proposalId, support) {
     console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
     
     // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
-    const tx = await gov.vote(userAddress, proposalId, support);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(gov, "vote", [userAddress, proposalId, support]);
+
     console.log("🗳️ Voted:", proposalId, support);
-    return { success: true, txHash: tx.hash, proposalId: proposalId, support: support };
+    return { success: true, txHash: sentTx.hash, proposalId: proposalId, support: support };
   } catch (error) {
     console.error("❌ Vote failed:", error);
     throw error;
@@ -580,11 +578,10 @@ export async function loadUserProfile(address) {
 export async function withdrawDonations() {
   try {
     const donate = getModule("DONATE");
-    const tx = await donate.withdraw(OWNER_ADDRESS);
-    await tx.wait();
-    
+    const { sentTx } = await sendWithReferral(donate, "withdraw", [OWNER_ADDRESS]);
+
     console.log("💸 Withdraw successful!");
-    return { success: true, txHash: tx.hash };
+    return { success: true, txHash: sentTx.hash };
   } catch (error) {
     console.error("❌ Withdraw failed:", error);
     throw error;
