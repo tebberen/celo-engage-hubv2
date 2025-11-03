@@ -16,6 +16,7 @@ import {
   getAllSharedLinks,
   getLinksFromEvents,
   getUserSharedLinks,
+  getUserDeployedContracts,
   createProposal,
   vote,
   getGovernanceStats,
@@ -42,6 +43,8 @@ import {
 // ✅ WALLET SERVICE CLASS OLARAK IMPORT
 import WalletService from "./services/walletService.js";
 
+import { getBadgeCatalog, fetchLeaderboardData } from "./services/communityService.js";
+
 // ✅ ETHERERS IMPORT
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 
@@ -58,10 +61,15 @@ let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) ||
 let userSharedLinks = [];
 let lastProfileSnapshot = null;
 let lastAutoContractName = "";
+let userProfileLinks = [];
+let userProfileContracts = [];
+let leaderboardSnapshot = null;
+let leaderboardLoading = false;
 
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
 const OWNER_ONLY_ELEMENT_IDS = ["donationOwnerPanel", "governanceOwnerPanel"];
+const LEADERBOARD_LIMIT = 10;
 
 // ========================= APP INIT ========================= //
 
@@ -69,13 +77,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Celo Engage Hub - Starting with user links system...");
   setupNavigation();
   setupUI();
-  
+
   // Kullanıcı linklerini yükle
   await loadUserSharedLinks();
-  
+
   renderCommunityLinks();
   renderCeloLinks();
-  
+
+  // Topluluk sıralamasını hazırlamaya başla
+  await loadLeaderboard();
+
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
   
@@ -547,6 +558,8 @@ async function disconnectWallet() {
     appInitialized = false;
     lastProfileSnapshot = null;
     lastAutoContractName = "";
+    userProfileLinks = [];
+    userProfileContracts = [];
 
     // UI'ı sıfırla
     document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
@@ -561,9 +574,19 @@ async function disconnectWallet() {
     
     // Profil modal'ını gizle
     hideProfileCreationModal();
-    
+
+    renderUserLinksList([]);
+    renderUserContractsList([]);
+
+    const badgeList = document.getElementById("badgesList");
+    if (badgeList) {
+      badgeList.innerHTML = `<div class="empty-state">Connect your wallet to see badge progress.</div>`;
+    }
+
     console.log("🔌 Wallet disconnected");
-    
+
+    await loadLeaderboard();
+
   } catch (err) {
     console.error("Disconnect error:", err);
     alert("Disconnect failed: " + err.message);
@@ -749,6 +772,9 @@ async function loadDashboard() {
 
     lastProfileSnapshot = profile;
 
+    await loadUserProfileAssets(profile);
+    await loadLeaderboard(userAddress);
+
     console.log("📊 Dashboard loaded successfully");
 
   } catch (err) {
@@ -756,6 +782,494 @@ async function loadDashboard() {
   } finally {
     toggleLoading(false);
   }
+}
+
+// ========================= PROFİL VARLIKLARI VE LİSTELER ========================= //
+
+async function loadUserProfileAssets(profile = null) {
+  if (!userAddress) {
+    userProfileLinks = [];
+    userProfileContracts = [];
+    renderUserLinksList([], { emptyMessage: "Connect your wallet to view your shared links." });
+    renderUserContractsList([], { emptyMessage: "Connect your wallet to view your deployments." });
+    return;
+  }
+
+  renderUserLinksList([], { loading: true });
+  renderUserContractsList([], { loading: true });
+
+  try {
+    const [linkResponse, contractResponse] = await Promise.all([
+      getUserSharedLinks(userAddress).catch(() => ({ success: false, links: [] })),
+      getUserDeployedContracts(userAddress).catch(() => ({ success: false, contracts: [] }))
+    ]);
+
+    const remoteLinks = normalizeUserLinkEntries(linkResponse?.links || [], userAddress);
+    const localLinks = getUserSharedLinksFromStorage()
+      .filter(item => (item?.user || "").toLowerCase() === userAddress.toLowerCase())
+      .map(item => ({ ...item, source: "local" }));
+
+    userProfileLinks = dedupeUserLinks([
+      ...remoteLinks,
+      ...localLinks
+    ]);
+
+    renderUserLinksList(userProfileLinks);
+
+    userProfileContracts = Array.isArray(contractResponse?.contracts)
+      ? contractResponse.contracts
+      : [];
+
+    renderUserContractsList(userProfileContracts, { profile });
+
+  } catch (assetError) {
+    console.error("❌ User asset load failed:", assetError);
+    renderUserLinksList([], { error: "Unable to load your shared links. Please try again." });
+    renderUserContractsList([], { error: "Unable to load your deployed contracts. Please try again." });
+  }
+}
+
+function renderUserLinksList(links, { loading = false, error = null, emptyMessage = null } = {}) {
+  const container = document.getElementById("userLinksList");
+  if (!container) return;
+
+  if (loading) {
+    container.innerHTML = `<div class="loading-state">Loading your shared links...</div>`;
+    return;
+  }
+
+  if (!userAddress) {
+    container.innerHTML = `<div class="empty-state">Connect your wallet to view your shared links.</div>`;
+    return;
+  }
+
+  if (error) {
+    container.innerHTML = `<div class="error-state">${escapeHtml(error)}</div>`;
+    return;
+  }
+
+  if (!Array.isArray(links) || links.length === 0) {
+    const message = emptyMessage || "You haven't shared any links yet. Share one from the Home tab!";
+    container.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+    return;
+  }
+
+  container.innerHTML = links.map((item, index) => {
+    const normalizedUrl = normalizeUrl(item.link || item.url || "");
+    if (!normalizedUrl) return "";
+
+    const displayUrl = truncateText(normalizedUrl, 60);
+    const timeAgo = item.timestamp ? formatTimeAgo(item.timestamp) : "Timestamp unavailable";
+    const sourceLabel = item.source === "local" ? "Local draft" : "On-chain";
+    const txLink = item.transactionHash ? buildTransactionLink(item.transactionHash) : null;
+
+    return `
+      <article class="asset-card user-link-card" data-index="${index}">
+        <div class="asset-card-header">
+          <span class="asset-card-title">Link #${index + 1}</span>
+          <span class="asset-card-badge">${escapeHtml(sourceLabel)}</span>
+        </div>
+        <a href="${escapeAttribute(normalizedUrl)}" target="_blank" rel="noopener" class="asset-card-link user-link-visit" data-link="${escapeAttribute(normalizedUrl)}">
+          ${escapeHtml(displayUrl)}
+        </a>
+        <div class="asset-card-meta">
+          <span>${escapeHtml(timeAgo)}</span>
+          ${txLink ? `<a href="${escapeAttribute(txLink)}" target="_blank" rel="noopener">View Tx</a>` : ""}
+        </div>
+      </article>
+    `;
+  }).filter(Boolean).join("");
+
+  container.querySelectorAll('.user-link-visit[data-link]').forEach(anchor => {
+    anchor.addEventListener('click', event => {
+      event.preventDefault();
+      const link = anchor.getAttribute('data-link');
+      if (link) {
+        handleLinkClick(link);
+      }
+    });
+  });
+}
+
+function renderUserContractsList(contracts, { loading = false, error = null, emptyMessage = null } = {}) {
+  const container = document.getElementById("userContractsList");
+  if (!container) return;
+
+  if (loading) {
+    container.innerHTML = `<div class="loading-state">Loading your deployed contracts...</div>`;
+    return;
+  }
+
+  if (!userAddress) {
+    container.innerHTML = `<div class="empty-state">Connect your wallet to view your deployed contracts.</div>`;
+    return;
+  }
+
+  if (error) {
+    container.innerHTML = `<div class="error-state">${escapeHtml(error)}</div>`;
+    return;
+  }
+
+  if (!Array.isArray(contracts) || contracts.length === 0) {
+    const message = emptyMessage || "You haven't deployed any contracts yet. Deploy one from the Home tab!";
+    container.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+    return;
+  }
+
+  container.innerHTML = contracts.map((contract, index) => {
+    const address = (contract?.address || contract || "").toString();
+    if (!address) return "";
+
+    const displayName = contract?.name ? escapeHtml(contract.name) : `Contract #${index + 1}`;
+    const explorerUrl = buildBlockExplorerLink(address);
+    const shortenedAddress = escapeHtml(shortenAddress(address));
+    const explorerAnchor = explorerUrl
+      ? `<a href="${escapeAttribute(explorerUrl)}" target="_blank" rel="noopener">${shortenedAddress}</a>`
+      : shortenedAddress;
+    const deployedAgo = contract?.timestamp ? `Deployed ${escapeHtml(formatTimeAgo(contract.timestamp))}` : "Deployment time unavailable";
+    const txLink = contract?.transactionHash ? buildTransactionLink(contract.transactionHash) : null;
+
+    return `
+      <article class="asset-card user-contract-card" data-index="${index}">
+        <div class="asset-card-header">
+          <span class="asset-card-title">${displayName}</span>
+          <button type="button" class="asset-copy-btn" data-copy-address="${escapeAttribute(address)}">Copy</button>
+        </div>
+        <div class="asset-card-body">
+          <span class="asset-card-address">${explorerAnchor}</span>
+          ${txLink ? `<a class="asset-card-link" href="${escapeAttribute(txLink)}" target="_blank" rel="noopener">View transaction</a>` : ""}
+        </div>
+        <div class="asset-card-meta">${deployedAgo}</div>
+      </article>
+    `;
+  }).filter(Boolean).join("");
+
+  container.querySelectorAll('[data-copy-address]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const address = button.getAttribute('data-copy-address');
+      if (!address) return;
+
+      try {
+        await navigator.clipboard.writeText(address);
+        button.classList.add('copied');
+        const originalText = button.dataset.originalText || button.textContent;
+        if (!button.dataset.originalText) {
+          button.dataset.originalText = originalText;
+        }
+        button.textContent = 'Copied!';
+        setTimeout(() => {
+          button.textContent = button.dataset.originalText || 'Copy';
+          button.classList.remove('copied');
+        }, 1200);
+      } catch (copyError) {
+        console.warn('⚠️ Clipboard not available:', copyError);
+        window.prompt('Copy this address', address);
+      }
+    });
+  });
+}
+
+function normalizeUserLinkEntries(rawLinks, ownerAddress) {
+  if (!Array.isArray(rawLinks)) return [];
+
+  return rawLinks.map((entry, index) => {
+    if (!entry) return null;
+
+    if (typeof entry === 'string') {
+      return {
+        link: entry,
+        user: ownerAddress,
+        timestamp: null,
+        source: 'on-chain',
+        id: `chain-${index}`
+      };
+    }
+
+    if (typeof entry === 'object') {
+      const linkValue = entry.link || entry.url || entry.href;
+      if (!linkValue) return null;
+
+      const normalizedTimestamp = normalizeTimestamp(entry.timestamp || entry.time || entry.createdAt || entry.blockTimestamp);
+
+      return {
+        link: linkValue,
+        user: entry.user || ownerAddress,
+        timestamp: normalizedTimestamp,
+        source: entry.source || (entry.transactionHash ? 'on-chain' : 'on-chain'),
+        transactionHash: entry.transactionHash || entry.txHash || null
+      };
+    }
+
+    return null;
+  }).filter(Boolean);
+}
+
+function normalizeTimestamp(value) {
+  if (value === null || value === undefined) return null;
+  const numeric = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return numeric > 1e12 ? numeric : numeric * 1000;
+}
+
+function renderBadgeSummary(badge, { error = null } = {}) {
+  const badgeInfoElement = document.getElementById("userBadgeInfo");
+  if (!badgeInfoElement) return;
+
+  if (error) {
+    badgeInfoElement.innerHTML = `<div class="error-state">${escapeHtml(error)}</div>`;
+    return;
+  }
+
+  if (!badge) {
+    badgeInfoElement.innerHTML = `<div class="empty-state">Badge information unavailable.</div>`;
+    return;
+  }
+
+  const lastUpdateMs = normalizeTimestamp((badge.lastUpdate || 0) * 1000) || normalizeTimestamp(badge.lastUpdate);
+  const lastUpdateLabel = lastUpdateMs ? formatTimeAgo(lastUpdateMs) : "—";
+
+  badgeInfoElement.innerHTML = `
+    <div class="stats-grid badge-summary-grid">
+      <div class="stat-card">
+        <h4>Level</h4>
+        <div>${escapeHtml(badge.level)}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Tier</h4>
+        <div>${escapeHtml(badge.tier)}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Total XP</h4>
+        <div>${formatNumber(badge.totalXP)}</div>
+      </div>
+      <div class="stat-card">
+        <h4>Last Update</h4>
+        <div>${escapeHtml(lastUpdateLabel)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function buildBadgeProgressMap(badgeSummary = null) {
+  const profile = lastProfileSnapshot || {};
+
+  const safeInteger = value => {
+    const numeric = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  let totalDonated = 0;
+  try {
+    totalDonated = parseFloat(ethers.utils.formatEther(profile.totalDonated || '0'));
+  } catch {
+    totalDonated = 0;
+  }
+
+  return {
+    gmCount: safeInteger(profile.gmCount),
+    deployCount: safeInteger(profile.deployCount),
+    donateCount: safeInteger(profile.donateCount),
+    linkCount: safeInteger(profile.linkCount),
+    voteCount: safeInteger(profile.voteCount),
+    totalXP: safeInteger(badgeSummary?.totalXP ?? profile.totalXP),
+    level: safeInteger(badgeSummary?.level ?? profile.level),
+    tier: safeInteger(badgeSummary?.tier ?? profile.tier),
+    totalDonated
+  };
+}
+
+function renderBadgeCards(catalog, { progress = null, loading = false, error = null } = {}) {
+  const container = document.getElementById("badgesList");
+  if (!container) return;
+
+  if (loading) {
+    container.innerHTML = `<div class="loading-state">Loading badges...</div>`;
+    return;
+  }
+
+  if (error) {
+    container.innerHTML = `<div class="error-state">${escapeHtml(error)}</div>`;
+    return;
+  }
+
+  const badgeCatalog = Array.isArray(catalog) ? catalog : [];
+  if (badgeCatalog.length === 0) {
+    container.innerHTML = `<div class="empty-state">Badges will appear here soon. Keep engaging!</div>`;
+    return;
+  }
+
+  const userProgress = progress || buildBadgeProgressMap();
+
+  container.innerHTML = badgeCatalog.map(badge => {
+    const requirementsData = (badge.criteria || []).map(requirement => ({
+      requirement,
+      data: resolveBadgeRequirement(requirement, userProgress)
+    }));
+
+    const isCompleted = requirementsData.length > 0 && requirementsData.every(item => item.data.ratio >= 1);
+    const detailId = `badge-${badge.id}-detail`;
+    const xpReward = badge.xpReward ? `${formatNumber(badge.xpReward)} XP` : "";
+
+    const requirementsMarkup = requirementsData.map(item => {
+      const { requirement, data } = item;
+      const requirementLabel = requirement.label || requirement.metric;
+      const unit = requirement.unit ? ` ${requirement.unit}` : "";
+      const valueLabel = `${formatNumber(data.value)}${unit}`;
+      const targetLabel = `${formatNumber(requirement.target)}${unit}`;
+      const progressWidth = Math.min(100, Math.round(data.ratio * 100));
+
+      return `
+        <div class="badge-requirement">
+          <div class="badge-requirement-header">
+            <span>${escapeHtml(requirementLabel)}</span>
+            <span>${escapeHtml(valueLabel)} / ${escapeHtml(targetLabel)}</span>
+          </div>
+          <div class="badge-progress-bar">
+            <span class="badge-progress-fill" style="width:${progressWidth}%"></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <article class="badge-card${isCompleted ? ' is-completed' : ''}" data-badge-id="${escapeAttribute(badge.id)}">
+        <header class="badge-card-header">
+          <span class="badge-icon" aria-hidden="true">${escapeHtml(badge.icon || '🏅')}</span>
+          <div>
+            <h4 class="badge-title">${escapeHtml(badge.title)}</h4>
+            <span class="badge-category">${escapeHtml(badge.category || 'Badge')}</span>
+          </div>
+          ${xpReward ? `<span class="badge-xp">${escapeHtml(xpReward)}</span>` : ''}
+        </header>
+        <p class="badge-description">${escapeHtml(badge.description || 'Complete activities to unlock this badge.')}</p>
+        <div class="badge-requirements">
+          ${requirementsMarkup}
+        </div>
+        <button type="button" class="badge-toggle" data-target="${escapeAttribute(detailId)}" aria-expanded="false">Show tips</button>
+        <div id="${escapeAttribute(detailId)}" class="badge-detail" hidden>
+          <p>${escapeHtml(badge.tips || 'Stay active to earn this badge!')}</p>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.badge-toggle[data-target]').forEach(button => {
+    button.addEventListener('click', () => {
+      const targetId = button.getAttribute('data-target');
+      const detail = targetId ? container.querySelector(`#${targetId}`) : null;
+      const isExpanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', String(!isExpanded));
+      button.textContent = isExpanded ? 'Show tips' : 'Hide tips';
+      if (detail) {
+        detail.hidden = isExpanded;
+      }
+    });
+  });
+}
+
+function resolveBadgeRequirement(requirement, progress) {
+  const metricKey = requirement?.metric;
+  const target = Number(requirement?.target) || 0;
+  let value = 0;
+
+  if (metricKey && progress && Object.prototype.hasOwnProperty.call(progress, metricKey)) {
+    value = progress[metricKey];
+  }
+
+  if (!Number.isFinite(value)) {
+    value = 0;
+  }
+
+  if (metricKey === 'totalDonated') {
+    value = parseFloat(value);
+  } else {
+    value = Math.floor(Number(value));
+  }
+
+  const ratio = target > 0 ? Math.min(1, value / target) : 0;
+
+  return { value, target, ratio };
+}
+
+async function loadLeaderboard(highlightAddress = userAddress) {
+  const container = document.getElementById("leaderboardContent");
+  if (!container) return;
+
+  if (leaderboardSnapshot) {
+    renderLeaderboardEntries(leaderboardSnapshot, highlightAddress);
+    return;
+  }
+
+  if (leaderboardLoading) {
+    container.innerHTML = `<div class="loading-state">Loading leaderboard...</div>`;
+    return;
+  }
+
+  leaderboardLoading = true;
+  container.innerHTML = `<div class="loading-state">Loading leaderboard...</div>`;
+
+  try {
+    const data = await fetchLeaderboardData({ limit: LEADERBOARD_LIMIT });
+    leaderboardSnapshot = data;
+    renderLeaderboardEntries(leaderboardSnapshot, highlightAddress);
+  } catch (error) {
+    console.error("❌ Leaderboard load failed:", error);
+    container.innerHTML = `<div class="error-state">Unable to load leaderboard data right now.</div>`;
+  } finally {
+    leaderboardLoading = false;
+  }
+}
+
+function renderLeaderboardEntries(entries, highlightAddress) {
+  const container = document.getElementById("leaderboardContent");
+  if (!container) return;
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    container.innerHTML = `<div class="empty-state">Leaderboard will appear once the community starts engaging.</div>`;
+    return;
+  }
+
+  const highlight = highlightAddress ? highlightAddress.toLowerCase() : null;
+
+  container.innerHTML = entries.map((entry, index) => {
+    const address = entry.address || "";
+    const normalizedAddress = address.toLowerCase();
+    const rank = entry.rank || index + 1;
+    const isHighlighted = highlight && normalizedAddress === highlight;
+    const displayName = entry.username ? escapeHtml(entry.username) : escapeHtml(shortenAddress(address));
+    const explorerUrl = buildBlockExplorerLink(address);
+    const addressMarkup = explorerUrl
+      ? `<a href="${escapeAttribute(explorerUrl)}" target="_blank" rel="noopener">${escapeHtml(shortenAddress(address))}</a>`
+      : escapeHtml(shortenAddress(address));
+    const lastActiveMs = entry.lastActive ? new Date(entry.lastActive).getTime() : null;
+    const lastActiveLabel = lastActiveMs ? formatTimeAgo(lastActiveMs) : "—";
+
+    const metricsMarkup = [
+      { label: "XP", value: entry.totalXP },
+      { label: "GM", value: entry.gmCount },
+      { label: "Deploy", value: entry.deployCount },
+      { label: "Donate", value: entry.donateCount },
+      { label: "Links", value: entry.linkCount },
+      { label: "Votes", value: entry.voteCount }
+    ].map(metric => `
+      <div class="metric">
+        <span class="metric-label">${escapeHtml(metric.label)}</span>
+        <span class="metric-value">${formatNumber(metric.value)}</span>
+      </div>
+    `).join('');
+
+    return `
+      <article class="leaderboard-entry${isHighlighted ? ' is-highlighted' : ''}" data-rank="${rank}">
+        <div class="leaderboard-rank">#${rank}</div>
+        <div class="leaderboard-core">
+          <div class="leaderboard-name">${displayName}</div>
+          <div class="leaderboard-address">${addressMarkup}</div>
+        </div>
+        <div class="leaderboard-metrics">${metricsMarkup}</div>
+        <div class="leaderboard-meta">Last active ${escapeHtml(lastActiveLabel)}</div>
+      </article>
+    `;
+  }).join('');
 }
 
 // ========================= MODÜL FONKSİYONLARI ========================= //
@@ -979,39 +1493,31 @@ async function handleCreateProposal() {
 async function loadBadgeInfo() {
   try {
     if (!ensureConnected()) return;
-    
-    const badge = await getUserBadge(userAddress);
-    
+
     const badgeInfoElement = document.getElementById("userBadgeInfo");
+    const badgeListElement = document.getElementById("badgesList");
+
     if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = `
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Level</h4>
-            <div>${badge.level}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Tier</h4>
-            <div>${badge.tier}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Total XP</h4>
-            <div>${badge.totalXP}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Last Update</h4>
-            <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
-          </div>
-        </div>
-      `;
+      badgeInfoElement.innerHTML = `<div class="loading-state">Loading badge summary...</div>`;
     }
-    
+
+    if (badgeListElement) {
+      badgeListElement.innerHTML = `<div class="loading-state">Loading badges...</div>`;
+    }
+
+    const [badge, catalog] = await Promise.all([
+      getUserBadge(userAddress),
+      getBadgeCatalog().catch(() => [])
+    ]);
+
+    renderBadgeSummary(badge);
+    const progress = buildBadgeProgressMap(badge);
+    renderBadgeCards(catalog, { progress });
+
   } catch (err) {
     console.error("❌ Badge Error:", err);
-    const badgeInfoElement = document.getElementById("userBadgeInfo");
-    if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = "<p>Failed to load badge info</p>";
-    }
+    renderBadgeSummary(null, { error: "Failed to load badge info" });
+    renderBadgeCards([], { error: "Failed to load badges" });
   }
 }
 
@@ -1186,6 +1692,49 @@ function dedupeUserLinks(links) {
   });
 
   return Array.from(map.values());
+}
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return value
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
+function normalizeUrl(url) {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function truncateText(text, maxLength = 42) {
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function buildBlockExplorerLink(address) {
+  if (!address || !CURRENT_NETWORK?.blockExplorer) return null;
+  return `${CURRENT_NETWORK.blockExplorer}/address/${address}`;
+}
+
+function buildTransactionLink(txHash) {
+  if (!txHash || !CURRENT_NETWORK?.blockExplorer) return null;
+  return `${CURRENT_NETWORK.blockExplorer}/tx/${txHash}`;
+}
+
+function formatNumber(value) {
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : '0';
 }
 
 function generateAutoContractName() {

@@ -445,6 +445,78 @@ export async function getUserSharedLinks(userAddress) {
   }
 }
 
+// ✅ Yeni: Kullanıcının deploy ettiği contract'ları detaylı olarak getir
+export async function getUserDeployedContracts(userAddress) {
+  try {
+    const deployModule = getModule("DEPLOY");
+    const targetAddress = userAddress || (await signer.getAddress());
+    const rawContracts = await deployModule.getUserDeployedContracts(targetAddress);
+
+    const contracts = Array.isArray(rawContracts)
+      ? rawContracts.map(address => address.toString())
+      : [];
+
+    const activeProvider = provider || getReadOnlyProvider();
+    const metadataMap = new Map();
+
+    try {
+      const filter = deployModule.filters.ContractDeployed(targetAddress);
+      const currentBlock = await activeProvider.getBlockNumber();
+      const lookbackWindow = 50000;
+      const fromBlock = Math.max(0, currentBlock - lookbackWindow);
+      const events = await deployModule.queryFilter(filter, fromBlock, currentBlock);
+
+      const timestamps = await Promise.all(
+        events.map(async event => {
+          try {
+            const block = await activeProvider.getBlock(event.blockNumber);
+            return (block?.timestamp || 0) * 1000;
+          } catch (timestampError) {
+            console.warn("⚠️ Block timestamp unavailable", timestampError);
+            return null;
+          }
+        })
+      );
+
+      events.forEach((event, index) => {
+        const contractAddress = event.args.contractAddress?.toString()?.toLowerCase();
+        if (!contractAddress) return;
+
+        metadataMap.set(contractAddress, {
+          name: event.args.contractName || null,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash,
+          timestamp: timestamps[index]
+        });
+      });
+    } catch (eventError) {
+      console.warn("⚠️ Unable to hydrate deployment metadata from events", eventError);
+    }
+
+    const normalized = contracts.map((address, index) => {
+      const lookup = metadataMap.get(address.toLowerCase()) || {};
+      const fallbackName = `Contract #${index + 1}`;
+
+      return {
+        address,
+        name: lookup.name || fallbackName,
+        timestamp: lookup.timestamp || null,
+        transactionHash: lookup.transactionHash || null,
+        blockNumber: lookup.blockNumber || null
+      };
+    });
+
+    return {
+      success: true,
+      contracts: normalized,
+      count: contracts.length.toString()
+    };
+  } catch (error) {
+    console.error("❌ Get user deployed contracts failed:", error);
+    return { success: false, contracts: [], count: "0" };
+  }
+}
+
 // ========================= GOVERNANCE MODULE ========================= //
 
 export async function createProposal(title, description, link) {
@@ -681,6 +753,7 @@ export default {
   getAllSharedLinks,
   getLinksFromEvents,
   getUserSharedLinks,
+  getUserDeployedContracts,
   createProposal,
   vote,
   getGovernanceStats,
