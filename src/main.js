@@ -25,7 +25,9 @@ import {
   withdrawDonations,
   registerUserProfile,
   saveUsername,
-  getUsername
+  getUsername,
+  getUserLinkHistory,
+  getUserContractHistory
 } from "./services/contractService.js";
 
 import {
@@ -62,6 +64,7 @@ let lastAutoContractName = "";
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
 const OWNER_ONLY_ELEMENT_IDS = ["donationOwnerPanel", "governanceOwnerPanel"];
+const HISTORY_DISPLAY_LIMIT = 5;
 
 // ========================= APP INIT ========================= //
 
@@ -572,13 +575,13 @@ async function disconnectWallet() {
 
 function resetUserStats() {
   const statsToReset = [
-    "userGmCounter", "userDeployCounter", "userDonateCounter", 
+    "userGmCounter", "userDeployCounter", "userDonateCounter",
     "userLinkCounter", "userVoteCounter", "userTotalDonated",
     "profileAddress", "profileLevel", "profileTier", "profileXP",
     "profileGMCount", "profileDeployCount", "profileDonateCount",
     "profileLinkCount", "profileVoteCount"
   ];
-  
+
   statsToReset.forEach(id => {
     const element = document.getElementById(id);
     if (element) {
@@ -591,10 +594,15 @@ function resetUserStats() {
       }
     }
   });
-  
+
+  updateElementText("profileUsername", "-");
+
   // Badge bilgilerini temizle
   const badgeInfo = document.getElementById("userBadgeInfo");
   if (badgeInfo) badgeInfo.innerHTML = "";
+
+  renderUserLinkHistory({ success: true, entries: [] });
+  renderUserContractHistory({ success: true, entries: [] });
 }
 
 // ========================= PROFİL OLUŞTURMA SİSTEMİ ========================= //
@@ -610,6 +618,10 @@ function hideProfileCreationModal() {
   const modal = document.getElementById('profileCreationModal');
   if (modal) {
     modal.style.display = 'none';
+  }
+
+  if (userAddress) {
+    refreshUserHistoryData();
   }
 }
 
@@ -679,12 +691,15 @@ async function loadDashboard() {
       linkStats,
       govStats,
       badgeStats,
-      profile
+      profile,
+      username,
+      userLinkHistory,
+      userContractHistory
     ] = await Promise.all([
       getGMStats().catch(err => ({ total: "0", userCount: "0" })),
       getDeployStats().catch(err => ({ total: "0", userDeploys: "0" })),
-      getDonateStats().catch(err => ({ 
-        totalDonatedValue: "0", 
+      getDonateStats().catch(err => ({
+        totalDonatedValue: "0",
         totalDonatorsCount: "0",
         userDonationCount: "0",
         userTotalDonated: "0"
@@ -693,10 +708,13 @@ async function loadDashboard() {
       getGovernanceStats().catch(err => ({ totalVotes: "0", userVotes: "0" })),
       getBadgeStats().catch(err => "0"),
       loadUserProfile(userAddress).catch(err => ({
-        gmCount: "0", deployCount: "0", donateCount: "0", 
-        linkCount: "0", voteCount: "0", totalXP: "0", 
+        gmCount: "0", deployCount: "0", donateCount: "0",
+        linkCount: "0", voteCount: "0", totalXP: "0",
         level: "1", tier: "1", totalDonated: "0", exists: false
-      }))
+      })),
+      getUsername().catch(() => null),
+      getUserLinkHistory(userAddress).catch(() => ({ success: false, entries: [], count: "0" })),
+      getUserContractHistory(userAddress).catch(() => ({ success: false, entries: [], count: "0" }))
     ]);
 
     // Global Stats
@@ -746,8 +764,11 @@ async function loadDashboard() {
     updateElementText("profileDonateCount", profile.donateCount);
     updateElementText("profileLinkCount", profile.linkCount);
     updateElementText("profileVoteCount", profile.voteCount);
+    updateElementText("profileUsername", username || "-");
 
     lastProfileSnapshot = profile;
+
+    syncUserHistorySections(userLinkHistory, userContractHistory);
 
     console.log("📊 Dashboard loaded successfully");
 
@@ -756,6 +777,157 @@ async function loadDashboard() {
   } finally {
     toggleLoading(false);
   }
+}
+
+function syncUserHistorySections(
+  linkHistoryData = { success: true, entries: [], count: "0" },
+  contractHistoryData = { success: true, entries: [], count: "0" }
+) {
+  renderUserLinkHistory(linkHistoryData);
+  renderUserContractHistory(contractHistoryData);
+
+  if (
+    linkHistoryData &&
+    linkHistoryData.success !== false &&
+    linkHistoryData.count !== undefined
+  ) {
+    updateElementText("profileLinkCount", linkHistoryData.count);
+    updateElementText("userLinkCounter", linkHistoryData.count);
+  }
+
+  if (
+    contractHistoryData &&
+    contractHistoryData.success !== false &&
+    contractHistoryData.count !== undefined
+  ) {
+    updateElementText("profileDeployCount", contractHistoryData.count);
+    updateElementText("userDeployCounter", contractHistoryData.count);
+  }
+}
+
+async function refreshUserHistoryData() {
+  if (!userAddress) return;
+
+  try {
+    const [linkHistoryData, contractHistoryData] = await Promise.all([
+      getUserLinkHistory(userAddress).catch(() => ({ success: false, entries: [], count: "0" })),
+      getUserContractHistory(userAddress).catch(() => ({ success: false, entries: [], count: "0" }))
+    ]);
+
+    syncUserHistorySections(linkHistoryData, contractHistoryData);
+  } catch (error) {
+    console.error("❌ Refresh user history failed:", error);
+  }
+}
+
+function renderUserLinkHistory(historyData) {
+  const container = document.getElementById("userLinksList");
+  if (!container) return;
+
+  if (!historyData || historyData.success === false) {
+    container.innerHTML = "<p class=\"empty-state\">Unable to load on-chain links.</p>";
+    return;
+  }
+
+  const entries = Array.isArray(historyData.entries) ? historyData.entries : [];
+
+  if (entries.length === 0) {
+    container.innerHTML = "<p class=\"empty-state\">No on-chain links yet.</p>";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const list = document.createElement("ul");
+  list.className = "history-list";
+
+  let renderedCount = 0;
+
+  entries.slice(0, HISTORY_DISPLAY_LIMIT).forEach(entry => {
+    if (!entry || typeof entry.link !== "string") return;
+
+    const item = document.createElement("li");
+    item.className = "history-item";
+
+    const linkElement = document.createElement("a");
+    linkElement.href = entry.link;
+    linkElement.target = "_blank";
+    linkElement.rel = "noopener noreferrer";
+    linkElement.textContent = truncateText(entry.link, 60);
+
+    const meta = document.createElement("span");
+    meta.className = "history-meta";
+    const timeline = formatHistoryMeta(entry.timestamp, entry.blockNumber);
+    meta.textContent = timeline || "—";
+
+    item.appendChild(linkElement);
+    item.appendChild(meta);
+    list.appendChild(item);
+    renderedCount += 1;
+  });
+
+  if (renderedCount === 0) {
+    container.innerHTML = "<p class=\"empty-state\">No on-chain links yet.</p>";
+    return;
+  }
+
+  container.appendChild(list);
+}
+
+function renderUserContractHistory(historyData) {
+  const container = document.getElementById("userContractsList");
+  if (!container) return;
+
+  if (!historyData || historyData.success === false) {
+    container.innerHTML = "<p class=\"empty-state\">Unable to load deployed contracts.</p>";
+    return;
+  }
+
+  const entries = Array.isArray(historyData.entries) ? historyData.entries : [];
+
+  if (entries.length === 0) {
+    container.innerHTML = "<p class=\"empty-state\">No contracts deployed yet.</p>";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const list = document.createElement("ul");
+  list.className = "history-list";
+
+  let renderedCount = 0;
+
+  entries.slice(0, HISTORY_DISPLAY_LIMIT).forEach(entry => {
+    if (!entry) return;
+
+    const item = document.createElement("li");
+    item.className = "history-item";
+
+    const title = document.createElement("div");
+    title.className = "history-title";
+    title.textContent = entry.contractName || "Unnamed Contract";
+
+    const meta = document.createElement("div");
+    meta.className = "history-meta";
+    const metaParts = [];
+    if (entry.contractAddress) metaParts.push(shortenAddress(entry.contractAddress));
+    const timeline = formatHistoryMeta(entry.timestamp, entry.blockNumber);
+    if (timeline) metaParts.push(timeline);
+    if (entry.transactionHash) metaParts.push(shortenHash(entry.transactionHash));
+    meta.textContent = metaParts.join(" • ") || "—";
+
+    item.appendChild(title);
+    item.appendChild(meta);
+    list.appendChild(item);
+    renderedCount += 1;
+  });
+
+  if (renderedCount === 0) {
+    container.innerHTML = "<p class=\"empty-state\">No contracts deployed yet.</p>";
+    return;
+  }
+
+  container.appendChild(list);
 }
 
 // ========================= MODÜL FONKSİYONLARI ========================= //
@@ -1135,6 +1307,18 @@ function shortenAddress(addr) {
   return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
 }
 
+function shortenHash(hash) {
+  if (!hash || typeof hash !== "string") return "";
+  return hash.length > 16 ? `${hash.slice(0, 10)}...${hash.slice(-6)}` : hash;
+}
+
+function truncateText(value, maxLength = 60) {
+  if (typeof value !== "string") return "";
+  if (!Number.isFinite(maxLength) || maxLength <= 0) return value;
+  const safeLength = Math.max(0, Math.floor(maxLength) - 3);
+  return value.length > maxLength ? `${value.slice(0, safeLength)}...` : value;
+}
+
 function formatTimeAgo(timestamp) {
   if (!timestamp) return "just now";
 
@@ -1163,6 +1347,18 @@ function formatTimeAgo(timestamp) {
 
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears}y ago`;
+}
+
+function formatHistoryMeta(timestamp, blockNumber) {
+  const parts = [];
+  if (timestamp) parts.push(formatTimeAgo(timestamp));
+
+  const blockValue = typeof blockNumber === "string"
+    ? parseInt(blockNumber, 10)
+    : blockNumber;
+
+  if (Number.isFinite(blockValue)) parts.push(`#${blockValue}`);
+  return parts.join(" • ");
 }
 
 function dedupeUserLinks(links) {

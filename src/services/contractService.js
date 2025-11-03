@@ -412,7 +412,7 @@ export async function getLinksFromEvents(options = {}) {
 export async function getUserSharedLinks(userAddress) {
   try {
     const linkModule = getModule("LINK");
-    
+
     // Kullanıcının link sayısını al
     const userLinkCount = await linkModule.getUserLinkCount(userAddress);
     console.log(`📥 User ${userAddress} has ${userLinkCount} links`);
@@ -442,6 +442,115 @@ export async function getUserSharedLinks(userAddress) {
   } catch (error) {
     console.error("❌ Get user shared links failed:", error);
     return { success: false, links: [], count: "0" };
+  }
+}
+
+export async function getUserLinkHistory(userAddressOverride) {
+  try {
+    const activeProvider = provider || getReadOnlyProvider();
+    const linkModule = signer
+      ? getModule("LINK")
+      : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
+
+    const targetAddress = userAddressOverride || (signer ? await signer.getAddress() : null);
+    if (!targetAddress) throw new Error("User address is required for link history");
+
+    const filter = linkModule.filters.LinkShared(targetAddress);
+    const currentBlock = await activeProvider.getBlockNumber();
+    const fromBlock = Math.max(0, currentBlock - 25000);
+
+    const events = await linkModule.queryFilter(filter, fromBlock, currentBlock);
+
+    const timestamps = await Promise.all(events.map(async (event) => {
+      try {
+        const block = await activeProvider.getBlock(event.blockNumber);
+        return (block?.timestamp || 0) * 1000;
+      } catch {
+        return 0;
+      }
+    }));
+
+    const mapped = events.map((event, index) => ({
+      user: event.args.user,
+      link: event.args.link,
+      transactionHash: event.transactionHash,
+      blockNumber: event.blockNumber,
+      timestamp: timestamps[index]
+    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const seen = new Set();
+    const entries = [];
+
+    mapped.forEach(entry => {
+      const key = `${(entry.link || "").toLowerCase()}::${entry.transactionHash}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      entries.push(entry);
+    });
+
+    return {
+      success: true,
+      entries,
+      count: entries.length.toString()
+    };
+  } catch (error) {
+    console.error("❌ Get user link history failed:", error);
+    return { success: false, entries: [], count: "0" };
+  }
+}
+
+export async function getUserContractHistory(userAddressOverride) {
+  try {
+    const activeProvider = provider || getReadOnlyProvider();
+    const deployModule = signer
+      ? getModule("DEPLOY")
+      : new ethers.Contract(MODULES.DEPLOY.address, MODULES.DEPLOY.abi, activeProvider);
+
+    const targetAddress = userAddressOverride || (signer ? await signer.getAddress() : null);
+    if (!targetAddress) throw new Error("User address is required for contract history");
+
+    const filter = deployModule.filters.ContractDeployed(targetAddress);
+    const currentBlock = await activeProvider.getBlockNumber();
+    const fromBlock = Math.max(0, currentBlock - 25000);
+
+    const events = await deployModule.queryFilter(filter, fromBlock, currentBlock);
+
+    const timestamps = await Promise.all(events.map(async (event) => {
+      try {
+        const block = await activeProvider.getBlock(event.blockNumber);
+        return (block?.timestamp || 0) * 1000;
+      } catch {
+        return 0;
+      }
+    }));
+
+    const mapped = events.map((event, index) => ({
+      user: event.args.user,
+      contractAddress: event.args.contractAddress,
+      contractName: event.args.contractName,
+      transactionHash: event.transactionHash,
+      blockNumber: event.blockNumber,
+      timestamp: timestamps[index]
+    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const seen = new Set();
+    const entries = [];
+
+    mapped.forEach(entry => {
+      const key = `${(entry.contractAddress || "").toLowerCase()}::${entry.transactionHash}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      entries.push(entry);
+    });
+
+    return {
+      success: true,
+      entries,
+      count: entries.length.toString()
+    };
+  } catch (error) {
+    console.error("❌ Get user contract history failed:", error);
+    return { success: false, entries: [], count: "0" };
   }
 }
 
