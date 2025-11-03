@@ -500,6 +500,79 @@ header {
   background-color: #F0FFF7;
 }
 
+/* ✅ Yeni: Kullanıcı aktivite listeleri */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.activity-item {
+  border: 1px solid var(--medium-gray);
+  border-radius: var(--border-radius-sm);
+  background: var(--white);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activity-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.activity-item-title {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 1rem;
+}
+
+.activity-subtitle {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  margin-top: 0.2rem;
+}
+
+.activity-item-meta {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.activity-item-meta a {
+  color: var(--celo-blue);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.activity-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activity-placeholder {
+  border: 1px dashed var(--medium-gray);
+  border-radius: var(--border-radius-sm);
+  padding: 0.75rem 1rem;
+  background: var(--light-bg);
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.activity-placeholder.error {
+  border-color: var(--celo-red);
+  color: var(--celo-red);
+}
+
 .link-platform {
   font-size: 0.875rem;
   color: var(--dark-gray);
@@ -1056,6 +1129,15 @@ html {
   
   .auto-link-form {
     padding: 1.5rem;
+  }
+
+  .activity-item {
+    padding: 0.85rem;
+  }
+
+  .activity-item-actions a {
+    flex: 1 1 100%;
+    text-align: center;
   }
 }
 

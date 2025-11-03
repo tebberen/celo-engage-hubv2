@@ -22,6 +22,75 @@ let readOnlyProvider;
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
 
+function getActiveProviderInstance() {
+  return provider || getReadOnlyProvider();
+}
+
+async function resolveEventTimestamps(events, activeProvider) {
+  return Promise.all(events.map(async (event) => {
+    try {
+      const block = await activeProvider.getBlock(event.blockNumber);
+      const blockTimestamp = block?.timestamp
+        ? block.timestamp * 1000
+        : Math.floor(Date.now());
+      return blockTimestamp;
+    } catch {
+      return Date.now();
+    }
+  }));
+}
+
+function dedupeByKey(items, keyFn) {
+  const seen = new Set();
+  const output = [];
+
+  for (const item of items) {
+    const key = keyFn(item);
+    if (key) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    output.push(item);
+  }
+
+  return output;
+}
+
+async function normalizeLinkEvents(events, activeProvider) {
+  const timestamps = await resolveEventTimestamps(events, activeProvider);
+
+  const mapped = events.map((event, index) => ({
+    user: event.args?.user,
+    link: event.args?.link,
+    transactionHash: event.transactionHash,
+    blockNumber: event.blockNumber,
+    logIndex: event.logIndex,
+    timestamp: timestamps[index]
+  })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  return dedupeByKey(mapped, (item) => {
+    if (!item.link) return null;
+    const userKey = (item.user || "").toLowerCase();
+    return `${userKey}::${item.link}`;
+  });
+}
+
+async function normalizeDeployEvents(events, activeProvider) {
+  const timestamps = await resolveEventTimestamps(events, activeProvider);
+
+  const mapped = events.map((event, index) => ({
+    user: event.args?.user,
+    contractAddress: event.args?.contractAddress,
+    contractName: event.args?.contractName,
+    transactionHash: event.transactionHash,
+    blockNumber: event.blockNumber,
+    logIndex: event.logIndex,
+    timestamp: timestamps[index]
+  })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  return dedupeByKey(mapped, (item) => (item.contractAddress || "").toLowerCase());
+}
+
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
   if (typeof window.ethereum === "undefined") {
@@ -353,7 +422,7 @@ export async function getAllSharedLinks() {
 export async function getLinksFromEvents(options = {}) {
   try {
     const { maxLinks = 24, fromBlock: explicitFromBlock } = options;
-    const activeProvider = provider || getReadOnlyProvider();
+    const activeProvider = getActiveProviderInstance();
     const linkModule = signer
       ? getModule("LINK")
       : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
@@ -370,35 +439,11 @@ export async function getLinksFromEvents(options = {}) {
 
     console.log(`📥 Found ${events.length} link events from block ${fromBlock} to ${currentBlock}`);
 
-    const timestamps = await Promise.all(events.map(async (event) => {
-      try {
-        const block = await activeProvider.getBlock(event.blockNumber);
-        return (block?.timestamp || Math.floor(Date.now() / 1000)) * 1000;
-      } catch {
-        return Date.now();
-      }
-    }));
-
-    const links = events.map((event, index) => ({
-      user: event.args.user,
-      link: event.args.link,
-      transactionHash: event.transactionHash,
-      blockNumber: event.blockNumber,
-      timestamp: timestamps[index]
-    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-    const unique = [];
-    const seen = new Set();
-    for (const item of links) {
-      const key = `${(item.user || "").toLowerCase()}::${item.link}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      unique.push(item);
-    }
+    const normalized = await normalizeLinkEvents(events, activeProvider);
 
     return {
       success: true,
-      links: unique.slice(0, maxLinks),
+      links: normalized.slice(0, maxLinks),
       total: events.length.toString()
     };
 
@@ -409,39 +454,93 @@ export async function getLinksFromEvents(options = {}) {
 }
 
 // ✅ YENİ: Belirli bir kullanıcının linklerini getir
-export async function getUserSharedLinks(userAddress) {
+export async function getUserSharedLinks(userAddress, options = {}) {
   try {
-    const linkModule = getModule("LINK");
-    
-    // Kullanıcının link sayısını al
-    const userLinkCount = await linkModule.getUserLinkCount(userAddress);
-    console.log(`📥 User ${userAddress} has ${userLinkCount} links`);
-    
-    // Kullanıcının linklerini al (bu fonksiyon kontratta yoksa events kullan)
-    let userLinks = [];
-    
-    try {
-      // Eğer kontratta getUserSharedLinks fonksiyonu varsa kullan
-      userLinks = await linkModule.getUserSharedLinks(userAddress);
-    } catch {
-      // Yoksa events'tan filtrele
-      const filter = linkModule.filters.LinkShared(userAddress);
-      const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 10000);
-      
-      const events = await linkModule.queryFilter(filter, fromBlock, 'latest');
-      userLinks = events.map(event => event.args.link);
+    const { maxLinks = 24, fromBlock: explicitFromBlock, lookbackBlocks = 25000 } = options;
+    const targetAddress = userAddress
+      || (signer ? await signer.getAddress() : null);
+
+    if (!targetAddress) {
+      throw new Error("User address is required to load shared links");
     }
-    
+
+    const activeProvider = getActiveProviderInstance();
+    const linkModule = signer
+      ? getModule("LINK")
+      : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
+
+    const filter = linkModule.filters.LinkShared(targetAddress);
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - lookbackBlocks);
+
+    const events = await linkModule.queryFilter(filter, fromBlock, currentBlock);
+    const normalized = await normalizeLinkEvents(events, activeProvider);
+
+    let userLinkCount = normalized.length.toString();
+    try {
+      const countOnChain = await linkModule.getUserLinkCount(targetAddress);
+      userLinkCount = countOnChain.toString();
+    } catch (countError) {
+      console.warn("⚠️ Falling back to event count for user link total", countError);
+    }
+
     return {
       success: true,
-      links: userLinks,
-      count: userLinkCount.toString()
+      links: normalized.slice(0, maxLinks),
+      count: userLinkCount
     };
-    
+
   } catch (error) {
     console.error("❌ Get user shared links failed:", error);
     return { success: false, links: [], count: "0" };
+  }
+}
+
+export async function getUserDeployedContractsHistory(userAddress, options = {}) {
+  try {
+    const { maxItems = 24, fromBlock: explicitFromBlock, lookbackBlocks = 25000 } = options;
+    const targetAddress = userAddress
+      || (signer ? await signer.getAddress() : null);
+
+    if (!targetAddress) {
+      throw new Error("User address is required to load deployed contracts");
+    }
+
+    const activeProvider = getActiveProviderInstance();
+    const deployModule = signer
+      ? getModule("DEPLOY")
+      : new ethers.Contract(MODULES.DEPLOY.address, MODULES.DEPLOY.abi, activeProvider);
+
+    const filter = deployModule.filters.ContractDeployed(targetAddress);
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - lookbackBlocks);
+
+    const events = await deployModule.queryFilter(filter, fromBlock, currentBlock);
+    const normalized = await normalizeDeployEvents(events, activeProvider);
+
+    let userDeployCount = normalized.length.toString();
+    try {
+      const countOnChain = await deployModule.getUserDeployCount(targetAddress);
+      userDeployCount = countOnChain.toString();
+    } catch (countError) {
+      console.warn("⚠️ Falling back to event count for user deploy total", countError);
+    }
+
+    return {
+      success: true,
+      contracts: normalized.slice(0, maxItems),
+      count: userDeployCount
+    };
+
+  } catch (error) {
+    console.error("❌ Get user deployed contracts failed:", error);
+    return { success: false, contracts: [], count: "0" };
   }
 }
 
@@ -681,6 +780,7 @@ export default {
   getAllSharedLinks,
   getLinksFromEvents,
   getUserSharedLinks,
+  getUserDeployedContractsHistory,
   createProposal,
   vote,
   getGovernanceStats,

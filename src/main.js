@@ -16,6 +16,7 @@ import {
   getAllSharedLinks,
   getLinksFromEvents,
   getUserSharedLinks,
+  getUserDeployedContractsHistory,
   createProposal,
   vote,
   getGovernanceStats,
@@ -749,12 +750,177 @@ async function loadDashboard() {
 
     lastProfileSnapshot = profile;
 
+    await Promise.all([
+      renderUserLinksList(),
+      renderUserContractsList()
+    ]);
+
     console.log("📊 Dashboard loaded successfully");
 
   } catch (err) {
     console.error("⚠️ Dashboard Error:", err);
   } finally {
     toggleLoading(false);
+  }
+}
+
+async function renderUserLinksList() {
+  const container = document.getElementById("userLinksList");
+  if (!container) return;
+
+  if (!userAddress) {
+    container.innerHTML = `
+      <div class="activity-placeholder">
+        Connect your wallet to view your shared links.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="activity-placeholder">
+      Loading your shared links...
+    </div>
+  `;
+
+  try {
+    const result = await getUserSharedLinks(userAddress, { maxLinks: 25 });
+
+    if (!result.success || !Array.isArray(result.links) || result.links.length === 0) {
+      container.innerHTML = `
+        <div class="activity-placeholder">
+          You haven't shared any links yet. Share your first resource with the community!
+        </div>
+      `;
+      return;
+    }
+
+    const explorerBase = CURRENT_NETWORK?.blockExplorer || "";
+
+    const itemsHtml = result.links.map((item) => {
+      const safeUrl = toSafeExternalUrl(item.link);
+      const displayUrl = escapeHtml(truncateMiddle(String(item.link || ""), 60));
+      const formattedDate = formatTimestampToLocale(item.timestamp);
+      const timeAgo = formatTimeAgo(item.timestamp);
+      const shortenedTx = item.transactionHash ? shortenAddress(item.transactionHash) : "-";
+      const txUrl = item.transactionHash && explorerBase
+        ? `${explorerBase}/tx/${item.transactionHash}`
+        : "#";
+
+      return `
+        <div class="activity-item">
+          <div class="activity-item-header">
+            <div>
+              <div class="activity-item-title">🔗 ${displayUrl}</div>
+              <div class="activity-subtitle">Shared ${escapeHtml(timeAgo)} (${escapeHtml(formattedDate)})</div>
+            </div>
+            <div class="activity-item-meta">
+              <span>Tx: ${txUrl !== '#' ? `<a href="${txUrl}" target="_blank" rel="noopener noreferrer">${shortenedTx}</a>` : shortenedTx}</span>
+            </div>
+          </div>
+          <div class="activity-item-actions">
+            <a class="action-button" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Visit Link</a>
+            ${txUrl !== '#' ? `<a class="ghost-button" href="${txUrl}" target="_blank" rel="noopener noreferrer">View Tx</a>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="activity-list">
+        ${itemsHtml}
+      </div>
+    `;
+
+  } catch (error) {
+    console.error("❌ renderUserLinksList error:", error);
+    container.innerHTML = `
+      <div class="activity-placeholder error">
+        Unable to load your shared links right now. Please try again later.
+      </div>
+    `;
+  }
+}
+
+async function renderUserContractsList() {
+  const container = document.getElementById("userContractsList");
+  if (!container) return;
+
+  if (!userAddress) {
+    container.innerHTML = `
+      <div class="activity-placeholder">
+        Connect your wallet to view deployed contracts.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="activity-placeholder">
+      Loading your deployed contracts...
+    </div>
+  `;
+
+  try {
+    const result = await getUserDeployedContractsHistory(userAddress, { maxItems: 25 });
+
+    if (!result.success || !Array.isArray(result.contracts) || result.contracts.length === 0) {
+      container.innerHTML = `
+        <div class="activity-placeholder">
+          No contracts deployed yet. Launch your first smart contract to see it here!
+        </div>
+      `;
+      return;
+    }
+
+    const explorerBase = CURRENT_NETWORK?.blockExplorer || "";
+
+    const itemsHtml = result.contracts.map((item) => {
+      const formattedDate = formatTimestampToLocale(item.timestamp);
+      const timeAgo = formatTimeAgo(item.timestamp);
+      const txUrl = item.transactionHash && explorerBase
+        ? `${explorerBase}/tx/${item.transactionHash}`
+        : "#";
+      const contractUrl = item.contractAddress && explorerBase
+        ? `${explorerBase}/address/${item.contractAddress}`
+        : "#";
+      const shortenedTx = item.transactionHash ? shortenAddress(item.transactionHash) : "-";
+      const shortenedAddress = item.contractAddress ? shortenAddress(item.contractAddress) : "-";
+      const contractName = escapeHtml(String(item.contractName || "Unnamed Contract"));
+
+      return `
+        <div class="activity-item">
+          <div class="activity-item-header">
+            <div>
+              <div class="activity-item-title">🛠️ ${contractName}</div>
+              <div class="activity-subtitle">${shortenedAddress}</div>
+              <div class="activity-subtitle">Deployed ${escapeHtml(timeAgo)} (${escapeHtml(formattedDate)})</div>
+            </div>
+            <div class="activity-item-meta">
+              <span>Tx: ${txUrl !== '#' ? `<a href="${txUrl}" target="_blank" rel="noopener noreferrer">${shortenedTx}</a>` : shortenedTx}</span>
+            </div>
+          </div>
+          <div class="activity-item-actions">
+            ${contractUrl !== '#' ? `<a class="action-button" href="${contractUrl}" target="_blank" rel="noopener noreferrer">View Contract</a>` : ""}
+            ${txUrl !== '#' ? `<a class="ghost-button" href="${txUrl}" target="_blank" rel="noopener noreferrer">View Tx</a>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="activity-list">
+        ${itemsHtml}
+      </div>
+    `;
+
+  } catch (error) {
+    console.error("❌ renderUserContractsList error:", error);
+    container.innerHTML = `
+      <div class="activity-placeholder error">
+        Unable to load your deployed contracts right now. Please try again later.
+      </div>
+    `;
   }
 }
 
@@ -1163,6 +1329,57 @@ function formatTimeAgo(timestamp) {
 
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears}y ago`;
+}
+
+function formatTimestampToLocale(timestamp) {
+  if (!timestamp) return "-";
+
+  const raw = typeof timestamp === "string" ? parseInt(timestamp, 10) : Number(timestamp);
+  if (!Number.isFinite(raw)) return "-";
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString();
+}
+
+function truncateMiddle(value, maxLength = 60) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+
+  const segmentLength = Math.max(1, Math.floor((maxLength - 3) / 2));
+  return `${trimmed.slice(0, segmentLength)}...${trimmed.slice(-segmentLength)}`;
+}
+
+function escapeHtml(value) {
+  if (typeof value !== "string") return value;
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function toSafeExternalUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return "#";
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "#";
+
+  try {
+    const base = trimmed.startsWith("http://") || trimmed.startsWith("https://")
+      ? undefined
+      : "https://";
+    const parsed = new URL(trimmed, base);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+  } catch (error) {
+    console.warn("⚠️ Invalid URL provided, falling back to placeholder", error);
+  }
+
+  return "#";
 }
 
 function dedupeUserLinks(links) {
