@@ -487,7 +487,7 @@ export async function getGovernanceStats() {
   try {
     const gov = getModule("GOVERNANCE");
     const userAddress = await signer.getAddress();
-    
+
     const [totalProposals, totalVotes] = await gov.getGovernanceStats();
     const userVotes = await gov.getUserVoteCount(userAddress);
     
@@ -499,6 +499,75 @@ export async function getGovernanceStats() {
   } catch (error) {
     console.error("❌ Get governance stats failed:", error);
     return { totalProposals: "0", totalVotes: "0", userVotes: "0" };
+  }
+}
+
+export async function getActiveProposals() {
+  try {
+    const gov = getModule("GOVERNANCE");
+    const userAddress = await signer.getAddress();
+
+    const proposalCountRaw = await gov.proposalCount();
+    const totalProposals = parseInt(proposalCountRaw.toString(), 10);
+
+    if (!Number.isFinite(totalProposals) || totalProposals === 0) {
+      return [];
+    }
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const proposalIds = Array.from({ length: totalProposals }, (_, index) => index + 1);
+
+    const proposals = await Promise.all(
+      proposalIds.map(async (proposalId) => {
+        try {
+          const proposal = await gov.proposals(proposalId);
+          if (!proposal || !proposal.id) {
+            return null;
+          }
+
+          const id = proposal.id.toString();
+          const endTime = proposal.endTime?.toString?.() || "0";
+          const startTime = proposal.startTime?.toString?.() || "0";
+          const executed = Boolean(proposal.executed);
+          const endTimeNumber = parseInt(endTime, 10);
+          const isActive = !executed && Number.isFinite(endTimeNumber) && nowSeconds < endTimeNumber;
+
+          if (!isActive) {
+            return null;
+          }
+
+          const [results, userHasVoted] = await Promise.all([
+            gov.getProposalResults(proposalId).catch(() => null),
+            gov.hasUserVoted(proposalId, userAddress).catch(() => false)
+          ]);
+
+          const forVotes = results?.forVotes?.toString?.() || proposal.forVotes?.toString?.() || "0";
+          const againstVotes = results?.againstVotes?.toString?.() || proposal.againstVotes?.toString?.() || "0";
+
+          return {
+            id,
+            title: proposal.title,
+            description: proposal.description,
+            link: proposal.link,
+            startTime,
+            endTime,
+            forVotes,
+            againstVotes,
+            approved: Boolean(results?.approved),
+            executed,
+            userHasVoted: Boolean(userHasVoted)
+          };
+        } catch (innerError) {
+          console.error(`❌ Failed to load proposal ${proposalId}:`, innerError);
+          return null;
+        }
+      })
+    );
+
+    return proposals.filter((item) => Boolean(item));
+  } catch (error) {
+    console.error("❌ Get active proposals failed:", error);
+    return [];
   }
 }
 
@@ -684,6 +753,7 @@ export default {
   createProposal,
   vote,
   getGovernanceStats,
+  getActiveProposals,
   getUserBadge,
   getBadgeStats,
   withdrawDonations

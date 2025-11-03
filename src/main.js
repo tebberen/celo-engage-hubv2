@@ -19,6 +19,7 @@ import {
   createProposal,
   vote,
   getGovernanceStats,
+  getActiveProposals,
   getUserBadge,
   getBadgeStats,
   loadUserProfile,
@@ -520,15 +521,16 @@ async function initializeApp() {
 
     // Profil kontrolü
     const userProfile = await loadUserProfile(userAddress);
-    
+
     if (!userProfile.exists) {
       console.log("🆕 New user - showing profile creation");
       showProfileCreationModal();
+      await loadProposals();
     } else {
       console.log("✅ Existing user - loading dashboard");
       await loadDashboard();
     }
-    
+
     appInitialized = true;
     toggleLoading(false);
     
@@ -595,6 +597,11 @@ function resetUserStats() {
   // Badge bilgilerini temizle
   const badgeInfo = document.getElementById("userBadgeInfo");
   if (badgeInfo) badgeInfo.innerHTML = "";
+
+  const proposalsContainer = document.getElementById("proposalsList");
+  if (proposalsContainer) {
+    proposalsContainer.innerHTML = "<p>Please connect your wallet to view governance proposals.</p>";
+  }
 }
 
 // ========================= PROFİL OLUŞTURMA SİSTEMİ ========================= //
@@ -668,7 +675,7 @@ async function handleCreateProfile() {
 async function loadDashboard() {
   try {
     if (!userAddress) return;
-    
+
     toggleLoading(true, "Loading your profile...");
 
     // Tüm istatistikleri paralel olarak yükle
@@ -749,12 +756,104 @@ async function loadDashboard() {
 
     lastProfileSnapshot = profile;
 
+    await loadProposals();
+
     console.log("📊 Dashboard loaded successfully");
 
   } catch (err) {
     console.error("⚠️ Dashboard Error:", err);
   } finally {
     toggleLoading(false);
+  }
+}
+
+async function loadProposals() {
+  const proposalsContainer = document.getElementById("proposalsList");
+  if (!proposalsContainer) {
+    return;
+  }
+
+  if (!userAddress) {
+    proposalsContainer.innerHTML = "<p>Please connect your wallet to view governance proposals.</p>";
+    return;
+  }
+
+  proposalsContainer.innerHTML = "<p>Loading active proposals...</p>";
+
+  try {
+    const proposals = await getActiveProposals();
+
+    if (!Array.isArray(proposals) || proposals.length === 0) {
+      proposalsContainer.innerHTML = "<p>No active proposals at the moment. Check back soon!</p>";
+      return;
+    }
+
+    const proposalsMarkup = proposals.map(proposal => {
+      const safeTitle = escapeHtml(proposal.title || "Untitled proposal");
+      const safeDescription = escapeHtml(proposal.description || "")
+        .replace(/\n+/g, "<br>");
+      const safeLink = typeof proposal.link === "string" && /^https?:\/\//i.test(proposal.link)
+        ? proposal.link
+        : null;
+      const hasVoted = Boolean(proposal.userHasVoted);
+      const disableAttr = hasVoted ? "disabled" : "";
+      const disableClass = hasVoted ? " disabled" : "";
+      const forVotes = formatVoteCount(proposal.forVotes);
+      const againstVotes = formatVoteCount(proposal.againstVotes);
+      const timeLeft = formatTimeLeft(proposal.endTime);
+
+      return `
+        <div class="proposal-card" data-proposal-card="${proposal.id}">
+          <div class="proposal-header">
+            <h5>${safeTitle}</h5>
+            <span class="proposal-id">#${proposal.id}</span>
+          </div>
+          <p class="proposal-description">${safeDescription || "No description provided."}</p>
+          ${safeLink ? `<p><a href="${safeLink}" target="_blank" rel="noopener">View details ↗</a></p>` : ""}
+          <div class="proposal-meta">
+            <span class="proposal-time">${timeLeft}</span>
+            <span class="proposal-for">👍 ${forVotes}</span>
+            <span class="proposal-against">👎 ${againstVotes}</span>
+          </div>
+          <div class="proposal-actions">
+            <button
+              class="action-button proposal-vote-btn positive${disableClass}"
+              data-proposal-id="${proposal.id}"
+              data-support="for"
+              ${disableAttr}>Support 👍</button>
+            <button
+              class="action-button proposal-vote-btn negative${disableClass}"
+              data-proposal-id="${proposal.id}"
+              data-support="against"
+              ${disableAttr}>Reject 👎</button>
+          </div>
+          ${hasVoted ? `<p class="proposal-status">You have already voted on this proposal.</p>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    proposalsContainer.innerHTML = proposalsMarkup;
+
+    proposals.forEach(proposal => {
+      if (proposal.userHasVoted) {
+        return;
+      }
+
+      const card = proposalsContainer.querySelector(`[data-proposal-card="${proposal.id}"]`);
+      if (!card) return;
+
+      const buttons = card.querySelectorAll("button[data-proposal-id]");
+      buttons.forEach(button => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const support = button.dataset.support === "for";
+          await handleProposalVote(proposal.id, support);
+        });
+      });
+    });
+  } catch (error) {
+    console.error("❌ Load proposals failed:", error);
+    proposalsContainer.innerHTML = "<p>Failed to load proposals. Please try again later.</p>";
   }
 }
 
@@ -942,7 +1041,7 @@ async function handleShareLink() {
 async function handleCreateProposal() {
   try {
     if (!ensureConnected()) return;
-    
+
     const title = document.getElementById("proposalTitleInput")?.value;
     const description = document.getElementById("proposalDescInput")?.value;
     const link = document.getElementById("proposalLinkInput")?.value || "";
@@ -971,6 +1070,43 @@ async function handleCreateProposal() {
   } catch (err) {
     console.error("❌ Proposal Error:", err);
     handleTransactionError(err, "proposal creation");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+async function handleProposalVote(proposalId, support) {
+  try {
+    if (!ensureConnected()) return;
+
+    toggleLoading(true, "Submitting your vote...");
+
+    const proposalsContainer = document.getElementById("proposalsList");
+    const proposalCard = proposalsContainer?.querySelector(`[data-proposal-card="${proposalId}"]`);
+    const buttons = proposalCard ? Array.from(proposalCard.querySelectorAll("button[data-proposal-id]")) : [];
+
+    buttons.forEach(button => {
+      button.disabled = true;
+      button.classList.add("loading");
+    });
+
+    await vote(proposalId, Boolean(support));
+
+    alert("🗳️ Vote submitted successfully!");
+
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Vote Error:", err);
+    handleTransactionError(err, "voting");
+
+    const proposalsContainer = document.getElementById("proposalsList");
+    const proposalCard = proposalsContainer?.querySelector(`[data-proposal-card="${proposalId}"]`);
+    const buttons = proposalCard ? Array.from(proposalCard.querySelectorAll("button[data-proposal-id]")) : [];
+
+    buttons.forEach(button => {
+      button.disabled = false;
+      button.classList.remove("loading");
+    });
   } finally {
     toggleLoading(false);
   }
@@ -1163,6 +1299,77 @@ function formatTimeAgo(timestamp) {
 
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears}y ago`;
+}
+
+function formatTimeLeft(endTimeSeconds) {
+  const endTime = typeof endTimeSeconds === 'string' ? parseInt(endTimeSeconds, 10) : endTimeSeconds;
+  if (!Number.isFinite(endTime)) {
+    return "Time unknown";
+  }
+
+  const endMs = endTime * 1000;
+  const diffMs = endMs - Date.now();
+
+  if (diffMs <= 0) {
+    return "Voting ended";
+  }
+
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (days > 0) {
+    return `${days}d ${hours}h left`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m left`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s left`;
+  }
+
+  return `${seconds}s left`;
+}
+
+function formatVoteCount(value) {
+  if (value === undefined || value === null) {
+    return "0";
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toString();
+  }
+
+  if (typeof value === 'string') {
+    const parsed = parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed.toString();
+    }
+    return value;
+  }
+
+  if (typeof value === 'object' && typeof value.toString === 'function') {
+    return value.toString();
+  }
+
+  return String(value);
+}
+
+function escapeHtml(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function dedupeUserLinks(links) {
