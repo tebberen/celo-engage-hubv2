@@ -10,7 +10,8 @@ import {
   DEFAULT_GM_MESSAGE,
   CURRENT_TOKENS,
   MIN_DONATION,
-  CURRENT_NETWORK
+  CURRENT_NETWORK,
+  BADGE_TIER_LABELS
 } from "../utils/constants.js";
 import { sendWithReferral } from "./divviReferral.js";
 
@@ -604,7 +605,7 @@ export async function getUserBadge(address) {
   try {
     const badge = getModule("BADGE");
     const data = await badge.getUserBadge(address);
-    
+
     return {
       totalXP: data.totalXP.toString(),
       level: data.level.toString(),
@@ -618,6 +619,87 @@ export async function getUserBadge(address) {
       level: "1",
       tier: "1",
       lastUpdate: "0"
+    };
+  }
+}
+
+export async function getUserBadgeList(address) {
+  try {
+    const badge = getModule("BADGE");
+    const totalBadgesBN = await badge.totalBadges();
+    let totalBadges = Number(totalBadgesBN.toString());
+
+    if (!Number.isFinite(totalBadges) || totalBadges <= 0) {
+      totalBadges = Object.keys(BADGE_TIER_LABELS).length;
+    }
+
+    const badges = [];
+    let nextTierInfo = null;
+
+    if (address) {
+      try {
+        const nextTierRaw = await badge.getNextTierRequirements(address);
+        nextTierInfo = {
+          currentTier: nextTierRaw.currentTier?.toString?.() || "0",
+          nextTier: nextTierRaw.nextTier?.toString?.() || "0",
+          requirements: {
+            level: nextTierRaw.levelRequired?.toString?.() || "0",
+            gm: nextTierRaw.gmRequired?.toString?.() || "0",
+            deploy: nextTierRaw.deployRequired?.toString?.() || "0",
+            donate: nextTierRaw.donateRequired?.toString?.() || "0",
+            link: nextTierRaw.linkRequired?.toString?.() || "0",
+            vote: nextTierRaw.voteRequired?.toString?.() || "0"
+          }
+        };
+      } catch (nextTierError) {
+        console.warn("⚠️ Failed to load next tier requirements:", nextTierError);
+      }
+    }
+
+    for (let tier = 1; tier <= totalBadges; tier++) {
+      let requirements;
+      try {
+        requirements = await badge.getRequirementsForTier(tier);
+      } catch (innerError) {
+        console.warn(`⚠️ Failed to load requirements for tier ${tier}:`, innerError);
+        requirements = [0, 0, 0, 0, 0, 0];
+      }
+
+      const [
+        levelRequired,
+        gmRequired,
+        deployRequired,
+        donateRequired,
+        linkRequired,
+        voteRequired
+      ] = requirements;
+
+      badges.push({
+        id: tier.toString(),
+        tier: tier.toString(),
+        name: BADGE_TIER_LABELS[tier] || `Tier ${tier}`,
+        requirements: {
+          level: levelRequired?.toString?.() || "0",
+          gm: gmRequired?.toString?.() || "0",
+          deploy: deployRequired?.toString?.() || "0",
+          donate: donateRequired?.toString?.() || "0",
+          link: linkRequired?.toString?.() || "0",
+          vote: voteRequired?.toString?.() || "0"
+        }
+      });
+    }
+
+    return {
+      success: true,
+      badges,
+      nextTier: nextTierInfo
+    };
+  } catch (error) {
+    console.error("❌ Get user badge list failed:", error);
+    return {
+      success: false,
+      badges: [],
+      nextTier: null
     };
   }
 }
@@ -781,6 +863,7 @@ export default {
   vote,
   getGovernanceStats,
   getUserBadge,
+  getUserBadgeList,
   getBadgeStats,
   withdrawDonations
 };

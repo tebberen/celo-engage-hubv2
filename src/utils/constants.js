@@ -3357,6 +3357,15 @@ export const CELO_ECOSYSTEM_LINKS = [
   { name: "💻 Celo GitHub",        url: "https://github.com/celo-org" }
 ];
 
+// Rozet seviyeleri için varsayılan isimler
+export const BADGE_TIER_LABELS = {
+  1: "Pathfinder",
+  2: "Connector",
+  3: "Innovator",
+  4: "Guardian",
+  5: "Luminary"
+};
+
 // ✅ YENİ: Kullanıcıların paylaştığı linkler için geçici storage fonksiyonları
 export const getUserSharedLinksFromStorage = () => {
   if (typeof window === 'undefined') return [];
