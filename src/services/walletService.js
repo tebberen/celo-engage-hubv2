@@ -2,6 +2,7 @@
 
 // ✅ ETHERERS IMPORT - HATA ÇÖZÜMÜ
 import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
+import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0';
 import { CELO_PARAMS, CURRENT_NETWORK } from '../utils/constants.js';
 
 export class WalletService {
@@ -10,6 +11,9 @@ export class WalletService {
     this.signer = null;
     this.account = null;
     this.web3 = null;
+    this.connectionType = null;
+    this.walletConnectProvider = null;
+    this.walletConnectQrEnabled = true;
   }
 
   // ✅ Multi-provider MetaMask fix
@@ -56,22 +60,58 @@ export class WalletService {
 
   // Cüzdan bağlantısını kontrol et
   async checkWalletConnection() {
-    if (!this.hasMetaMask()) {
-      return false;
-    }
-
     try {
-      const accounts = await window.ethereum.request({ 
-        method: 'eth_accounts' 
-      });
-      
-      if (accounts.length > 0) {
-        this.provider = new ethers.providers.Web3Provider(window.ethereum);
-        this.signer = this.provider.getSigner();
-        this.account = accounts[0];
-        this.web3 = this.provider;
-        return true;
+      if (this.hasMetaMask()) {
+        const accounts = await window.ethereum.request({
+          method: 'eth_accounts'
+        });
+
+        if (accounts.length > 0) {
+          this.provider = new ethers.providers.Web3Provider(window.ethereum);
+          this.signer = this.provider.getSigner();
+          this.account = accounts[0];
+          this.web3 = this.provider;
+          this.connectionType = 'metamask';
+          this.setupMetaMaskEventListeners();
+          return true;
+        }
       }
+
+      // WalletConnect aktif oturumunu kontrol et
+      const walletConnectSession = typeof window !== 'undefined'
+        ? window.localStorage.getItem('walletconnect')
+        : null;
+
+      if (walletConnectSession) {
+        let parsedSession = null;
+        try {
+          parsedSession = JSON.parse(walletConnectSession);
+        } catch (parseError) {
+          console.warn('WalletConnect oturumu okunamadı:', parseError);
+        }
+
+        if (parsedSession && parsedSession.connected && parsedSession.accounts?.length) {
+          const provider = await this.initializeWalletConnectProvider({ showQrCode: false });
+          try {
+            await provider.enable();
+            const web3Provider = new ethers.providers.Web3Provider(provider, 'any');
+            const accounts = await web3Provider.listAccounts();
+
+            if (accounts.length > 0) {
+              this.provider = web3Provider;
+              this.signer = this.provider.getSigner();
+              this.account = accounts[0];
+              this.web3 = this.provider;
+              this.connectionType = 'walletconnect';
+              return true;
+            }
+          } catch (sessionError) {
+            console.warn('WalletConnect yeniden bağlanma başarısız:', sessionError);
+            await this.disconnect({ skipWalletConnectProvider: true });
+          }
+        }
+      }
+
       return false;
     } catch (error) {
       console.error('Cüzdan bağlantı kontrol hatası:', error);
@@ -88,7 +128,7 @@ export class WalletService {
     try {
       // Multi-provider fix'i başlat
       this.initializeMetaMaskFix();
-      
+
       // Provider'ı başlat
       this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
       this.web3 = this.provider;
@@ -100,24 +140,25 @@ export class WalletService {
       }
 
       // Hesapları iste
-      const accounts = await window.ethereum.request({ 
-        method: "eth_requestAccounts" 
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts"
       });
-      
+
       if (!accounts || accounts.length === 0) {
         throw new Error("Hesap bulunamadı!");
       }
 
       this.signer = this.provider.getSigner();
       this.account = accounts[0];
+      this.connectionType = 'metamask';
 
       // Event listener'ları kur
-      this.setupEventListeners();
+      this.setupMetaMaskEventListeners();
 
       console.log("✅ Cüzdan bağlantısı başarılı:", this.account);
-      return { 
-        provider: this.provider, 
-        signer: this.signer, 
+      return {
+        provider: this.provider,
+        signer: this.signer,
         account: this.account,
         web3: this.web3
       };
@@ -132,16 +173,18 @@ export class WalletService {
     }
   }
 
-  // Event listener'ları kur
-  setupEventListeners() {
+  // Event listener'ları kur (MetaMask)
+  setupMetaMaskEventListeners() {
     if (!window.ethereum) return;
 
+    this.cleanupEventListeners();
+
     // Hesap değişikliği
-    window.ethereum.on('accountsChanged', (accounts) => {
+    window.ethereum.on('accountsChanged', async (accounts) => {
       console.log('Hesap değişti:', accounts);
       if (accounts.length === 0) {
         // Kullanıcı cüzdanı bağlantısını kesti
-        this.disconnect();
+        await this.disconnect();
         window.location.reload();
       } else {
         // Hesap değişti
@@ -151,8 +194,9 @@ export class WalletService {
     });
 
     // Ağ değişikliği
-    window.ethereum.on('chainChanged', (chainId) => {
+    window.ethereum.on('chainChanged', async (chainId) => {
       console.log('Ağ değişti:', chainId);
+      await this.disconnect();
       window.location.reload();
     });
 
@@ -162,25 +206,143 @@ export class WalletService {
     });
 
     // Bağlantı kesildi
-    window.ethereum.on('disconnect', (error) => {
+    window.ethereum.on('disconnect', async (error) => {
       console.log('Cüzdan bağlantısı kesildi:', error);
-      this.disconnect();
+      await this.disconnect();
     });
   }
 
+  async initializeWalletConnectProvider({ showQrCode = true } = {}) {
+    if (this.walletConnectProvider && this.walletConnectQrEnabled === showQrCode) {
+      return this.walletConnectProvider;
+    }
+
+    if (this.walletConnectProvider && this.walletConnectQrEnabled !== showQrCode) {
+      await this.disconnectWalletConnect({ skipProviderDisconnect: true });
+    }
+
+    const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
+
+    this.walletConnectProvider = new WalletConnectProvider({
+      rpc: {
+        [chainIdDecimal]: CURRENT_NETWORK.rpcUrl
+      },
+      chainId: chainIdDecimal,
+      qrcode: showQrCode,
+      qrcodeModalOptions: {
+        mobileLinks: ['metamask', 'rainbow', 'trust', 'argent']
+      }
+    });
+
+    this.walletConnectQrEnabled = showQrCode;
+    this.setupWalletConnectEventListeners();
+    return this.walletConnectProvider;
+  }
+
+  setupWalletConnectEventListeners() {
+    if (!this.walletConnectProvider) return;
+
+    this.walletConnectProvider.on('connect', (info) => {
+      console.log('WalletConnect bağlandı:', info);
+    });
+
+    this.walletConnectProvider.on('accountsChanged', async (accounts) => {
+      console.log('WalletConnect hesabı değişti:', accounts);
+      if (!accounts || accounts.length === 0) {
+        await this.disconnect({ skipWalletConnectProvider: true });
+        window.location.reload();
+      } else {
+        this.account = accounts[0];
+        window.location.reload();
+      }
+    });
+
+    this.walletConnectProvider.on('chainChanged', (chainId) => {
+      console.log('WalletConnect ağı değişti:', chainId);
+      window.location.reload();
+    });
+
+    this.walletConnectProvider.on('disconnect', async (code, reason) => {
+      console.log('WalletConnect bağlantısı kesildi:', code, reason);
+      await this.disconnect({ skipWalletConnectProvider: true });
+      window.location.reload();
+    });
+  }
+
+  async connectWalletConnect() {
+    try {
+      const provider = await this.initializeWalletConnectProvider({ showQrCode: true });
+      const accounts = await provider.enable();
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('WalletConnect hesabı bulunamadı');
+      }
+
+      this.provider = new ethers.providers.Web3Provider(provider, 'any');
+      this.web3 = this.provider;
+      this.signer = this.provider.getSigner();
+      this.account = accounts[0];
+      this.connectionType = 'walletconnect';
+
+      console.log('✅ WalletConnect bağlantısı başarılı:', this.account);
+
+      return {
+        provider: this.provider,
+        signer: this.signer,
+        account: this.account,
+        web3: this.web3
+      };
+    } catch (error) {
+      console.error('WalletConnect bağlantı hatası:', error);
+
+      if (error?.message?.toLowerCase().includes('user closed modal')) {
+        throw new Error('Bağlantı isteği iptal edildi. QR kodu kapatıldı.');
+      }
+
+      throw new Error(error?.message || 'WalletConnect bağlantısı başarısız oldu');
+    }
+  }
+
+  async disconnectWalletConnect({ skipProviderDisconnect = false } = {}) {
+    if (!this.walletConnectProvider) {
+      return;
+    }
+
+    try {
+      if (!skipProviderDisconnect) {
+        await this.walletConnectProvider.disconnect();
+      }
+    } catch (error) {
+      console.warn('WalletConnect disconnect hatası:', error);
+    }
+
+    try {
+      this.walletConnectProvider.removeAllListeners();
+    } catch (removeError) {
+      console.warn('WalletConnect event temizleme hatası:', removeError);
+    }
+
+    this.walletConnectProvider = null;
+    this.walletConnectQrEnabled = true;
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('walletconnect');
+    }
+  }
+
   // Bağlantıyı kes
-  disconnect() {
+  async disconnect({ skipWalletConnectProvider = false } = {}) {
+    if (this.connectionType === 'walletconnect') {
+      await this.disconnectWalletConnect({ skipProviderDisconnect: skipWalletConnectProvider });
+    }
+
     this.provider = null;
     this.signer = null;
     this.account = null;
     this.web3 = null;
+    this.connectionType = null;
 
-    if (window.ethereum && window.ethereum.removeAllListeners) {
-      window.ethereum.removeAllListeners('accountsChanged');
-      window.ethereum.removeAllListeners('chainChanged');
-      window.ethereum.removeAllListeners('connect');
-      window.ethereum.removeAllListeners('disconnect');
-    }
+    this.cleanupEventListeners();
 
     console.log("🔌 Cüzdan bağlantısı kesildi");
   }
@@ -297,18 +459,6 @@ export class WalletService {
     }
   }
 
-  // WalletConnect ile bağlan (opsiyonel - gelecek için)
-  async connectWalletConnect() {
-    try {
-      // WalletConnect entegrasyonu buraya eklenecek
-      console.log("WalletConnect desteği yakında eklenecek");
-      throw new Error("WalletConnect henüz desteklenmiyor");
-    } catch (error) {
-      console.error('WalletConnect bağlantı hatası:', error);
-      throw error;
-    }
-  }
-
   // Çoklu cüzdan desteği kontrolü
   hasMultipleWallets() {
     if (!window.ethereum) return false;
@@ -344,7 +494,8 @@ export class WalletService {
       account: this.account,
       provider: this.provider,
       signer: this.signer,
-      network: CURRENT_NETWORK.name
+      network: CURRENT_NETWORK.name,
+      connectionType: this.connectionType
     };
   }
 
@@ -354,7 +505,8 @@ export class WalletService {
       hasMetaMask: this.hasMetaMask(),
       isConnected: !!this.account,
       account: this.account,
-      network: CURRENT_NETWORK.name
+      network: CURRENT_NETWORK.name,
+      connectionType: this.connectionType
     };
   }
 
@@ -373,6 +525,10 @@ export class WalletService {
 
   getSigner() {
     return this.signer;
+  }
+
+  getConnectionType() {
+    return this.connectionType;
   }
 
   // Cüzdan tipini algıla
