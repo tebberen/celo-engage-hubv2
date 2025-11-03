@@ -60,6 +60,26 @@ function initializeModuleContracts() {
   console.log("✅ All module contracts cached");
 }
 
+function getGovernanceContract(options = {}) {
+  const { readOnly = false } = options;
+  const moduleDefinition = MODULES.GOVERNANCE;
+
+  if (!moduleDefinition) {
+    throw new Error("❌ Governance module is not configured");
+  }
+
+  if (!readOnly && signer) {
+    try {
+      return getModule("GOVERNANCE");
+    } catch (error) {
+      console.warn("⚠️ Falling back to read-only governance contract", error);
+    }
+  }
+
+  const activeProvider = readOnly ? getReadOnlyProvider() : (provider || getReadOnlyProvider());
+  return new ethers.Contract(moduleDefinition.address, moduleDefinition.abi, activeProvider);
+}
+
 // ========================= MODULE HELPERS ========================= //
 
 export function getModule(name) {
@@ -447,6 +467,129 @@ export async function getUserSharedLinks(userAddress) {
 
 // ========================= GOVERNANCE MODULE ========================= //
 
+export async function getProposalVotes(proposalId, options = {}) {
+  const { contract, proposalData, userAddress } = options;
+
+  try {
+    const gov = contract || getGovernanceContract({ readOnly: true });
+    const proposalIdBn = ethers.BigNumber.isBigNumber(proposalId)
+      ? proposalId
+      : ethers.BigNumber.from(proposalId);
+
+    const baseData = proposalData || await gov.getProposal(proposalIdBn);
+
+    const forVotesBn = baseData?.forVotes
+      ? ethers.BigNumber.from(baseData.forVotes)
+      : ethers.BigNumber.from(0);
+    const againstVotesBn = baseData?.againstVotes
+      ? ethers.BigNumber.from(baseData.againstVotes)
+      : ethers.BigNumber.from(0);
+    const totalVotesBn = forVotesBn.add(againstVotesBn);
+
+    let hasUserVoted = false;
+    if (userAddress) {
+      hasUserVoted = await gov.hasUserVoted(proposalIdBn, userAddress).catch(() => false);
+    }
+
+    let approved = false;
+    if (typeof gov.getProposalResults === "function") {
+      try {
+        const results = await gov.getProposalResults(proposalIdBn);
+        approved = Boolean(results?.approved);
+      } catch {
+        approved = forVotesBn.gte(againstVotesBn);
+      }
+    } else {
+      approved = forVotesBn.gte(againstVotesBn);
+    }
+
+    return {
+      proposalId: baseData?.id ? baseData.id.toString() : proposalIdBn.toString(),
+      forVotes: forVotesBn.toString(),
+      againstVotes: againstVotesBn.toString(),
+      totalVotes: totalVotesBn.toString(),
+      hasUserVoted: Boolean(hasUserVoted),
+      approved: Boolean(approved)
+    };
+  } catch (error) {
+    console.error("❌ Get proposal votes failed:", error);
+    return {
+      proposalId: proposalId?.toString?.() || String(proposalId),
+      forVotes: "0",
+      againstVotes: "0",
+      totalVotes: "0",
+      hasUserVoted: false,
+      approved: false
+    };
+  }
+}
+
+export async function getActiveProposals(options = {}) {
+  const { userAddress: providedAddress, includeVotes = true } = options;
+
+  try {
+    const gov = getGovernanceContract({ readOnly: true });
+    const proposalIds = await gov.getActiveProposals();
+
+    if (!Array.isArray(proposalIds) || proposalIds.length === 0) {
+      return [];
+    }
+
+    let voterAddress = providedAddress || null;
+    if (!voterAddress && signer) {
+      try {
+        voterAddress = await signer.getAddress();
+      } catch {
+        voterAddress = null;
+      }
+    }
+
+    const proposals = await Promise.all(proposalIds.map(async (proposalId) => {
+      const details = await gov.getProposal(proposalId);
+
+      let voteData = {
+        forVotes: "0",
+        againstVotes: "0",
+        totalVotes: "0",
+        hasUserVoted: false,
+        approved: false
+      };
+
+      if (includeVotes) {
+        voteData = await getProposalVotes(proposalId, {
+          contract: gov,
+          proposalData: details,
+          userAddress: voterAddress
+        });
+      }
+
+      const startTime = details?.startTime?.toString?.() || "0";
+      const endTime = details?.endTime?.toString?.() || "0";
+
+      return {
+        id: details?.id ? details.id.toString() : ethers.BigNumber.from(proposalId).toString(),
+        title: details?.title || "Untitled Proposal",
+        description: details?.description || "",
+        link: details?.link || "",
+        creator: details?.creator || ethers.constants.AddressZero,
+        startTime,
+        endTime,
+        executed: Boolean(details?.executed),
+        ...voteData
+      };
+    }));
+
+    return proposals.sort((a, b) => {
+      const aStart = parseInt(a.startTime || "0", 10);
+      const bStart = parseInt(b.startTime || "0", 10);
+      return bStart - aStart;
+    });
+  } catch (error) {
+    console.error("❌ Get active proposals failed:", error);
+    return [];
+  }
+}
+
 export async function createProposal(title, description, link) {
   try {
     const gov = getModule("GOVERNANCE");
@@ -681,6 +824,8 @@ export default {
   getAllSharedLinks,
   getLinksFromEvents,
   getUserSharedLinks,
+  getActiveProposals,
+  getProposalVotes,
   createProposal,
   vote,
   getGovernanceStats,

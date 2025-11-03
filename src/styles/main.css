@@ -820,6 +820,102 @@ header {
   margin-bottom: 0.75rem;
 }
 
+/* === GOVERNANCE STYLES === */
+.proposal-card {
+  background: #FFFDF6;
+  border: 1px solid #FBCC5C;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.proposal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.proposal-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.proposal-meta {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.proposal-link a {
+  color: #0068ff;
+  font-weight: 600;
+}
+
+.proposal-timing {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.proposal-status {
+  font-weight: 600;
+}
+
+.proposal-status.executed {
+  color: #2fb46d;
+}
+
+.proposal-status.ended {
+  color: #c0392b;
+}
+
+.proposal-votes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.proposal-votes .vote-stat {
+  flex: 1;
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid #FBCC5C;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.proposal-actions .proposal-vote-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.proposal-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.proposal-error {
+  background: #ffecec;
+  border: 1px solid #f5a6a6;
+  color: #a10000;
+  padding: 12px;
+  border-radius: 10px;
+}
+
 /* === MODAL STYLES === */
 .modal {
   display: none;

@@ -18,6 +18,8 @@ import {
   getUserSharedLinks,
   createProposal,
   vote,
+  getActiveProposals,
+  getProposalVotes,
   getGovernanceStats,
   getUserBadge,
   getBadgeStats,
@@ -69,16 +71,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Celo Engage Hub - Starting with user links system...");
   setupNavigation();
   setupUI();
-  
+
   // Kullanıcı linklerini yükle
   await loadUserSharedLinks();
-  
+
   renderCommunityLinks();
   renderCeloLinks();
-  
+
+  // Governance verilerini önceden yükle
+  await loadGovernance({ showLoader: true });
+
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
-  
+
   console.log("✅ App ready with user links!");
 });
 
@@ -518,9 +523,11 @@ async function initializeApp() {
     const userIsOwner = isOwnerAddress(userAddress);
     setOwnerOnlyVisibility(userIsOwner);
 
+    await loadGovernance({ showLoader: true });
+
     // Profil kontrolü
     const userProfile = await loadUserProfile(userAddress);
-    
+
     if (!userProfile.exists) {
       console.log("🆕 New user - showing profile creation");
       showProfileCreationModal();
@@ -555,13 +562,15 @@ async function disconnectWallet() {
     
     // İstatistikleri sıfırla
     resetUserStats();
-    
+
     // Owner panellerini gizle
     setOwnerOnlyVisibility(false);
-    
+
+    await loadGovernance({ showLoader: true });
+
     // Profil modal'ını gizle
     hideProfileCreationModal();
-    
+
     console.log("🔌 Wallet disconnected");
     
   } catch (err) {
@@ -665,10 +674,43 @@ async function handleCreateProfile() {
 
 // ========================= DASHBOARD SİSTEMİ ========================= //
 
+async function loadGovernance(options = {}) {
+  const { showLoader = false } = options;
+  const container = document.getElementById("proposalsList");
+
+  if (!container) return;
+
+  if (showLoader) {
+    container.innerHTML = "<p>Loading proposals...</p>";
+  }
+
+  try {
+    const proposals = await getActiveProposals({
+      userAddress: userAddress || null,
+      includeVotes: true
+    });
+
+    if (!Array.isArray(proposals) || proposals.length === 0) {
+      container.innerHTML = "<p>🚀 No active proposals right now. Check back soon!</p>";
+      return;
+    }
+
+    container.innerHTML = proposals.map(renderProposalCard).join("");
+
+    container.querySelectorAll(".proposal-vote-btn").forEach(btn => {
+      btn.addEventListener("click", handleProposalVoteClick);
+    });
+  } catch (error) {
+    console.error("❌ Governance load failed:", error);
+    const message = error?.message ? escapeHtml(error.message) : "Unknown error";
+    container.innerHTML = `<div class="proposal-error">⚠️ Failed to load proposals: ${message}</div>`;
+  }
+}
+
 async function loadDashboard() {
   try {
     if (!userAddress) return;
-    
+
     toggleLoading(true, "Loading your profile...");
 
     // Tüm istatistikleri paralel olarak yükle
@@ -749,6 +791,8 @@ async function loadDashboard() {
 
     lastProfileSnapshot = profile;
 
+    await loadGovernance({ showLoader: false });
+
     console.log("📊 Dashboard loaded successfully");
 
   } catch (err) {
@@ -758,7 +802,122 @@ async function loadDashboard() {
   }
 }
 
+function renderProposalCard(proposal) {
+  const title = escapeHtml((proposal?.title || "Untitled Proposal").toString());
+  const description = escapeHtml((proposal?.description || "No description provided.").toString());
+  const startTime = parseInt(proposal?.startTime || "0", 10) * 1000;
+  const endTime = parseInt(proposal?.endTime || "0", 10) * 1000;
+  const hasEnded = endTime > 0 && endTime <= Date.now();
+  const executed = Boolean(proposal?.executed);
+  const hasUserVoted = Boolean(proposal?.hasUserVoted);
+  const canVote = Boolean(userAddress) && !hasUserVoted && !hasEnded && !executed;
+  const createdLabel = startTime ? `Created ${formatTimeAgo(startTime)}` : "Created just now";
+  const timingLabel = hasEnded ? "Voting ended" : formatTimeRemaining(proposal?.endTime);
+  const totalVotes = escapeHtml((proposal?.totalVotes || "0").toString());
+  const forVotes = escapeHtml((proposal?.forVotes || "0").toString());
+  const againstVotes = escapeHtml((proposal?.againstVotes || "0").toString());
+  const statusMessage = !userAddress
+    ? "Connect your wallet to vote."
+    : hasUserVoted
+      ? "You have already voted on this proposal."
+      : hasEnded
+        ? "Voting period has ended."
+        : executed
+          ? "Proposal has been executed."
+          : "";
+  const safeLink = typeof proposal?.link === "string" && /^https?:\/\//i.test(proposal.link)
+    ? proposal.link
+    : "";
+  const linkHtml = safeLink
+    ? `<a href="${safeLink}" target="_blank" rel="noopener noreferrer">View details ↗</a>`
+    : "";
+  const statusBadge = executed
+    ? '<span class="proposal-status executed">Executed</span>'
+    : hasEnded
+      ? '<span class="proposal-status ended">Voting ended</span>'
+      : "";
+  const disabledAttr = canVote ? "" : "disabled";
+
+  return `
+    <div class="proposal-card">
+      <div class="proposal-header">
+        <h5>${title}</h5>
+        <span class="proposal-meta">${createdLabel}</span>
+      </div>
+      <p>${description}</p>
+      ${linkHtml ? `<div class="proposal-link">${linkHtml}</div>` : ""}
+      <div class="proposal-timing">
+        <span>⏳ ${timingLabel}</span>
+        ${statusBadge}
+      </div>
+      <div class="proposal-votes">
+        <div class="vote-stat">👍 For: <strong>${forVotes}</strong></div>
+        <div class="vote-stat">👎 Against: <strong>${againstVotes}</strong></div>
+        <div class="vote-stat">🧮 Total: <strong>${totalVotes}</strong></div>
+      </div>
+      <div class="proposal-actions">
+        <button class="action-button proposal-vote-btn" data-proposal-id="${proposal?.id}" data-support="for" ${disabledAttr}>Vote For ✅</button>
+        <button class="action-button proposal-vote-btn" data-proposal-id="${proposal?.id}" data-support="against" ${disabledAttr}>Vote Against ❌</button>
+      </div>
+      ${statusMessage ? `<p class="proposal-message">${escapeHtml(statusMessage)}</p>` : ""}
+    </div>
+  `;
+}
+
 // ========================= MODÜL FONKSİYONLARI ========================= //
+
+async function handleProposalVoteClick(event) {
+  event.preventDefault();
+
+  if (!ensureConnected()) return;
+
+  const button = event.currentTarget;
+  const proposalId = button?.getAttribute("data-proposal-id");
+  const support = button?.getAttribute("data-support") === "for";
+
+  if (!proposalId) {
+    alert("Proposal information is missing. Please refresh the page.");
+    return;
+  }
+
+  const card = button.closest(".proposal-card");
+  const relatedButtons = card ? Array.from(card.querySelectorAll(".proposal-vote-btn")) : [button];
+  const originalText = button.innerText;
+
+  relatedButtons.forEach(btn => {
+    btn.disabled = true;
+  });
+  button.innerText = support ? "Submitting vote..." : "Submitting vote...";
+
+  let voteSucceeded = false;
+
+  try {
+    toggleLoading(true, support ? "Submitting support vote..." : "Submitting against vote...");
+    await vote(proposalId, support);
+
+    const latestVotes = await getProposalVotes(proposalId, { userAddress });
+
+    alert(`✅ Vote submitted! Proposal now has ${latestVotes.forVotes} for and ${latestVotes.againstVotes} against votes.`);
+
+    voteSucceeded = true;
+
+    await loadDashboard();
+  } catch (err) {
+    console.error("❌ Vote Error:", err);
+    handleTransactionError(err, "voting");
+  } finally {
+    toggleLoading(false);
+
+    if (!voteSucceeded) {
+      relatedButtons.forEach(btn => {
+        btn.disabled = false;
+      });
+      if (button.isConnected) {
+        button.innerText = originalText;
+      }
+    }
+  }
+}
 
 async function handleGM() {
   try {
@@ -1131,8 +1290,68 @@ function updateElementText(elementId, text) {
   }
 }
 
+function escapeHtml(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).replace(/[&<>"']/g, match => {
+    switch (match) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return match;
+    }
+  });
+}
+
 function shortenAddress(addr) {
   return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
+}
+
+function formatTimeRemaining(endTimeSeconds) {
+  const rawValue = typeof endTimeSeconds === "string"
+    ? parseInt(endTimeSeconds, 10)
+    : typeof endTimeSeconds === "number"
+      ? endTimeSeconds
+      : 0;
+
+  if (!Number.isFinite(rawValue) || rawValue <= 0) {
+    return "Ends soon";
+  }
+
+  const endTimeMs = rawValue * 1000;
+  const now = Date.now();
+
+  if (endTimeMs <= now) {
+    return "Voting ended";
+  }
+
+  const diffMs = endTimeMs - now;
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) {
+    return `${diffDays}d ${diffHours % 24}h left`;
+  }
+  if (diffHours > 0) {
+    return `${diffHours}h ${diffMinutes % 60}m left`;
+  }
+  if (diffMinutes > 0) {
+    return `${diffMinutes}m ${diffSeconds % 60}s left`;
+  }
+
+  return `${diffSeconds}s left`;
 }
 
 function formatTimeAgo(timestamp) {
