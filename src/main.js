@@ -21,6 +21,7 @@ import {
   getGovernanceStats,
   getUserBadge,
   getBadgeStats,
+  getCommunityLeaderboard,
   loadUserProfile,
   withdrawDonations,
   registerUserProfile,
@@ -58,6 +59,12 @@ let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) ||
 let userSharedLinks = [];
 let lastProfileSnapshot = null;
 let lastAutoContractName = "";
+let leaderboardState = {
+  entries: [],
+  topDonors: [],
+  lastFetched: 0
+};
+let isLeaderboardLoading = false;
 
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
@@ -75,7 +82,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   renderCommunityLinks();
   renderCeloLinks();
-  
+  renderLeaderboard();
+
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
   
@@ -264,6 +272,220 @@ function renderUserLinkCards() {
   });
 }
 
+async function renderLeaderboard(options = {}) {
+  const container = document.getElementById('leaderboardContent');
+  if (!container) return;
+
+  const {
+    forceRefresh = false,
+    useCache = false
+  } = options;
+
+  const now = Date.now();
+  const hasCache = leaderboardState.entries.length > 0;
+  const cacheFresh = now - leaderboardState.lastFetched < 60_000;
+  const shouldUseCache = (useCache && hasCache) || (!forceRefresh && cacheFresh && hasCache);
+
+  const currentUser = (userAddress || '').toLowerCase();
+
+  if (shouldUseCache) {
+    container.innerHTML = buildLeaderboardHTML(
+      leaderboardState.entries,
+      leaderboardState.topDonors,
+      currentUser,
+      leaderboardState.lastFetched
+    );
+    return;
+  }
+
+  if (isLeaderboardLoading) {
+    if (hasCache) {
+      container.innerHTML = buildLeaderboardHTML(
+        leaderboardState.entries,
+        leaderboardState.topDonors,
+        currentUser,
+        leaderboardState.lastFetched
+      );
+    }
+    return;
+  }
+
+  isLeaderboardLoading = true;
+  container.innerHTML = `
+    <div class="leaderboard-loading">
+      <div class="loading-spinner"></div>
+      <p>Loading community leaderboard...</p>
+    </div>
+  `;
+
+  try {
+    const response = await getCommunityLeaderboard({
+      focusAddress: userAddress || undefined
+    });
+
+    if (!response || !response.success) {
+      throw new Error('Leaderboard data unavailable');
+    }
+
+    leaderboardState = {
+      entries: response.entries || [],
+      topDonors: response.topDonors || [],
+      lastFetched: response.fetchedAt || Date.now()
+    };
+
+    container.innerHTML = buildLeaderboardHTML(
+      leaderboardState.entries,
+      leaderboardState.topDonors,
+      currentUser,
+      leaderboardState.lastFetched
+    );
+  } catch (error) {
+    console.error('❌ Render leaderboard failed:', error);
+
+    if (leaderboardState.entries.length > 0) {
+      container.innerHTML = buildLeaderboardHTML(
+        leaderboardState.entries,
+        leaderboardState.topDonors,
+        currentUser,
+        leaderboardState.lastFetched
+      );
+    } else {
+      container.innerHTML = `
+        <div class="leaderboard-error">
+          <p>Unable to load leaderboard. Please try again later.</p>
+        </div>
+      `;
+    }
+  } finally {
+    isLeaderboardLoading = false;
+  }
+}
+
+function buildLeaderboardHTML(entries, topDonors, currentUser, lastFetched) {
+  const hasEntries = Array.isArray(entries) && entries.length > 0;
+  const hasDonors = Array.isArray(topDonors) && topDonors.length > 0;
+  const updatedLabel = lastFetched
+    ? `Updated ${formatTimeAgo(lastFetched)} ago`
+    : 'Awaiting data';
+
+  const donorsMarkup = hasDonors
+    ? `
+      <div class="leaderboard-top-donors">
+        <div class="leaderboard-top-donors__header">💛 Top Donors</div>
+        <ul>
+          ${topDonors.slice(0, 3).map((donor, index) => {
+            const displayName = donor.address
+              ? shortenAddress(donor.address)
+              : `Donor ${index + 1}`;
+            const donated = formatTokenAmount(donor.totalDonated || '0');
+            return `
+              <li>
+                <span class="donor-rank">#${index + 1}</span>
+                <span class="donor-name">${displayName}</span>
+                <span class="donor-amount">${donated} CELO</span>
+              </li>
+            `;
+          }).join('')}
+        </ul>
+      </div>
+    `
+    : '';
+
+  const rowsMarkup = hasEntries
+    ? entries.map((entry, index) => {
+        const isCurrentUser = currentUser && entry.address?.toLowerCase() === currentUser;
+        const displayName = entry.username && entry.username.trim()
+          ? entry.username.trim()
+          : shortenAddress(entry.address);
+        const xp = formatLeaderboardNumber(entry.totalXP);
+        const gm = formatLeaderboardNumber(entry.gmCount);
+        const donated = formatTokenAmount(entry.totalDonated || '0');
+        const level = formatLeaderboardNumber(entry.level);
+        const tier = formatLeaderboardNumber(entry.tier);
+        const baseRank = typeof entry.rank === 'number' ? entry.rank : index + 1;
+
+        return `
+          <div class="leaderboard-row${isCurrentUser ? ' current-user' : ''}">
+            <div class="leaderboard-rank">
+              ${baseRank}
+              ${isCurrentUser ? '<span class="leaderboard-badge">You</span>' : ''}
+            </div>
+            <div class="leaderboard-user">
+              <div class="leaderboard-name">${displayName}</div>
+              <div class="leaderboard-address">${shortenAddress(entry.address)}</div>
+            </div>
+            <div class="leaderboard-metric" aria-label="Total XP">${xp}</div>
+            <div class="leaderboard-metric" aria-label="GM count">${gm}</div>
+            <div class="leaderboard-metric" aria-label="Total donated">${donated} CELO</div>
+            <div class="leaderboard-metric" aria-label="Level and tier">Lvl ${level} • Tier ${tier}</div>
+          </div>
+        `;
+      }).join('')
+    : `
+      <div class="leaderboard-empty">
+        <p>No leaderboard data available yet. Encourage the community to participate!</p>
+      </div>
+    `;
+
+  return `
+    <div class="leaderboard-meta">
+      <div>
+        <strong>Ranking metric:</strong> Total XP (tie-breakers: GM count, total donations, deployments)
+      </div>
+      <div class="leaderboard-updated">${updatedLabel}</div>
+    </div>
+    ${donorsMarkup}
+    <div class="leaderboard-table">
+      <div class="leaderboard-row header">
+        <div class="leaderboard-rank">Rank</div>
+        <div class="leaderboard-user">Member</div>
+        <div class="leaderboard-metric">XP</div>
+        <div class="leaderboard-metric">GM</div>
+        <div class="leaderboard-metric">Donated</div>
+        <div class="leaderboard-metric">Progress</div>
+      </div>
+      ${rowsMarkup}
+    </div>
+  `;
+}
+
+function formatLeaderboardNumber(value) {
+  const numericValue = value ?? '0';
+
+  try {
+    const bigValue = BigInt(numericValue);
+    return bigValue.toLocaleString();
+  } catch (error) {
+    const parsed = Number(numericValue);
+    if (Number.isFinite(parsed)) {
+      return parsed.toLocaleString();
+    }
+    return numericValue;
+  }
+}
+
+function formatTokenAmount(value, decimals = 18, precision = 2) {
+  try {
+    const raw = BigInt(value || '0');
+    const base = 10n ** BigInt(decimals);
+    const whole = raw / base;
+    const fraction = raw % base;
+    if (precision === 0) {
+      return whole.toString();
+    }
+
+    const fractionStr = fraction.toString().padStart(decimals, '0').slice(0, precision);
+    const trimmedFraction = fractionStr.replace(/0+$/, '');
+    return trimmedFraction ? `${whole.toString()}.${trimmedFraction}` : whole.toString();
+  } catch (error) {
+    const asNumber = Number(value);
+    if (!Number.isFinite(asNumber)) {
+      return '0';
+    }
+    return asNumber.toFixed(Math.min(precision, 4));
+  }
+}
+
 function handleLinkClick(link) {
   console.log("🔗 Link clicked:", link);
   
@@ -397,7 +619,11 @@ function setupNavigation() {
       if (targetSection === 'badges' && userAddress) {
         loadBadgeInfo();
       }
-      
+
+      if (targetSection === 'leaderboard') {
+        renderLeaderboard({ useCache: true });
+      }
+
       // Eğer home section'a geçiliyorsa, otomatik formu gizle
       if (targetSection === 'home') {
         hideAutoLinkForm();
@@ -518,6 +744,8 @@ async function initializeApp() {
     const userIsOwner = isOwnerAddress(userAddress);
     setOwnerOnlyVisibility(userIsOwner);
 
+    renderLeaderboard({ useCache: true });
+
     // Profil kontrolü
     const userProfile = await loadUserProfile(userAddress);
     
@@ -552,10 +780,12 @@ async function disconnectWallet() {
     document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
     document.getElementById("walletInfo").style.display = "none";
     document.getElementById("connectWallet").style.display = "block";
-    
+
     // İstatistikleri sıfırla
     resetUserStats();
-    
+
+    renderLeaderboard({ useCache: true });
+
     // Owner panellerini gizle
     setOwnerOnlyVisibility(false);
     
@@ -750,6 +980,8 @@ async function loadDashboard() {
     lastProfileSnapshot = profile;
 
     console.log("📊 Dashboard loaded successfully");
+
+    await renderLeaderboard({ forceRefresh: true });
 
   } catch (err) {
     console.error("⚠️ Dashboard Error:", err);

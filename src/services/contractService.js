@@ -21,6 +21,7 @@ let readOnlyProvider;
 
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
+const readOnlyModuleCache = new Map();
 
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
@@ -74,6 +75,23 @@ export function getModule(name) {
   console.warn(`⚠️ Module ${name} not in cache, creating new instance`);
   const contract = new ethers.Contract(mod.address, mod.abi, signer);
   moduleCache.set(name, contract);
+  return contract;
+}
+
+function resolveModuleContract(name) {
+  if (signer) {
+    return getModule(name);
+  }
+
+  if (readOnlyModuleCache.has(name)) {
+    return readOnlyModuleCache.get(name);
+  }
+
+  const mod = MODULES[name];
+  if (!mod) throw new Error(`❌ Module not found: ${name}`);
+
+  const contract = new ethers.Contract(mod.address, mod.abi, getReadOnlyProvider());
+  readOnlyModuleCache.set(name, contract);
   return contract;
 }
 
@@ -412,7 +430,7 @@ export async function getLinksFromEvents(options = {}) {
 export async function getUserSharedLinks(userAddress) {
   try {
     const linkModule = getModule("LINK");
-    
+
     // Kullanıcının link sayısını al
     const userLinkCount = await linkModule.getUserLinkCount(userAddress);
     console.log(`📥 User ${userAddress} has ${userLinkCount} links`);
@@ -534,6 +552,206 @@ export async function getBadgeStats() {
   } catch (error) {
     console.error("❌ Get badge stats failed:", error);
     return "0";
+  }
+}
+
+// ========================= LEADERBOARD HELPERS ========================= //
+
+function toNumericString(value) {
+  if (value === null || value === undefined) {
+    return "0";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value.toString();
+  }
+
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+
+  if (value?._isBigNumber) {
+    return value.toString();
+  }
+
+  if (typeof value.toString === "function") {
+    return value.toString();
+  }
+
+  return "0";
+}
+
+function formatLeaderboardProfile(address, data) {
+  if (!data) {
+    return null;
+  }
+
+  return {
+    address,
+    username: data.username || "",
+    gmCount: toNumericString(data.gmCount),
+    deployCount: toNumericString(data.deployCount),
+    donateCount: toNumericString(data.donateCount),
+    linkCount: toNumericString(data.linkCount),
+    voteCount: toNumericString(data.voteCount),
+    totalXP: toNumericString(data.totalXP),
+    level: toNumericString(data.level),
+    tier: toNumericString(data.tier),
+    totalDonated: toNumericString(data.totalDonated),
+    exists: Boolean(data.exists)
+  };
+}
+
+export async function getTopDonors(options = {}) {
+  const { limit = 10 } = options;
+
+  try {
+    const donateModule = resolveModuleContract("DONATE");
+    const [addresses, amounts] = await donateModule.getTopDonors();
+
+    if (!Array.isArray(addresses) || !Array.isArray(amounts)) {
+      return { success: true, entries: [] };
+    }
+
+    const entries = addresses
+      .map((address, index) => ({
+        address,
+        totalDonated: toNumericString(amounts[index])
+      }))
+      .filter(entry => entry.address && entry.address !== ethers.constants.AddressZero)
+      .slice(0, limit);
+
+    return { success: true, entries };
+  } catch (error) {
+    console.error("❌ Get top donors failed:", error);
+    return { success: false, entries: [] };
+  }
+}
+
+export async function getCommunityLeaderboard(options = {}) {
+  const {
+    maxUsers = 50,
+    lookbackBlocks = 150000,
+    fromBlock: explicitFromBlock,
+    toBlock: explicitToBlock,
+    focusAddress
+  } = options;
+
+  try {
+    const activeProvider = provider || getReadOnlyProvider();
+    const profileModule = resolveModuleContract("PROFILE");
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - lookbackBlocks);
+    const toBlock = explicitToBlock !== undefined ? explicitToBlock : currentBlock;
+
+    const [registeredEvents, updatedEvents, topDonorData] = await Promise.all([
+      profileModule.queryFilter(profileModule.filters.UserRegistered(), fromBlock, toBlock),
+      profileModule.queryFilter(profileModule.filters.ProfileUpdated(), fromBlock, toBlock),
+      getTopDonors({ limit: maxUsers })
+    ]);
+
+    const addressMap = new Map();
+
+    [...registeredEvents, ...updatedEvents].forEach(event => {
+      const user = event?.args?.user;
+      if (!user) return;
+
+      const lower = user.toLowerCase();
+      const existing = addressMap.get(lower);
+
+      if (!existing || event.blockNumber > existing.blockNumber) {
+        addressMap.set(lower, {
+          address: user,
+          blockNumber: event.blockNumber
+        });
+      }
+    });
+
+    (topDonorData.entries || []).forEach(entry => {
+      if (!entry?.address) return;
+      const lower = entry.address.toLowerCase();
+      if (!addressMap.has(lower)) {
+        addressMap.set(lower, {
+          address: entry.address,
+          blockNumber: toBlock + 1
+        });
+      }
+    });
+
+    if (focusAddress) {
+      const normalized = focusAddress.toLowerCase();
+      if (!addressMap.has(normalized)) {
+        addressMap.set(normalized, {
+          address: focusAddress,
+          blockNumber: toBlock + 2
+        });
+      }
+    }
+
+    const addressList = Array.from(addressMap.values())
+      .sort((a, b) => b.blockNumber - a.blockNumber)
+      .map(entry => entry.address)
+      .slice(0, maxUsers);
+
+    if (addressList.length === 0) {
+      return {
+        success: true,
+        entries: [],
+        topDonors: topDonorData.entries || []
+      };
+    }
+
+    const profilePromises = addressList.map(async (address) => {
+      try {
+        const profile = await profileModule.getUserProfile(address);
+        return formatLeaderboardProfile(address, profile);
+      } catch (error) {
+        console.warn(`⚠️ Failed to load profile for ${address}:`, error);
+        return null;
+      }
+    });
+
+    const rawEntries = (await Promise.all(profilePromises))
+      .filter(Boolean)
+      .filter(entry => entry.exists);
+
+    const sortedEntries = rawEntries
+      .sort((a, b) => {
+        const xpDiff = BigInt(b.totalXP || "0") - BigInt(a.totalXP || "0");
+        if (xpDiff !== 0n) return xpDiff > 0n ? 1 : -1;
+
+        const gmDiff = BigInt(b.gmCount || "0") - BigInt(a.gmCount || "0");
+        if (gmDiff !== 0n) return gmDiff > 0n ? 1 : -1;
+
+        const donateDiff = BigInt(b.totalDonated || "0") - BigInt(a.totalDonated || "0");
+        if (donateDiff !== 0n) return donateDiff > 0n ? 1 : -1;
+
+        const deployDiff = BigInt(b.deployCount || "0") - BigInt(a.deployCount || "0");
+        if (deployDiff !== 0n) return deployDiff > 0n ? 1 : -1;
+
+        return a.address.localeCompare(b.address);
+      })
+      .map((entry, index) => ({
+        ...entry,
+        rank: index + 1
+      }));
+
+    return {
+      success: true,
+      entries: sortedEntries,
+      topDonors: topDonorData.entries || [],
+      fetchedAt: Date.now()
+    };
+  } catch (error) {
+    console.error("❌ Get community leaderboard failed:", error);
+    return { success: false, entries: [], topDonors: [] };
   }
 }
 
@@ -686,6 +904,8 @@ export default {
   getGovernanceStats,
   getUserBadge,
   getBadgeStats,
+  getTopDonors,
+  getCommunityLeaderboard,
   withdrawDonations
 };
 
