@@ -22,6 +22,11 @@ let readOnlyProvider;
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
 
+const ERC20_ABI = [
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)"
+];
+
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
   if (typeof window.ethereum === "undefined") {
@@ -219,7 +224,7 @@ export async function donateCELO(amount = MIN_DONATION) {
   try {
     const donate = getModule("DONATE");
     const userAddress = await signer.getAddress();
-    
+
     console.log("💛 Donating CELO from:", userAddress, "Amount:", amount);
     
     // ✅ TEK İŞLEM - Sadece CELO bağışı yap (ikinci işlem YOK)
@@ -242,9 +247,22 @@ export async function donateCUSD(amount = MIN_DONATION) {
   try {
     const donate = getModule("DONATE");
     const userAddress = await signer.getAddress();
-    
+
+    const tokenInfo = CURRENT_TOKENS?.cUSD;
+    if (!tokenInfo || !tokenInfo.address) {
+      throw new Error("cUSD token address is not configured");
+    }
+
+    await ensureTokenApproval({
+      tokenAddress: tokenInfo.address,
+      owner: userAddress,
+      spender: donate.address,
+      amount,
+      symbol: tokenInfo.symbol || "cUSD"
+    });
+
     console.log("💵 Donating cUSD from:", userAddress, "Amount:", amount);
-    
+
     // ✅ TEK İŞLEM - Sadece cUSD bağışı yap (ikinci işlem YOK)
     const { sentTx } = await sendWithReferral(donate, "donateCUSD", [userAddress, amount]);
 
@@ -256,21 +274,73 @@ export async function donateCUSD(amount = MIN_DONATION) {
   }
 }
 
+export async function donateCEUR(amount = MIN_DONATION) {
+  try {
+    const donate = getModule("DONATE");
+    const userAddress = await signer.getAddress();
+
+    const tokenInfo = CURRENT_TOKENS?.cEUR;
+    if (!tokenInfo || !tokenInfo.address) {
+      throw new Error("cEUR token address is not configured");
+    }
+
+    await ensureTokenApproval({
+      tokenAddress: tokenInfo.address,
+      owner: userAddress,
+      spender: donate.address,
+      amount,
+      symbol: tokenInfo.symbol || "cEUR"
+    });
+
+    console.log("💶 Donating cEUR from:", userAddress, "Amount:", amount);
+
+    const { sentTx } = await sendWithReferral(donate, "donateCEUR", [userAddress, amount]);
+
+    console.log("💶 cEUR donated:", amount);
+    return { success: true, txHash: sentTx.hash, amount: amount, token: "cEUR" };
+  } catch (error) {
+    console.error("❌ cEUR donation failed:", error);
+    throw error;
+  }
+}
+
 export async function getDonateStats() {
   try {
     const donate = getModule("DONATE");
     const userAddress = await signer.getAddress();
-    
-    const stats = await donate.getDonateStats();
-    const userStats = await donate.getUserDonationHistory(userAddress);
-    
+
+    const [stats, userStats] = await Promise.all([
+      donate.getDonateStats(),
+      donate.getUserDonationHistory(userAddress)
+    ]);
+
+    let topDonorAddresses = [];
+    let topDonorAmounts = [];
+
+    try {
+      const rawTopDonors = await donate.getTopDonors();
+      const addresses = rawTopDonors?.addresses || rawTopDonors?.[0] || [];
+      const amounts = rawTopDonors?.amounts || rawTopDonors?.[1] || [];
+
+      topDonorAddresses = Array.isArray(addresses) ? addresses : [];
+      topDonorAmounts = Array.isArray(amounts)
+        ? amounts.map(amountValue => amountValue?.toString?.() ?? String(amountValue))
+        : [];
+    } catch (topDonorError) {
+      console.warn("⚠️ Get top donors failed:", topDonorError);
+      topDonorAddresses = [];
+      topDonorAmounts = [];
+    }
+
     return {
       totalDonatedValue: stats.totalDonatedValue.toString(),
       totalDonatorsCount: stats.totalDonatorsCount.toString(),
       dailyWithdrawn: stats.dailyWithdrawn.toString(),
       dailyLimit: stats.dailyLimit.toString(),
       userDonationCount: userStats.count.toString(),
-      userTotalDonated: userStats.totalAmount.toString()
+      userTotalDonated: userStats.totalAmount.toString(),
+      topDonorAddresses,
+      topDonorAmounts
     };
   } catch (error) {
     console.error("❌ Get donate stats failed:", error);
@@ -280,9 +350,31 @@ export async function getDonateStats() {
       dailyWithdrawn: "0",
       dailyLimit: "0",
       userDonationCount: "0",
-      userTotalDonated: "0"
+      userTotalDonated: "0",
+      topDonorAddresses: [],
+      topDonorAmounts: []
     };
   }
+}
+
+async function ensureTokenApproval({ tokenAddress, owner, spender, amount, symbol }) {
+  if (!tokenAddress) {
+    throw new Error(`Token address missing for ${symbol || "token"}`);
+  }
+
+  const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+  const currentAllowance = await tokenContract.allowance(owner, spender);
+
+  if (currentAllowance.gte(amount)) {
+    return { approved: false, allowance: currentAllowance };
+  }
+
+  console.log(`🔄 Approving ${symbol || "token"} for spender ${spender}`);
+  const approveTx = await tokenContract.approve(spender, amount);
+  const receipt = await approveTx.wait();
+  console.log(`✅ ${symbol || "Token"} approved:`, approveTx.hash);
+
+  return { approved: true, tx: approveTx, receipt };
 }
 
 // ========================= LINK MODULE ========================= //

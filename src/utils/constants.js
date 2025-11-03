@@ -1107,24 +1107,42 @@ export const MODULES = {
 			"stateMutability": "payable",
 			"type": "function"
 		},
-		{
-			"inputs": [
-				{
-					"internalType": "address",
-					"name": "user",
-					"type": "address"
-				},
-				{
-					"internalType": "uint256",
-					"name": "amount",
-					"type": "uint256"
-				}
-			],
-			"name": "donateCUSD",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		},
+                {
+                        "inputs": [
+                                {
+                                        "internalType": "address",
+                                        "name": "user",
+                                        "type": "address"
+                                },
+                                {
+                                        "internalType": "uint256",
+                                        "name": "amount",
+                                        "type": "uint256"
+                                }
+                        ],
+                        "name": "donateCUSD",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                },
+                {
+                        "inputs": [
+                                {
+                                        "internalType": "address",
+                                        "name": "user",
+                                        "type": "address"
+                                },
+                                {
+                                        "internalType": "uint256",
+                                        "name": "amount",
+                                        "type": "uint256"
+                                }
+                        ],
+                        "name": "donateCEUR",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                },
 		{
 			"inputs": [
 				{

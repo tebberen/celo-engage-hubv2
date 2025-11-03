@@ -179,6 +179,17 @@
       flex: 1;
       min-width: 120px;
     }
+    .top-donors-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .top-donors-list li {
+      margin-bottom: 6px;
+    }
     .token-selector {
       display: flex;
       gap: 10px;
@@ -419,6 +430,7 @@
             <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
             <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
             <button class="supportBtn" data-amount="0.1" data-token="cUSD">0.1 cUSD</button>
+            <button class="supportBtn" data-amount="0.1" data-token="cEUR">0.1 cEUR</button>
           </div>
         </div>
 
@@ -568,7 +580,7 @@
         <section id="donateSection" class="section">
           <div class="feature-card">
             <h3>💛 Make a Donation</h3>
-            <p><strong>Minimum donation: 0.1 CELO or 0.1 cUSD</strong></p>
+            <p><strong>Minimum donation: 0.1 CELO / 0.1 cUSD / 0.1 cEUR</strong></p>
             
             <div class="input-group">
               <input type="number" id="donateAmountInput" placeholder="Enter amount (min 0.1)" step="0.1" min="0.1" value="0.1">
@@ -578,12 +590,14 @@
             <div class="token-selector">
               <button class="token-btn active" data-token="CELO">CELO 💛</button>
               <button class="token-btn" data-token="cUSD">cUSD 💵</button>
+              <button class="token-btn" data-token="cEUR">cEUR 💶</button>
             </div>
 
             <!-- Donate Butonları -->
             <div class="donate-buttons">
               <button id="donateCeloBtn" class="action-button">Donate CELO 💛</button>
               <button id="donateCusdBtn" class="action-button">Donate cUSD 💵</button>
+              <button id="donateCeurBtn" class="action-button">Donate cEUR 💶</button>
             </div>
 
             <!-- Hızlı Donate Butonları -->
@@ -592,6 +606,10 @@
               <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
               <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
               <button class="supportBtn" data-amount="5" data-token="CELO">5 CELO</button>
+              <button class="supportBtn" data-amount="0.1" data-token="cUSD">0.1 cUSD</button>
+              <button class="supportBtn" data-amount="0.5" data-token="cUSD">0.5 cUSD</button>
+              <button class="supportBtn" data-amount="0.1" data-token="cEUR">0.1 cEUR</button>
+              <button class="supportBtn" data-amount="0.5" data-token="cEUR">0.5 cEUR</button>
             </div>
 
             <!-- Owner Withdraw Panel -->
@@ -633,6 +651,9 @@
               <div class="stat-card">
                 <h4>Top Donors</h4>
                 <div id="topDonorsCount">0</div>
+                <ul id="topDonorsList" class="top-donors-list">
+                  <li>No donors yet</li>
+                </ul>
               </div>
             </div>
           </div>

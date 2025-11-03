@@ -10,6 +10,7 @@ import {
   getDeployStats,
   donateCELO,
   donateCUSD,
+  donateCEUR,
   getDonateStats,
   shareLink,
   getLinkStats,
@@ -725,8 +726,33 @@ async function loadDashboard() {
       updateElementText("userTotalDonated", "0 CELO");
       updateElementText("totalDonatedValue", "0 CELO");
     }
-    
+
     updateElementText("totalDonatorsCount", donateStats.totalDonatorsCount);
+
+    const topDonorCount = Array.isArray(donateStats.topDonorAddresses)
+      ? donateStats.topDonorAddresses.length
+      : 0;
+    updateElementText("topDonorsCount", topDonorCount);
+
+    const topDonorsListElement = document.getElementById("topDonorsList");
+    if (topDonorsListElement) {
+      if (!topDonorCount) {
+        topDonorsListElement.innerHTML = "<li>No donors yet</li>";
+      } else {
+        const donorItems = donateStats.topDonorAddresses.map((address, index) => {
+          const rawAmount = donateStats.topDonorAmounts?.[index] || "0";
+          let formattedAmount = "0";
+          try {
+            formattedAmount = ethers.utils.formatEther(rawAmount);
+          } catch {
+            formattedAmount = rawAmount.toString();
+          }
+          const safeAddress = address || "Unknown";
+          return `<li>${shortenAddress(safeAddress)} - ${formattedAmount} CELO</li>`;
+        });
+        topDonorsListElement.innerHTML = donorItems.join("");
+      }
+    }
 
     // Links Section
     updateElementText("linkCounter", linkStats.total);
@@ -868,7 +894,7 @@ async function handleDonateCELO() {
 async function handleDonateCUSD() {
   try {
     if (!ensureConnected()) return;
-    
+
     const amountInput = document.getElementById("donateAmountInput");
     let amount = amountInput?.value || "0.1";
     
@@ -902,6 +928,46 @@ async function handleDonateCUSD() {
   } catch (err) {
     console.error("❌ cUSD Donation Error:", err);
     handleTransactionError(err, "cUSD donation");
+  } finally {
+    toggleLoading(false);
+  }
+}
+
+async function handleDonateCEUR() {
+  try {
+    if (!ensureConnected()) return;
+
+    const amountInput = document.getElementById("donateAmountInput");
+    let amount = amountInput?.value || "0.1";
+
+    amount = amount.replace(',', '.');
+
+    if (!amount || parseFloat(amount) <= 0) {
+      alert("Please enter a valid donation amount!");
+      return;
+    }
+
+    try {
+      const minDonation = parseFloat(ethers.utils.formatEther(MIN_DONATION));
+      if (parseFloat(amount) < minDonation) {
+        alert(`Minimum donation is ${minDonation} cEUR`);
+        return;
+      }
+    } catch (error) {
+      console.warn("⚠️ Minimum donation check failed");
+    }
+
+    const weiAmount = ethers.utils.parseEther(amount);
+
+    toggleLoading(true, "Sending cEUR donation...");
+    await donateCEUR(weiAmount);
+
+    alert("💶 cEUR donation sent successfully!");
+    await loadDashboard();
+
+  } catch (err) {
+    console.error("❌ cEUR Donation Error:", err);
+    handleTransactionError(err, "cEUR donation");
   } finally {
     toggleLoading(false);
   }
@@ -1053,6 +1119,7 @@ function setupUI() {
   safeAddEventListener("deployButton", "click", handleDeploy);
   safeAddEventListener("donateCeloBtn", "click", handleDonateCELO);
   safeAddEventListener("donateCusdBtn", "click", handleDonateCUSD);
+  safeAddEventListener("donateCeurBtn", "click", handleDonateCEUR);
   safeAddEventListener("shareLinkBtn", "click", handleShareLink);
   safeAddEventListener("createProposalBtn", "click", handleCreateProposal);
   safeAddEventListener("withdrawDonationsBtn", "click", handleWithdraw);
