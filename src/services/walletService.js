@@ -192,7 +192,15 @@ export class WalletService {
       this.provider = new ethers.providers.Web3Provider(ethereum, "any");
       this.web3 = this.provider;
 
-      // Hesapları iste (önce izin alınmalı)
+      // Celo ağına geçişi hesap istemeden önce dene
+      const switched = await this.switchToCeloNetwork();
+      if (!switched) {
+        const switchError = new Error("Celo ağına geçiş isteğini onaylamanız gerekiyor.");
+        switchError.code = "CELO_SWITCH_REJECTED";
+        throw switchError;
+      }
+
+      // Hesapları iste (MetaMask onayı gerektirir)
       const accounts = await ethereum.request({
         method: "eth_requestAccounts"
       });
@@ -207,14 +215,6 @@ export class WalletService {
 
       // Event listener'ları kur
       this.setupMetaMaskEventListeners();
-
-      // Ağ geçişini hesap izninden sonra dene
-      const switched = await this.ensureCeloNetwork();
-      if (!switched) {
-        const switchError = new Error("Celo ağına geçiş isteğini onaylamanız gerekiyor.");
-        switchError.code = "CELO_SWITCH_REJECTED";
-        throw switchError;
-      }
 
       console.log("✅ Cüzdan bağlantısı başarılı:", this.account);
       return {
