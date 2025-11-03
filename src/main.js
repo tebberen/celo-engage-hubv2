@@ -61,6 +61,7 @@ let lastAutoContractName = "";
 
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
+const MIN_SUPPORT_CLICKS_REQUIRED = 3;
 const OWNER_ONLY_ELEMENT_IDS = ["donationOwnerPanel", "governanceOwnerPanel"];
 
 // ========================= APP INIT ========================= //
@@ -266,14 +267,14 @@ function renderUserLinkCards() {
 
 function handleLinkClick(link) {
   console.log("🔗 Link clicked:", link);
-  
+
   // 1. Linki yeni sekmede aç
   window.open(link, '_blank');
-  
+
   // 2. Tıklama sayısını güncelle
   linkClicks[link] = (linkClicks[link] || 0) + 1;
   localStorage.setItem('celoEngageHub_linkClicks', JSON.stringify(linkClicks));
-  
+
   // 3. UI'ı güncelle
   renderCommunityLinks();
   
@@ -282,8 +283,48 @@ function handleLinkClick(link) {
   if (isCommunityLink) {
     showAutoLinkForm();
   }
-  
+
   console.log(`📊 Link ${link} click count: ${linkClicks[link]}/${MAX_SUPPORT_CLICKS}`);
+}
+
+function getUserSupportRequirement() {
+  const trackedLinks = INITIAL_SUPPORT_LINKS.length > 0
+    ? INITIAL_SUPPORT_LINKS
+    : Object.keys(linkClicks || {});
+
+  const availableCapacity = trackedLinks.length * MAX_SUPPORT_CLICKS;
+  const requiredClicks = availableCapacity === 0
+    ? 0
+    : Math.min(MIN_SUPPORT_CLICKS_REQUIRED, availableCapacity);
+
+  let totalSupportClicks = 0;
+
+  trackedLinks.forEach(link => {
+    const value = linkClicks?.[link];
+    let numericValue = 0;
+
+    if (typeof value === "number") {
+      numericValue = value;
+    } else if (value && typeof value === "object" && typeof value.total === "number") {
+      numericValue = value.total;
+    }
+
+    totalSupportClicks += Math.min(numericValue, MAX_SUPPORT_CLICKS);
+  });
+
+  const remainingClicks = Math.max(0, requiredClicks - totalSupportClicks);
+
+  return {
+    totalSupportClicks,
+    requiredClicks,
+    remainingClicks,
+    isRequirementMet: remainingClicks === 0
+  };
+}
+
+function resetSupportProgress() {
+  linkClicks = {};
+  localStorage.setItem('celoEngageHub_linkClicks', JSON.stringify(linkClicks));
 }
 
 function showAutoLinkForm() {
@@ -314,50 +355,59 @@ async function handleAutoShareLink() {
       alert("⚠️ Please connect your wallet first to share a link!");
       return;
     }
-    
+
     const linkInput = document.getElementById("autoLinkInput");
     const link = linkInput?.value?.trim();
-    
+
     if (!link) {
       alert("Please enter a link");
       return;
     }
-    
+
     // URL validasyonu
     if (!link.startsWith('http://') && !link.startsWith('https://')) {
       alert("Please enter a valid URL starting with http:// or https://");
       return;
     }
-    
+
     // Link uzunluğu kontrolü
     if (link.length > 500) {
       alert("Link is too long. Please use a shorter URL.");
       return;
     }
-    
+
+    const supportStatus = getUserSupportRequirement();
+    if (!supportStatus.isRequirementMet) {
+      alert(`⚠️ Please support community links at least ${supportStatus.requiredClicks} times before sharing your own link. ${supportStatus.remainingClicks} more support click(s) needed.`);
+      return;
+    }
+
     toggleLoading(true, "Sharing your link on blockchain...");
-    
+
     // ✅ Link paylaşma işlemi
     const result = await shareLink(link);
-    
-    if (result.success) {
-      alert("🎉 Link shared successfully! Thank you for contributing to the community!");
-      
-      // Linki localStorage'a kaydet
-      saveUserLinkToStorage(link, userAddress);
-      
-      // Link listesini yenile
-      await loadUserSharedLinks();
-      
-      // Input'u temizle ve formu gizle
-      if (linkInput) linkInput.value = "";
-      hideAutoLinkForm();
-      
-      // Dashboard'u ve linkleri güncelle
-      await loadDashboard();
-      renderCommunityLinks();
+
+    if (!result?.success) {
+      throw new Error("Link sharing was not confirmed. Please try again.");
     }
-    
+
+    resetSupportProgress();
+    alert("🎉 Link shared successfully! Thank you for contributing to the community!");
+
+    // Linki localStorage'a kaydet
+    saveUserLinkToStorage(link, userAddress);
+
+    // Link listesini yenile
+    await loadUserSharedLinks();
+
+    // Input'u temizle ve formu gizle
+    if (linkInput) linkInput.value = "";
+    hideAutoLinkForm();
+
+    // Dashboard'u ve linkleri güncelle
+    await loadDashboard();
+    renderCommunityLinks();
+
   } catch (err) {
     console.error("❌ Auto Link Share Error:", err);
     
@@ -923,14 +973,23 @@ async function handleShareLink() {
       alert("Please enter a valid URL starting with http:// or https://");
       return;
     }
-    
+
+    const supportStatus = getUserSupportRequirement();
+    if (!supportStatus.isRequirementMet) {
+      alert(`⚠️ Please support community links at least ${supportStatus.requiredClicks} times before sharing your own link. ${supportStatus.remainingClicks} more support click(s) needed.`);
+      return;
+    }
+
     toggleLoading(true, "Sharing link...");
     await shareLink(link);
-    
+
+    resetSupportProgress();
+
     alert("🔗 Link shared successfully!");
     if (linkInput) linkInput.value = "";
     await loadDashboard();
-    
+    renderCommunityLinks();
+
   } catch (err) {
     console.error("❌ Link Error:", err);
     handleTransactionError(err, "link sharing");
