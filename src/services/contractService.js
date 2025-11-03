@@ -260,17 +260,41 @@ export async function getDonateStats() {
   try {
     const donate = getModule("DONATE");
     const userAddress = await signer.getAddress();
-    
+
     const stats = await donate.getDonateStats();
     const userStats = await donate.getUserDonationHistory(userAddress);
-    
+
+    let topDonors = [];
+    let topDonorsAvailable = false;
+
+    try {
+      const [addresses, amounts] = await donate.getTopDonors();
+
+      if (Array.isArray(addresses) && Array.isArray(amounts)) {
+        topDonorsAvailable = true;
+
+        topDonors = addresses
+          .map((address, index) => ({
+            address,
+            amount: amounts[index]?.toString?.() || "0"
+          }))
+          .filter(donor => donor.address && donor.address !== ethers.constants.AddressZero);
+      }
+    } catch (topDonorError) {
+      console.warn("⚠️ Unable to load top donors:", topDonorError);
+      topDonors = [];
+      topDonorsAvailable = false;
+    }
+
     return {
       totalDonatedValue: stats.totalDonatedValue.toString(),
       totalDonatorsCount: stats.totalDonatorsCount.toString(),
       dailyWithdrawn: stats.dailyWithdrawn.toString(),
       dailyLimit: stats.dailyLimit.toString(),
       userDonationCount: userStats.count.toString(),
-      userTotalDonated: userStats.totalAmount.toString()
+      userTotalDonated: userStats.totalAmount.toString(),
+      topDonors,
+      topDonorsAvailable
     };
   } catch (error) {
     console.error("❌ Get donate stats failed:", error);
@@ -280,7 +304,9 @@ export async function getDonateStats() {
       dailyWithdrawn: "0",
       dailyLimit: "0",
       userDonationCount: "0",
-      userTotalDonated: "0"
+      userTotalDonated: "0",
+      topDonors: [],
+      topDonorsAvailable: false
     };
   }
 }

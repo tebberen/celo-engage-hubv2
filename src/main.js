@@ -717,16 +717,15 @@ async function loadDashboard() {
     // Donate Section
     updateElementText("donateCounter", donateStats.totalDonatorsCount);
     updateElementText("userDonateCounter", profile.donateCount);
-    
-    try {
-      updateElementText("userTotalDonated", `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`);
-      updateElementText("totalDonatedValue", `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`);
-    } catch (etherError) {
-      updateElementText("userTotalDonated", "0 CELO");
-      updateElementText("totalDonatedValue", "0 CELO");
-    }
-    
+    updateElementText("userTotalDonated", formatCeloAmount(profile.totalDonated));
+    updateElementText("totalDonatedValue", formatCeloAmount(donateStats.totalDonatedValue));
     updateElementText("totalDonatorsCount", donateStats.totalDonatorsCount);
+    updateElementText("dailyWithdrawLimit", formatCeloAmount(donateStats.dailyLimit));
+    updateElementText("dailyWithdrawn", formatCeloAmount(donateStats.dailyWithdrawn));
+
+    renderTopDonors(donateStats);
+
+    updateWithdrawPanelState(donateStats, isOwnerAddress(userAddress));
 
     // Links Section
     updateElementText("linkCounter", linkStats.total);
@@ -1018,18 +1017,42 @@ async function loadBadgeInfo() {
 async function handleWithdraw() {
   try {
     if (!ensureConnected()) return;
-    
+
     if (userAddress.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
       alert("🚫 Only owner can withdraw donations!");
       return;
     }
-    
-    const confirmed = confirm("Are you sure you want to withdraw all donations?");
+
+    const donateStats = await getDonateStats().catch(err => {
+      console.warn("⚠️ Unable to refresh donate stats before withdraw:", err);
+      return null;
+    });
+
+    let confirmMessage = "Are you sure you want to withdraw all donations?";
+
+    if (donateStats) {
+      updateWithdrawPanelState(donateStats, true);
+
+      const limit = toBigNumber(donateStats.dailyLimit);
+      const withdrawn = toBigNumber(donateStats.dailyWithdrawn);
+
+      if (!limit.isZero()) {
+        if (withdrawn.gte(limit)) {
+          alert("🚫 Daily withdraw limit reached. Please try again tomorrow.");
+          return;
+        }
+
+        const remaining = limit.sub(withdrawn);
+        confirmMessage = `You can withdraw up to ${formatCeloAmount(remaining)} today. Continue?`;
+      }
+    }
+
+    const confirmed = confirm(confirmMessage);
     if (!confirmed) return;
-    
+
     toggleLoading(true, "Withdrawing donations...");
     await withdrawDonations();
-    
+
     alert("💸 Withdraw successful!");
     await loadDashboard();
     
@@ -1128,6 +1151,123 @@ function updateElementText(elementId, text) {
   const element = document.getElementById(elementId);
   if (element) {
     element.innerText = text;
+  }
+}
+
+function formatCeloAmount(value) {
+  try {
+    return `${ethers.utils.formatEther(value ?? "0")} CELO`;
+  } catch (error) {
+    console.warn("⚠️ Failed to format CELO amount:", error);
+    return "0 CELO";
+  }
+}
+
+function toBigNumber(value) {
+  try {
+    if (value === undefined || value === null) {
+      return ethers.BigNumber.from(0);
+    }
+    return ethers.BigNumber.from(value);
+  } catch (error) {
+    console.warn("⚠️ Failed to parse BigNumber:", error);
+    return ethers.BigNumber.from(0);
+  }
+}
+
+function renderTopDonors(donateStats = {}) {
+  const countElement = document.getElementById("topDonorsCount");
+  const listElement = document.getElementById("topDonorsList");
+
+  const donors = Array.isArray(donateStats.topDonors) ? donateStats.topDonors : [];
+  const hasContractData = Boolean(donateStats.topDonorsAvailable);
+
+  if (countElement) {
+    const defaultCount = donateStats?.totalDonatorsCount;
+    const countValue = hasContractData
+      ? donors.length.toString()
+      : defaultCount !== undefined
+        ? defaultCount.toString()
+        : "0";
+    countElement.innerText = countValue;
+  }
+
+  if (!listElement) return;
+
+  listElement.innerHTML = "";
+
+  if (!hasContractData) {
+    const item = document.createElement("li");
+    item.className = "empty-state";
+    item.textContent = "Top donor data is not available yet.";
+    listElement.appendChild(item);
+    return;
+  }
+
+  if (donors.length === 0) {
+    const item = document.createElement("li");
+    item.className = "empty-state";
+    item.textContent = "No donations yet.";
+    listElement.appendChild(item);
+    return;
+  }
+
+  donors.slice(0, 5).forEach((donor, index) => {
+    const item = document.createElement("li");
+
+    const addressSpan = document.createElement("span");
+    const displayAddress = donor?.address ? shortenAddress(donor.address) : "Unknown";
+    addressSpan.textContent = `${index + 1}. ${displayAddress}`;
+
+    const amountSpan = document.createElement("span");
+    amountSpan.textContent = formatCeloAmount(donor.amount);
+
+    item.appendChild(addressSpan);
+    item.appendChild(amountSpan);
+
+    listElement.appendChild(item);
+  });
+}
+
+function updateWithdrawPanelState(donateStats, isOwner) {
+  const withdrawBtn = document.getElementById("withdrawDonationsBtn");
+  const warningElement = document.getElementById("withdrawLimitWarning");
+
+  if (!withdrawBtn) return;
+
+  if (!isOwner || !donateStats) {
+    withdrawBtn.disabled = false;
+    withdrawBtn.setAttribute("aria-disabled", "false");
+    if (warningElement) {
+      warningElement.textContent = "";
+      warningElement.style.display = "none";
+      warningElement.classList.remove("limit-reached");
+    }
+    return;
+  }
+
+  const limit = toBigNumber(donateStats?.dailyLimit);
+  const withdrawn = toBigNumber(donateStats?.dailyWithdrawn);
+  let message = "";
+  let disable = false;
+
+  if (limit.isZero()) {
+    message = "No daily withdraw limit configured.";
+  } else if (withdrawn.gte(limit)) {
+    disable = true;
+    message = "Daily withdraw limit reached. Try again tomorrow.";
+  } else {
+    const remaining = limit.sub(withdrawn);
+    message = `You can withdraw up to ${formatCeloAmount(remaining)} today.`;
+  }
+
+  withdrawBtn.disabled = disable;
+  withdrawBtn.setAttribute("aria-disabled", disable ? "true" : "false");
+
+  if (warningElement) {
+    warningElement.style.display = message ? "block" : "none";
+    warningElement.textContent = message;
+    warningElement.classList.toggle("limit-reached", disable && !limit.isZero());
   }
 }
 

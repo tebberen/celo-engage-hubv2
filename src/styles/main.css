@@ -756,6 +756,48 @@ header {
   color: var(--text-dark);
 }
 
+.top-donor-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.top-donor-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  background: rgba(0, 0, 0, 0.03);
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--border-radius-sm);
+}
+
+.top-donor-list li span {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.top-donor-list .empty-state {
+  justify-content: center;
+  color: var(--dark-gray);
+  font-style: italic;
+}
+
+.withdraw-warning {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+}
+
+.withdraw-warning.limit-reached {
+  color: var(--celo-red);
+  font-weight: 600;
+}
+
 /* === BADGES === */
 .badge {
   display: inline-block;

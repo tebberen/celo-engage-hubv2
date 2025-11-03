@@ -599,7 +599,7 @@
               <h4>💰 Owner Withdraw Panel</h4>
               <p>Withdraw donations to project owner</p>
               <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B;">Withdraw Donations 🏦</button>
-              
+
               <div class="stats-grid">
                 <div class="stat-card">
                   <h4>Total Donated</h4>
@@ -613,7 +613,13 @@
                   <h4>Daily Limit</h4>
                   <div id="dailyWithdrawLimit">1000 CELO</div>
                 </div>
+                <div class="stat-card">
+                  <h4>Daily Withdrawn</h4>
+                  <div id="dailyWithdrawn">0 CELO</div>
+                </div>
               </div>
+
+              <p id="withdrawLimitWarning" class="withdraw-warning" aria-live="polite"></p>
             </div>
 
             <!-- Donate İstatistikleri -->
@@ -633,6 +639,7 @@
               <div class="stat-card">
                 <h4>Top Donors</h4>
                 <div id="topDonorsCount">0</div>
+                <ul id="topDonorsList" class="top-donor-list"></ul>
               </div>
             </div>
           </div>
