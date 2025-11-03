@@ -1,0 +1,10 @@
+{
+  "name": "celo-engage-hubv2",
+  "version": "1.0.0",
+  "description": "Celo Engage Hub front-end",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@walletconnect/web3-provider": "^1.8.0"
+  }
+}

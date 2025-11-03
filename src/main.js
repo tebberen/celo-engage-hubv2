@@ -662,21 +662,24 @@ if (connectMetaMaskBtn) {
 
 // WalletConnect için tıklama olayı
 if (connectWalletConnectBtn) {
-  connectWalletConnectBtn.addEventListener('click', () => {
-    alert('🚧 WalletConnect support is coming soon!');
+  connectWalletConnectBtn.addEventListener('click', async () => {
+    walletModal.style.display = 'none';
+    await connectWalletConnect();
   });
 }
 
 async function connectWallet() {
   try {
     toggleLoading(true, "Connecting to wallet...");
-    
+
     const result = await walletService.connectWallet();
     userAddress = result.account;
     
     if (!userAddress) throw new Error("Wallet not connected");
     
-    await walletService.ensureCeloNetwork();
+    if (walletService.getConnectionType() !== 'walletconnect') {
+      await walletService.ensureCeloNetwork();
+    }
     
     await initializeApp();
     
@@ -692,6 +695,38 @@ async function connectWallet() {
       errorMessage = "MetaMask not found. Please install MetaMask.";
     }
     
+    alert(errorMessage);
+    toggleLoading(false);
+  }
+}
+
+async function connectWalletConnect() {
+  try {
+    toggleLoading(true, "Connecting with WalletConnect...");
+
+    const result = await walletService.connectWalletConnect();
+    userAddress = result.account;
+
+    if (!userAddress) throw new Error("Wallet not connected");
+
+    if (walletService.getConnectionType() !== 'walletconnect') {
+      await walletService.ensureCeloNetwork();
+    }
+
+    await initializeApp();
+
+    console.log("✅ WalletConnect connected:", userAddress);
+
+  } catch (err) {
+    console.error("❌ WalletConnect connection failed:", err);
+
+    let errorMessage = err?.message || "WalletConnect connection failed.";
+    if (errorMessage.toLowerCase().includes('closed')) {
+      errorMessage = "WalletConnect connection was cancelled. Please scan the QR code to connect.";
+    } else if (errorMessage.toLowerCase().includes('network')) {
+      errorMessage = "Unable to connect via WalletConnect. Please check your network and try again.";
+    }
+
     alert(errorMessage);
     toggleLoading(false);
   }
@@ -742,7 +777,7 @@ async function initializeApp() {
 
 async function disconnectWallet() {
   try {
-    walletService.disconnect();
+    await walletService.disconnect();
 
     userAddress = "";
     appInitialized = false;
