@@ -469,9 +469,9 @@ export async function vote(proposalId, support) {
   try {
     const gov = getModule("GOVERNANCE");
     const userAddress = await signer.getAddress();
-    
+
     console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
-    
+
     // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
     const { sentTx } = await sendWithReferral(gov, "vote", [userAddress, proposalId, support]);
 
@@ -480,6 +480,84 @@ export async function vote(proposalId, support) {
   } catch (error) {
     console.error("❌ Vote failed:", error);
     throw error;
+  }
+}
+
+export async function getActiveProposals() {
+  try {
+    const gov = getModule("GOVERNANCE");
+    const readGov = gov.connect(getReadOnlyProvider());
+    const proposalIds = await readGov.getActiveProposals();
+
+    return proposalIds.map(id => id.toString());
+  } catch (error) {
+    console.error("❌ Get active proposals failed:", error);
+    return [];
+  }
+}
+
+export async function getProposalDetails(proposalId) {
+  try {
+    const gov = getModule("GOVERNANCE");
+    const readGov = gov.connect(getReadOnlyProvider());
+
+    const [proposal, results] = await Promise.all([
+      readGov.getProposal(proposalId),
+      readGov.getProposalResults(proposalId).catch(() => null)
+    ]);
+
+    const proposalData = {
+      id: proposal?.id?.toString?.() ?? proposal?.id ?? proposalId,
+      creator: proposal?.creator ?? ethers.constants.AddressZero,
+      title: proposal?.title ?? "",
+      description: proposal?.description ?? "",
+      link: proposal?.link ?? "",
+      startTime: proposal?.startTime?.toString?.() ?? "0",
+      endTime: proposal?.endTime?.toString?.() ?? "0",
+      forVotes: proposal?.forVotes?.toString?.() ?? "0",
+      againstVotes: proposal?.againstVotes?.toString?.() ?? "0",
+      executed: Boolean(proposal?.executed)
+    };
+
+    if (results) {
+      proposalData.results = {
+        approved: Boolean(results[0]),
+        forVotes: results[1]?.toString?.() ?? proposalData.forVotes,
+        againstVotes: results[2]?.toString?.() ?? proposalData.againstVotes
+      };
+    }
+
+    return proposalData;
+  } catch (error) {
+    console.error(`❌ Get proposal ${proposalId} details failed:`, error);
+    return null;
+  }
+}
+
+export async function getVoteReceipt(proposalId, voterAddress) {
+  try {
+    const address = voterAddress || (signer ? await signer.getAddress() : null);
+    if (!address) {
+      return { hasVoted: false, support: null };
+    }
+
+    const gov = getModule("GOVERNANCE");
+    const readGov = gov.connect(getReadOnlyProvider());
+
+    const hasVoted = await readGov.hasUserVoted(proposalId, address).catch(() => false);
+    let support = null;
+
+    if (hasVoted) {
+      const voteChoice = await readGov.proposalVoters(proposalId, address).catch(() => null);
+      if (voteChoice !== null && voteChoice !== undefined) {
+        support = Boolean(voteChoice);
+      }
+    }
+
+    return { hasVoted, support };
+  } catch (error) {
+    console.error(`❌ Get vote receipt failed for proposal ${proposalId}:`, error);
+    return { hasVoted: false, support: null };
   }
 }
 

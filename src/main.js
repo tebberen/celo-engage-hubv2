@@ -18,6 +18,9 @@ import {
   getUserSharedLinks,
   createProposal,
   vote,
+  getActiveProposals,
+  getProposalDetails,
+  getVoteReceipt,
   getGovernanceStats,
   getUserBadge,
   getBadgeStats,
@@ -355,6 +358,7 @@ async function handleAutoShareLink() {
       
       // Dashboard'u ve linkleri güncelle
       await loadDashboard();
+      await loadGovernance();
       renderCommunityLinks();
     }
     
@@ -527,6 +531,7 @@ async function initializeApp() {
     } else {
       console.log("✅ Existing user - loading dashboard");
       await loadDashboard();
+      await loadGovernance();
     }
     
     appInitialized = true;
@@ -558,12 +563,19 @@ async function disconnectWallet() {
     
     // Owner panellerini gizle
     setOwnerOnlyVisibility(false);
-    
+
     // Profil modal'ını gizle
     hideProfileCreationModal();
-    
+
+    const proposalsContainer = document.getElementById("proposalsList");
+    if (proposalsContainer) {
+      proposalsContainer.innerHTML = `
+        <div class="proposal-empty">⚠️ Connect your wallet to view governance proposals.</div>
+      `;
+    }
+
     console.log("🔌 Wallet disconnected");
-    
+
   } catch (err) {
     console.error("Disconnect error:", err);
     alert("Disconnect failed: " + err.message);
@@ -642,11 +654,13 @@ async function handleCreateProfile() {
       alert("🎉 Profile created successfully!");
       hideProfileCreationModal();
       await loadDashboard();
+      await loadGovernance();
       setOwnerOnlyVisibility(isOwnerAddress(userAddress));
     } else if (result.alreadyRegistered) {
       alert("✅ Profile already exists!");
       hideProfileCreationModal();
       await loadDashboard();
+      await loadGovernance();
       setOwnerOnlyVisibility(isOwnerAddress(userAddress));
     }
     
@@ -668,7 +682,7 @@ async function handleCreateProfile() {
 async function loadDashboard() {
   try {
     if (!userAddress) return;
-    
+
     toggleLoading(true, "Loading your profile...");
 
     // Tüm istatistikleri paralel olarak yükle
@@ -758,6 +772,302 @@ async function loadDashboard() {
   }
 }
 
+async function loadGovernance() {
+  const proposalsContainer = document.getElementById("proposalsList");
+  if (!proposalsContainer) return;
+
+  if (!userAddress) {
+    proposalsContainer.innerHTML = `
+      <div class="proposal-empty">⚠️ Connect your wallet to view governance proposals.</div>
+    `;
+    return;
+  }
+
+  proposalsContainer.innerHTML = `
+    <div class="proposal-empty">⏳ Loading proposals...</div>
+  `;
+
+  try {
+    const proposalIds = await getActiveProposals();
+
+    if (!proposalIds || proposalIds.length === 0) {
+      proposalsContainer.innerHTML = `
+        <div class="proposal-empty">🎉 No active proposals right now. Check back soon!</div>
+      `;
+      return;
+    }
+
+    const proposalEntries = await Promise.all(
+      proposalIds.map(async id => {
+        const [details, receipt] = await Promise.all([
+          getProposalDetails(id),
+          getVoteReceipt(id, userAddress)
+        ]);
+
+        if (!details) return null;
+
+        return {
+          ...details,
+          receipt: receipt || { hasVoted: false, support: null }
+        };
+      })
+    );
+
+    const proposals = proposalEntries.filter(Boolean);
+
+    if (proposals.length === 0) {
+      proposalsContainer.innerHTML = `
+        <div class="proposal-empty">⚠️ Unable to load proposal details.</div>
+      `;
+      return;
+    }
+
+    proposals.sort((a, b) => {
+      const aTime = parseInt(a.startTime || "0", 10);
+      const bTime = parseInt(b.startTime || "0", 10);
+      return bTime - aTime;
+    });
+
+    proposalsContainer.innerHTML = proposals.map(proposal => {
+      const forVotes = ethers.BigNumber.from(proposal.results?.forVotes || proposal.forVotes || "0");
+      const againstVotes = ethers.BigNumber.from(proposal.results?.againstVotes || proposal.againstVotes || "0");
+      const totalVotes = forVotes.add(againstVotes);
+
+      const forPercentage = formatVotePercentage(forVotes, totalVotes);
+      const againstPercentage = formatVotePercentage(againstVotes, totalVotes);
+
+      const startLabel = formatProposalStart(proposal.startTime);
+      const statusLabel = getProposalStatusLabel(proposal);
+      const outcomeLabel = getProposalOutcomeLabel(proposal);
+
+      const hasVoted = Boolean(proposal.receipt?.hasVoted);
+      const supportChoice = proposal.receipt?.support;
+
+      const votedLabel = hasVoted
+        ? supportChoice === null
+          ? "You already voted"
+          : supportChoice
+            ? "✅ You supported this proposal"
+            : "❌ You opposed this proposal"
+        : "";
+
+      const proposalLink = proposal.link
+        ? `<a href="${proposal.link}" target="_blank" rel="noopener" class="proposal-link">${proposal.link}</a>`
+        : "";
+
+      return `
+        <div class="proposal-card" data-proposal-id="${proposal.id}">
+          <div class="proposal-header">
+            <h3>${proposal.title || "Untitled Proposal"}</h3>
+            <span class="proposal-meta">${startLabel}</span>
+          </div>
+          <p class="proposal-description">${proposal.description || "No description provided."}</p>
+          ${proposalLink}
+          <div class="proposal-stats">
+            <div><strong>Total Votes:</strong> ${totalVotes.toString()}</div>
+            <div><strong>Support:</strong> ${forVotes.toString()} (${forPercentage}%)</div>
+            <div><strong>Against:</strong> ${againstVotes.toString()} (${againstPercentage}%)</div>
+            <div><strong>Status:</strong> ${statusLabel}</div>
+            <div><strong>Outcome:</strong> ${outcomeLabel}</div>
+          </div>
+          <div class="proposal-actions">
+            <button class="vote-btn support" data-proposal-id="${proposal.id}" data-support="true" ${hasVoted ? "disabled" : ""}>Support ✅</button>
+            <button class="vote-btn against" data-proposal-id="${proposal.id}" data-support="false" ${hasVoted ? "disabled" : ""}>Against ❌</button>
+          </div>
+          <div class="proposal-status" id="proposal-status-${proposal.id}">${votedLabel}</div>
+        </div>
+      `;
+    }).join("");
+
+    proposals.forEach(proposal => {
+      const card = proposalsContainer.querySelector(`.proposal-card[data-proposal-id="${proposal.id}"]`);
+      if (!card) return;
+
+      const supportBtn = card.querySelector('button[data-support="true"]');
+      const againstBtn = card.querySelector('button[data-support="false"]');
+
+      if (proposal.receipt?.hasVoted && proposal.receipt.support !== null) {
+        const targetBtn = proposal.receipt.support ? supportBtn : againstBtn;
+        if (targetBtn) targetBtn.classList.add("selected");
+      }
+
+      [supportBtn, againstBtn].forEach(btn => {
+        if (!btn) return;
+        btn.addEventListener('click', handleVoteButtonClick);
+      });
+    });
+  } catch (error) {
+    console.error("❌ Governance load failed:", error);
+    proposalsContainer.innerHTML = `
+      <div class="proposal-empty">❌ Failed to load governance data. Please try again.</div>
+    `;
+  }
+}
+
+function formatVotePercentage(value, total) {
+  if (!total || total.isZero()) return "0.0";
+  const scaled = value.mul(1000).div(total);
+  return (scaled.toNumber() / 10).toFixed(1);
+}
+
+function formatProposalStart(startTime) {
+  const startMs = secondsToMs(startTime);
+  if (!startMs) return "Created just now";
+  return `Started ${formatTimeAgo(startMs)}`;
+}
+
+function getProposalStatusLabel(proposal) {
+  const now = Date.now();
+  const endMs = secondsToMs(proposal.endTime);
+
+  if (proposal.executed) {
+    return "✅ Executed";
+  }
+
+  if (endMs && now > endMs) {
+    return proposal.results?.approved ? "🟢 Voting closed (approved)" : "🔴 Voting closed";
+  }
+
+  if (endMs) {
+    return `⏳ Ends in ${formatDuration(endMs - now)}`;
+  }
+
+  return "⏳ Voting open";
+}
+
+function getProposalOutcomeLabel(proposal) {
+  if (proposal.executed) {
+    return "Executed";
+  }
+
+  if (proposal.results?.approved) {
+    return "Approved";
+  }
+
+  const totalVotes = ethers.BigNumber.from(proposal.results?.forVotes || proposal.forVotes || "0")
+    .add(ethers.BigNumber.from(proposal.results?.againstVotes || proposal.againstVotes || "0"));
+
+  if (totalVotes.isZero()) {
+    return "Pending votes";
+  }
+
+  if (proposal.results && proposal.results.againstVotes) {
+    const forVotes = ethers.BigNumber.from(proposal.results.forVotes || "0");
+    const againstVotes = ethers.BigNumber.from(proposal.results.againstVotes || "0");
+    return forVotes.gte(againstVotes) ? "Leading: Support" : "Leading: Against";
+  }
+
+  const forVotes = ethers.BigNumber.from(proposal.forVotes || "0");
+  const againstVotes = ethers.BigNumber.from(proposal.againstVotes || "0");
+  return forVotes.gte(againstVotes) ? "Leading: Support" : "Leading: Against";
+}
+
+function secondsToMs(value) {
+  if (value === null || value === undefined) return null;
+
+  try {
+    const asString = value.toString ? value.toString() : String(value);
+    const seconds = parseInt(asString, 10);
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
+    return seconds * 1000;
+  } catch (err) {
+    return null;
+  }
+}
+
+function formatDuration(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return "0s";
+
+  const totalSeconds = Math.floor(ms / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  if (totalHours < 24) {
+    return `${totalHours}h`;
+  }
+
+  const totalDays = Math.floor(totalHours / 24);
+  if (totalDays < 7) {
+    return `${totalDays}d`;
+  }
+
+  const totalWeeks = Math.floor(totalDays / 7);
+  if (totalWeeks < 4) {
+    return `${totalWeeks}w`;
+  }
+
+  const totalMonths = Math.floor(totalDays / 30);
+  if (totalMonths < 12) {
+    return `${totalMonths}mo`;
+  }
+
+  const totalYears = Math.floor(totalDays / 365);
+  return `${totalYears}y`;
+}
+
+async function handleVoteButtonClick(event) {
+  event.preventDefault();
+
+  if (!ensureConnected()) return;
+
+  const button = event.currentTarget;
+  const proposalId = button?.getAttribute("data-proposal-id");
+  const support = button?.getAttribute("data-support") === "true";
+
+  if (!proposalId) {
+    console.warn("⚠️ Vote button missing proposal id");
+    return;
+  }
+
+  const card = button.closest('.proposal-card');
+  const statusElement = document.getElementById(`proposal-status-${proposalId}`);
+  const voteButtons = card ? Array.from(card.querySelectorAll('.vote-btn')) : [];
+
+  voteButtons.forEach(btn => {
+    if (btn) btn.disabled = true;
+  });
+
+  if (statusElement) {
+    statusElement.innerText = support
+      ? "⏳ Submitting your support vote..."
+      : "⏳ Submitting your against vote...";
+  }
+
+  try {
+    const result = await vote(proposalId, support);
+    const txSummary = result?.txHash ? ` (tx: ${shortenHash(result.txHash)})` : "";
+
+    if (statusElement) {
+      statusElement.innerText = support
+        ? `✅ Support vote submitted${txSummary}`
+        : `✅ Against vote submitted${txSummary}`;
+    }
+
+    await loadDashboard();
+    await loadGovernance();
+  } catch (error) {
+    console.error("❌ Vote transaction failed:", error);
+
+    if (statusElement) {
+      const friendlyMessage = error?.message ? error.message.split('\n')[0] : "Transaction error";
+      statusElement.innerText = `❌ Vote failed: ${friendlyMessage}`;
+    }
+
+    handleTransactionError(error, "vote");
+
+    voteButtons.forEach(btn => {
+      if (btn) btn.disabled = false;
+    });
+  }
+}
+
 // ========================= MODÜL FONKSİYONLARI ========================= //
 
 async function handleGM() {
@@ -777,7 +1087,7 @@ async function handleGM() {
     
     alert("✅ GM sent successfully!");
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ GM Error:", err);
     handleTransactionError(err, "GM");
@@ -814,7 +1124,7 @@ async function handleDeploy() {
 
     alert("✅ Contract deployed successfully!");
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ Deploy Error:", err);
     handleTransactionError(err, "deploy");
@@ -856,7 +1166,7 @@ async function handleDonateCELO() {
     
     alert("💛 CELO donation sent successfully!");
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ CELO Donation Error:", err);
     handleTransactionError(err, "CELO donation");
@@ -898,7 +1208,7 @@ async function handleDonateCUSD() {
     
     alert("💵 cUSD donation sent successfully!");
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ cUSD Donation Error:", err);
     handleTransactionError(err, "cUSD donation");
@@ -930,7 +1240,7 @@ async function handleShareLink() {
     alert("🔗 Link shared successfully!");
     if (linkInput) linkInput.value = "";
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ Link Error:", err);
     handleTransactionError(err, "link sharing");
@@ -968,6 +1278,7 @@ async function handleCreateProposal() {
     
     await loadDashboard();
     
+    await loadGovernance();
   } catch (err) {
     console.error("❌ Proposal Error:", err);
     handleTransactionError(err, "proposal creation");
@@ -1032,7 +1343,7 @@ async function handleWithdraw() {
     
     alert("💸 Withdraw successful!");
     await loadDashboard();
-    
+    await loadGovernance();
   } catch (err) {
     console.error("❌ Withdraw Error:", err);
     handleTransactionError(err, "withdrawal");
@@ -1133,6 +1444,11 @@ function updateElementText(elementId, text) {
 
 function shortenAddress(addr) {
   return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
+}
+
+function shortenHash(hash) {
+  if (!hash || hash.length < 12) return hash || "";
+  return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
 }
 
 function formatTimeAgo(timestamp) {
