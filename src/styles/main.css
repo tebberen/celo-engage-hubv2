@@ -263,6 +263,26 @@ header {
   box-shadow: var(--shadow);
 }
 
+.top-donors-list {
+  list-style-type: decimal;
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  text-align: left;
+}
+
+.top-donors-list li {
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
+  color: var(--text-dark);
+}
+
+.top-donors-list li.empty {
+  list-style: none;
+  padding-left: 0;
+  color: var(--text-light);
+}
+
 /* === ECOSYSTEM BOX === */
 .ecosystem-box {
   background: var(--light-bg);

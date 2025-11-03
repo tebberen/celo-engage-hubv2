@@ -40,6 +40,8 @@ import {
   saveUserLinkToStorage
 } from "./utils/constants.js";
 
+import { formatCeloAmount, formatNumber } from "./utils/formatters.js";
+
 // ✅ WALLET SERVICE CLASS OLARAK IMPORT
 import WalletService from "./services/walletService.js";
 
@@ -63,6 +65,7 @@ let lastAutoContractName = "";
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
 const OWNER_ONLY_ELEMENT_IDS = ["donationOwnerPanel", "governanceOwnerPanel"];
+const TOP_DONORS_DISPLAY_LIMIT = 5;
 
 // ========================= APP INIT ========================= //
 
@@ -831,9 +834,14 @@ async function loadDashboard() {
     ] = await Promise.all([
       getGMStats().catch(err => ({ total: "0", userCount: "0" })),
       getDeployStats().catch(err => ({ total: "0", userDeploys: "0" })),
-      getDonateStats().catch(err => ({ 
-        totalDonatedValue: "0", 
+      getDonateStats().catch(err => ({
+        totalDonatedValue: "0",
         totalDonatorsCount: "0",
+        dailyWithdrawn: "0",
+        dailyLimit: "0",
+        dailyRemaining: "0",
+        topDonors: [],
+        topDonorsCount: "0",
         userDonationCount: "0",
         userTotalDonated: "0"
       })),
@@ -863,18 +871,15 @@ async function loadDashboard() {
     updateElementText("userDeployCounter", profile.deployCount);
 
     // Donate Section
-    updateElementText("donateCounter", donateStats.totalDonatorsCount);
-    updateElementText("userDonateCounter", profile.donateCount);
-    
-    try {
-      updateElementText("userTotalDonated", `${ethers.utils.formatEther(profile.totalDonated || "0")} CELO`);
-      updateElementText("totalDonatedValue", `${ethers.utils.formatEther(donateStats.totalDonatedValue || "0")} CELO`);
-    } catch (etherError) {
-      updateElementText("userTotalDonated", "0 CELO");
-      updateElementText("totalDonatedValue", "0 CELO");
-    }
-    
-    updateElementText("totalDonatorsCount", donateStats.totalDonatorsCount);
+    updateElementText("donateCounter", formatNumber(donateStats.totalDonatorsCount));
+    updateElementText("userDonateCounter", formatNumber(profile.donateCount));
+    updateElementText("userTotalDonated", formatCeloAmount(profile.totalDonated || "0", { maxFractionDigits: 4 }));
+    updateElementText("totalDonatedValue", formatCeloAmount(donateStats.totalDonatedValue || "0", { maxFractionDigits: 4 }));
+    updateElementText("totalDonatorsCount", formatNumber(donateStats.totalDonatorsCount));
+    updateElementText("dailyWithdrawLimit", formatCeloAmount(donateStats.dailyLimit || "0", { maxFractionDigits: 4 }));
+    updateElementText("dailyRemainingLimit", formatCeloAmount(donateStats.dailyRemaining || "0", { maxFractionDigits: 4 }));
+    updateElementText("topDonorsCount", formatNumber(donateStats.topDonorsCount));
+    renderTopDonorsList(donateStats.topDonors || []);
 
     // Links Section
     updateElementText("linkCounter", linkStats.total);
@@ -1279,6 +1284,25 @@ function updateElementText(elementId, text) {
   if (element) {
     element.innerText = text;
   }
+}
+
+function renderTopDonorsList(donors) {
+  const listElement = document.getElementById("topDonorsList");
+  if (!listElement) return;
+
+  if (!Array.isArray(donors) || donors.length === 0) {
+    listElement.innerHTML = '<li class="empty">No donors yet</li>';
+    return;
+  }
+
+  const items = donors.slice(0, TOP_DONORS_DISPLAY_LIMIT).map(donor => {
+    const address = donor.address || "";
+    const formattedAddress = shortenAddress(address);
+    const amount = formatCeloAmount(donor.amount || "0", { maxFractionDigits: 4 });
+    return `<li><span title="${address}">${formattedAddress}</span> — ${amount}</li>`;
+  }).join("");
+
+  listElement.innerHTML = items;
 }
 
 function shortenAddress(addr) {

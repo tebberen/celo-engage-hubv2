@@ -275,15 +275,36 @@ export async function getDonateStats() {
   try {
     const donate = getModule("DONATE");
     const userAddress = await signer.getAddress();
-    
-    const stats = await donate.getDonateStats();
-    const userStats = await donate.getUserDonationHistory(userAddress);
-    
+
+    const [stats, userStats, topDonorsRaw] = await Promise.all([
+      donate.getDonateStats(),
+      donate.getUserDonationHistory(userAddress),
+      donate.getTopDonors().catch(() => [[], []])
+    ]);
+
+    const dailyLimit = ethers.BigNumber.from(stats.dailyLimit || 0);
+    const dailyWithdrawn = ethers.BigNumber.from(stats.dailyWithdrawn || 0);
+    const remainingLimit = dailyLimit.gt(dailyWithdrawn)
+      ? dailyLimit.sub(dailyWithdrawn)
+      : ethers.BigNumber.from(0);
+
+    const [topDonorAddresses = [], topDonorAmounts = []] = Array.isArray(topDonorsRaw)
+      ? topDonorsRaw
+      : [[], []];
+
+    const topDonors = topDonorAddresses.map((address, index) => ({
+      address,
+      amount: topDonorAmounts[index] ? topDonorAmounts[index].toString() : "0"
+    })).filter(donor => Boolean(donor.address));
+
     return {
       totalDonatedValue: stats.totalDonatedValue.toString(),
       totalDonatorsCount: stats.totalDonatorsCount.toString(),
       dailyWithdrawn: stats.dailyWithdrawn.toString(),
       dailyLimit: stats.dailyLimit.toString(),
+      dailyRemaining: remainingLimit.toString(),
+      topDonors,
+      topDonorsCount: topDonors.length.toString(),
       userDonationCount: userStats.count.toString(),
       userTotalDonated: userStats.totalAmount.toString()
     };
@@ -294,6 +315,9 @@ export async function getDonateStats() {
       totalDonatorsCount: "0",
       dailyWithdrawn: "0",
       dailyLimit: "0",
+      dailyRemaining: "0",
+      topDonors: [],
+      topDonorsCount: "0",
       userDonationCount: "0",
       userTotalDonated: "0"
     };
