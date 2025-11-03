@@ -779,6 +779,167 @@ header {
   display: inline-block;
 }
 
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 0.75rem 0;
+  color: var(--dark-gray);
+}
+
+.empty-state {
+  font-style: italic;
+}
+
+.badge-card {
+  background: var(--white);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  margin-top: 1rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.badge-card--unlocked {
+  border-color: rgba(53, 208, 127, 0.6);
+  box-shadow: 0 0 0 2px rgba(53, 208, 127, 0.2);
+}
+
+.badge-card--next {
+  border-color: rgba(74, 144, 226, 0.5);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.18);
+}
+
+.badge-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.badge-card-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-dark);
+}
+
+.badge-card-tier {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+}
+
+.badge-card-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+}
+
+.badge-card-status--unlocked {
+  background: rgba(53, 208, 127, 0.2);
+  color: #1b7f51;
+}
+
+.badge-card-status--progress {
+  background: rgba(74, 144, 226, 0.2);
+  color: #2c68a0;
+}
+
+.badge-card-status--locked {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--dark-gray);
+}
+
+.badge-card-progress-summary {
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+  margin-bottom: 0.75rem;
+}
+
+.badge-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.badge-progress-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 80px;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.badge-progress-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.badge-progress-bar {
+  position: relative;
+  height: 8px;
+  background: var(--light-gray);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.badge-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--celo-gold), var(--celo-green));
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.badge-progress-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-align: right;
+}
+
+.badge-progress-empty {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--dark-gray);
+  margin: 0.5rem 0 0;
+}
+
+.badge-next-tier {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px dashed rgba(74, 144, 226, 0.4);
+  border-radius: var(--border-radius-sm);
+  background: rgba(74, 144, 226, 0.08);
+}
+
+.badge-next-tier h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-dark);
+}
+
+.badge-next-tier-name {
+  font-weight: 600;
+  color: var(--celo-blue);
+  margin-bottom: 0.5rem;
+}
+
+.badge-next-tier-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-light);
+  font-size: 0.85rem;
+}
+
+.badge-next-tier-list li {
+  margin-bottom: 0.25rem;
+}
+
 /* === TOKEN SELECTOR === */
 .token-selector {
   display: flex;

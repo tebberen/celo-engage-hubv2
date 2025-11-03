@@ -20,6 +20,7 @@ import {
   vote,
   getGovernanceStats,
   getUserBadge,
+  getUserBadgeList,
   getBadgeStats,
   loadUserProfile,
   withdrawDonations,
@@ -520,9 +521,10 @@ async function initializeApp() {
 
     // Profil kontrolü
     const userProfile = await loadUserProfile(userAddress);
-    
+
     if (!userProfile.exists) {
       console.log("🆕 New user - showing profile creation");
+      await loadBadgeInfo(userProfile);
       showProfileCreationModal();
     } else {
       console.log("✅ Existing user - loading dashboard");
@@ -748,6 +750,8 @@ async function loadDashboard() {
     updateElementText("profileVoteCount", profile.voteCount);
 
     lastProfileSnapshot = profile;
+
+    await loadBadgeInfo(profile);
 
     console.log("📊 Dashboard loaded successfully");
 
@@ -976,41 +980,224 @@ async function handleCreateProposal() {
   }
 }
 
-async function loadBadgeInfo() {
+async function loadBadgeInfo(profileOverride = null) {
+  const badgeInfoElement = document.getElementById("userBadgeInfo");
+  const badgesListElement = document.getElementById("badgesList");
+
+  if (!userAddress) {
+    if (badgeInfoElement) {
+      badgeInfoElement.innerHTML = "<p class=\"empty-state\">Connect your wallet to view your badges.</p>";
+    }
+    if (badgesListElement) {
+      badgesListElement.innerHTML = "<p class=\"empty-state\">No badge progress to display yet.</p>";
+    }
+    return;
+  }
+
+  if (badgeInfoElement) {
+    badgeInfoElement.innerHTML = "<p class=\"loading-state\">Loading badge summary...</p>";
+  }
+  if (badgesListElement) {
+    badgesListElement.innerHTML = "<p class=\"loading-state\">Loading badge progress...</p>";
+  }
+
   try {
-    if (!ensureConnected()) return;
-    
-    const badge = await getUserBadge(userAddress);
-    
-    const badgeInfoElement = document.getElementById("userBadgeInfo");
+    const profilePromise = profileOverride
+      ? Promise.resolve(profileOverride)
+      : (lastProfileSnapshot
+        ? Promise.resolve(lastProfileSnapshot)
+        : loadUserProfile(userAddress));
+
+    const [badgeSummary, badgeList, profileData] = await Promise.all([
+      getUserBadge(userAddress),
+      getUserBadgeList(userAddress),
+      profilePromise
+    ]);
+
+    const profile = profileData || {
+      gmCount: "0",
+      deployCount: "0",
+      donateCount: "0",
+      linkCount: "0",
+      voteCount: "0",
+      totalXP: badgeSummary.totalXP || "0",
+      level: badgeSummary.level || "1",
+      tier: badgeSummary.tier || "1"
+    };
+
+    if (!profileOverride && profile && typeof profile === "object" && profile.gmCount !== undefined) {
+      lastProfileSnapshot = profile;
+    }
+
+    const lastUpdateTimestamp = Number(badgeSummary.lastUpdate || "0");
+    const lastUpdateText = lastUpdateTimestamp > 0
+      ? new Date(lastUpdateTimestamp * 1000).toLocaleString()
+      : "—";
+
+    const requirementOrder = ["level", "gm", "deploy", "donate", "link", "vote"];
+    const requirementLabels = {
+      level: "Level",
+      gm: "GM",
+      deploy: "Deploys",
+      donate: "Donations",
+      link: "Links",
+      vote: "Votes"
+    };
+
+    const nextTierInfo = badgeList.nextTier;
+    let nextTierHtml = "";
+
+    if (nextTierInfo && Number(nextTierInfo.nextTier || "0") > Number(badgeSummary.tier || "0")) {
+      const nextRequirements = requirementOrder
+        .map(key => {
+          const required = Number(nextTierInfo.requirements?.[key] || "0");
+          if (!required) return null;
+          return `<li><strong>${requirementLabels[key]}:</strong> ${required}</li>`;
+        })
+        .filter(Boolean)
+        .join("");
+
+      nextTierHtml = `
+        <div class="badge-next-tier">
+          <h4>Next Tier Target</h4>
+          <p class="badge-next-tier-name">Tier ${nextTierInfo.nextTier}</p>
+          ${nextRequirements
+            ? `<ul class="badge-next-tier-list">${nextRequirements}</ul>`
+            : `<p class="badge-progress-empty">Keep engaging to reveal the next tier requirements.</p>`}
+        </div>
+      `;
+    } else {
+      nextTierHtml = `
+        <div class="badge-next-tier">
+          <h4>Next Tier Target</h4>
+          <p class="badge-progress-empty">You're at the highest tier — amazing work! 🎉</p>
+        </div>
+      `;
+    }
+
     if (badgeInfoElement) {
       badgeInfoElement.innerHTML = `
         <div class="stats-grid">
           <div class="stat-card">
             <h4>Level</h4>
-            <div>${badge.level}</div>
+            <div>${badgeSummary.level}</div>
           </div>
           <div class="stat-card">
             <h4>Tier</h4>
-            <div>${badge.tier}</div>
+            <div>${badgeSummary.tier}</div>
           </div>
           <div class="stat-card">
             <h4>Total XP</h4>
-            <div>${badge.totalXP}</div>
+            <div>${badgeSummary.totalXP}</div>
           </div>
           <div class="stat-card">
             <h4>Last Update</h4>
-            <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
+            <div>${lastUpdateText}</div>
+          </div>
+        </div>
+        ${nextTierHtml}
+      `;
+    }
+
+    if (!badgeList.success) {
+      if (badgesListElement) {
+        badgesListElement.innerHTML = "<p class=\"empty-state\">Unable to load badge tiers right now.</p>";
+      }
+      return;
+    }
+
+    if (!badgeList.badges || badgeList.badges.length === 0) {
+      if (badgesListElement) {
+        badgesListElement.innerHTML = "<p class=\"empty-state\">No badge tiers configured yet.</p>";
+      }
+      return;
+    }
+
+    const userMetrics = {
+      level: Number(profile.level || "0"),
+      gm: Number(profile.gmCount || "0"),
+      deploy: Number(profile.deployCount || "0"),
+      donate: Number(profile.donateCount || "0"),
+      link: Number(profile.linkCount || "0"),
+      vote: Number(profile.voteCount || "0")
+    };
+
+    const unlockedTier = Number(badgeSummary.tier || "0");
+    const nextTierNumber = Number(nextTierInfo?.nextTier || "0");
+
+    const badgesHtml = badgeList.badges.map(badge => {
+      const tierNumber = Number(badge.tier || "0");
+      const isUnlocked = tierNumber <= unlockedTier;
+      const isNext = !isUnlocked && tierNumber === nextTierNumber;
+      const statusClass = isUnlocked
+        ? "badge-card-status--unlocked"
+        : isNext
+          ? "badge-card-status--progress"
+          : "badge-card-status--locked";
+      const statusText = isUnlocked ? "Unlocked" : isNext ? "In Progress" : "Locked";
+
+      const progressDetails = requirementOrder
+        .map(key => {
+          const requiredValue = Number(badge.requirements?.[key] || "0");
+          if (!requiredValue) return null;
+          const currentValue = userMetrics[key] || 0;
+          const ratio = requiredValue === 0 ? 1 : Math.min(1, currentValue / requiredValue);
+          const percent = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+
+          return {
+            percent,
+            row: `
+              <div class="badge-progress-row">
+                <span class="badge-progress-label">${requirementLabels[key]}</span>
+                <div class="badge-progress-bar">
+                  <div class="badge-progress-fill" style="width:${percent}%"></div>
+                </div>
+                <span class="badge-progress-value">${currentValue}/${requiredValue}</span>
+              </div>
+            `
+          };
+        })
+        .filter(Boolean);
+
+      const averagePercent = progressDetails.length
+        ? Math.round(progressDetails.reduce((total, item) => total + item.percent, 0) / progressDetails.length)
+        : (isUnlocked ? 100 : 0);
+
+      const progressSummary = isUnlocked
+        ? `<div class="badge-card-progress-summary">Completed</div>`
+        : `<div class="badge-card-progress-summary">Overall progress: ${averagePercent}%</div>`;
+
+      const progressRows = progressDetails.length
+        ? progressDetails.map(item => item.row).join("")
+        : `<p class="badge-progress-empty">Engage with the community to unlock this badge.</p>`;
+
+      return `
+        <div class="badge-card ${isUnlocked ? "badge-card--unlocked" : ""} ${isNext ? "badge-card--next" : ""}">
+          <div class="badge-card-header">
+            <div>
+              <h4>${badge.name}</h4>
+              <span class="badge-card-tier">Tier ${badge.tier}</span>
+            </div>
+            <span class="badge-card-status ${statusClass}">${statusText}</span>
+          </div>
+          ${progressSummary}
+          <div class="badge-progress-list">
+            ${progressRows}
           </div>
         </div>
       `;
+    }).join("");
+
+    if (badgesListElement) {
+      badgesListElement.innerHTML = badgesHtml;
     }
-    
   } catch (err) {
     console.error("❌ Badge Error:", err);
-    const badgeInfoElement = document.getElementById("userBadgeInfo");
     if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = "<p>Failed to load badge info</p>";
+      badgeInfoElement.innerHTML = "<p class=\"empty-state\">Failed to load badge info.</p>";
+    }
+    if (badgesListElement) {
+      badgesListElement.innerHTML = "<p class=\"empty-state\">We couldn't load your badges right now. Please try again later.</p>";
     }
   }
 }
