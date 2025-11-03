@@ -20,7 +20,9 @@ import {
   vote,
   getGovernanceStats,
   getUserBadge,
+  getUserBadges,
   getBadgeStats,
+  getLeaderboard,
   loadUserProfile,
   withdrawDonations,
   registerUserProfile,
@@ -58,6 +60,17 @@ let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) ||
 let userSharedLinks = [];
 let lastProfileSnapshot = null;
 let lastAutoContractName = "";
+
+const BADGE_TIER_LABELS = {
+  "1": "Rookie Explorer",
+  "2": "Community Builder",
+  "3": "Growth Champion",
+  "4": "Celo Guardian",
+  "5": "Legendary Innovator"
+};
+
+let isLoadingBadges = false;
+let isLoadingLeaderboard = false;
 
 const DEFAULT_CONTRACT_NAME = "MyContract";
 const MAX_SUPPORT_CLICKS = 3;
@@ -394,8 +407,12 @@ function setupNavigation() {
       document.getElementById(`${targetSection}Section`).classList.add('active');
       
       // Özel section yüklemeleri
-      if (targetSection === 'badges' && userAddress) {
+      if (targetSection === 'badges') {
         loadBadgeInfo();
+      }
+
+      if (targetSection === 'leaderboard') {
+        loadLeaderboard();
       }
       
       // Eğer home section'a geçiliyorsa, otomatik formu gizle
@@ -977,48 +994,126 @@ async function handleCreateProposal() {
 }
 
 async function loadBadgeInfo() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const badge = await getUserBadge(userAddress);
-    
-    const badgeInfoElement = document.getElementById("userBadgeInfo");
+  const badgeInfoElement = document.getElementById("userBadgeInfo");
+  const badgesListElement = document.getElementById("badgesList");
+
+  if (!badgeInfoElement && !badgesListElement) return;
+
+  if (isLoadingBadges) return;
+
+  if (!userAddress) {
     if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = `
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Level</h4>
-            <div>${badge.level}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Tier</h4>
-            <div>${badge.tier}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Total XP</h4>
-            <div>${badge.totalXP}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Last Update</h4>
-            <div>${new Date(badge.lastUpdate * 1000).toLocaleDateString()}</div>
-          </div>
-        </div>
-      `;
+      badgeInfoElement.innerHTML = `<p class="empty-state">Connect your wallet to view your badge progress.</p>`;
     }
-    
+
+    if (badgesListElement) {
+      badgesListElement.innerHTML = `<p class="empty-state">No badges yet. Engage with the community to start earning achievements!</p>`;
+    }
+
+    return;
+  }
+
+  isLoadingBadges = true;
+
+  if (badgeInfoElement) {
+    badgeInfoElement.innerHTML = `<p class="loading-state">Loading badge summary...</p>`;
+  }
+
+  if (badgesListElement) {
+    badgesListElement.innerHTML = `<p class="loading-state">Fetching your badge history...</p>`;
+  }
+
+  try {
+    const [badgeSummary, badgeHistory] = await Promise.all([
+      getUserBadge(userAddress),
+      getUserBadges(userAddress, { maxBadges: 30 })
+    ]);
+
+    if (badgeInfoElement) {
+      if (badgeSummary) {
+        const lastUpdateRaw = parseInt(badgeSummary.lastUpdate || "0", 10);
+        const lastUpdateLabel = Number.isFinite(lastUpdateRaw) && lastUpdateRaw > 0
+          ? formatDate(lastUpdateRaw * 1000)
+          : "—";
+
+        badgeInfoElement.innerHTML = `
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h4>Level</h4>
+              <div>${badgeSummary.level}</div>
+            </div>
+            <div class="stat-card">
+              <h4>Tier</h4>
+              <div>${badgeSummary.tier}</div>
+            </div>
+            <div class="stat-card">
+              <h4>Total XP</h4>
+              <div>${formatNumber(badgeSummary.totalXP)}</div>
+            </div>
+            <div class="stat-card">
+              <h4>Last Update</h4>
+              <div>${lastUpdateLabel}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        badgeInfoElement.innerHTML = `<p class="empty-state">We couldn't find badge details yet.</p>`;
+      }
+    }
+
+    if (badgesListElement) {
+      if (badgeHistory?.success && badgeHistory.badges.length > 0) {
+        const badgeItems = badgeHistory.badges.map((badge, index) => {
+          const icon = badge.type === "level" ? "🎯" : "🏅";
+          const badgeName = badge.type === "badge"
+            ? (BADGE_TIER_LABELS[badge.tier] || badge.name)
+            : badge.name;
+          const levelLabel = badge.level && badge.level !== "" ? badge.level : "-";
+          const tierLabel = badge.tier && badge.tier !== "" ? badge.tier : "-";
+          const earnedDate = formatDate(badge.earnedAt);
+          const earnedAgo = formatTimeAgo(badge.earnedAt);
+
+          return `
+            <div class="badge-card" data-index="${index}">
+              <div class="badge-name">${icon} ${badgeName}</div>
+              <div class="badge-meta">
+                <span>Level: ${levelLabel}</span>
+                <span>Tier: ${tierLabel}</span>
+              </div>
+              <div class="badge-date">Earned ${earnedDate} • ${earnedAgo}</div>
+            </div>
+          `;
+        }).join("");
+
+        badgesListElement.innerHTML = `<div class="badge-list">${badgeItems}</div>`;
+      } else if (badgeHistory?.success) {
+        badgesListElement.innerHTML = `<p class="empty-state">You haven't unlocked any badges yet. Complete actions like sending GMs or sharing links to unlock your first badge!</p>`;
+      } else {
+        const errorMessage = badgeHistory?.error ? ` ${badgeHistory.error}` : "";
+        badgesListElement.innerHTML = `<p class="error-state">Unable to load badge history.${errorMessage}</p>`;
+      }
+    }
+
   } catch (err) {
     console.error("❌ Badge Error:", err);
-    const badgeInfoElement = document.getElementById("userBadgeInfo");
+
     if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = "<p>Failed to load badge info</p>";
+      badgeInfoElement.innerHTML = `<p class="error-state">Failed to load badge info. ${err?.message || "Please try again later."}</p>`;
     }
+
+    if (badgesListElement) {
+      badgesListElement.innerHTML = `<p class="error-state">We couldn't fetch your badges right now. Please refresh the page or try again shortly.</p>`;
+    }
+
+  } finally {
+    isLoadingBadges = false;
   }
 }
 
 async function handleWithdraw() {
   try {
     if (!ensureConnected()) return;
-    
+
     if (userAddress.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
       alert("🚫 Only owner can withdraw donations!");
       return;
@@ -1038,6 +1133,82 @@ async function handleWithdraw() {
     handleTransactionError(err, "withdrawal");
   } finally {
     toggleLoading(false);
+  }
+}
+
+async function loadLeaderboard() {
+  const leaderboardContainer = document.getElementById("leaderboardContent");
+  if (!leaderboardContainer) return;
+
+  if (isLoadingLeaderboard) return;
+
+  isLoadingLeaderboard = true;
+  leaderboardContainer.innerHTML = `<p class="loading-state">Loading leaderboard...</p>`;
+
+  try {
+    const leaderboard = await getLeaderboard({ limit: 10, maxUsers: 75, includeUserRank: true });
+
+    if (!leaderboard?.success) {
+      throw new Error(leaderboard?.error || "Unable to fetch leaderboard data");
+    }
+
+    if (!leaderboard.entries || leaderboard.entries.length === 0) {
+      leaderboardContainer.innerHTML = `<p class="empty-state">Leaderboard will appear once community members start interacting. Be the first to make a move!</p>`;
+      return;
+    }
+
+    const cards = leaderboard.entries.map(entry => {
+      const isCurrentUser = userAddress && entry.address?.toLowerCase() === userAddress.toLowerCase();
+      const displayName = entry.username && entry.username.trim().length > 0
+        ? entry.username
+        : shortenAddress(entry.address);
+
+      return `
+        <div class="leaderboard-card ${isCurrentUser ? 'current-user' : ''}" data-address="${entry.address}">
+          <div class="leaderboard-rank">#${entry.rank}</div>
+          <div class="leaderboard-user">
+            <div class="leaderboard-name">${displayName}</div>
+            <div class="leaderboard-address">${shortenAddress(entry.address)}</div>
+          </div>
+          <div class="leaderboard-stats">
+            <div class="leaderboard-stat">
+              <span class="stat-label">XP</span>
+              <span class="stat-value">${formatNumber(entry.totalXP)}</span>
+            </div>
+            <div class="leaderboard-stat">
+              <span class="stat-label">Level</span>
+              <span class="stat-value">${entry.level}</span>
+            </div>
+            <div class="leaderboard-stat">
+              <span class="stat-label">Tier</span>
+              <span class="stat-value">${entry.tier}</span>
+            </div>
+            <div class="leaderboard-stat">
+              <span class="stat-label">GM</span>
+              <span class="stat-value">${formatNumber(entry.gmCount)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const userRankNotice = leaderboard.userRank
+      ? `<div class="leaderboard-user-rank">You are currently #${leaderboard.userRank.rank} out of ${leaderboard.userRank.totalUsers} active explorers.</div>`
+      : "";
+
+    leaderboardContainer.innerHTML = `
+      ${userRankNotice}
+      <div class="leaderboard-list">
+        ${cards}
+      </div>
+    `;
+
+  } catch (err) {
+    console.error("❌ Leaderboard Error:", err);
+    leaderboardContainer.innerHTML = `<p class="error-state">Failed to load leaderboard. ${err?.message || "Please try again later."}</p>`;
+
+  } finally {
+    isLoadingLeaderboard = false;
   }
 }
 
@@ -1133,6 +1304,45 @@ function updateElementText(elementId, text) {
 
 function shortenAddress(addr) {
   return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
+}
+
+function formatNumber(value) {
+  if (value === undefined || value === null) return "0";
+
+  try {
+    const bigValue = ethers.BigNumber.from(value);
+    const asString = bigValue.toString();
+
+    if (asString.length <= 15) {
+      return Number(asString).toLocaleString();
+    }
+
+    return asString;
+  } catch {
+    const numericValue = Number(value);
+    return Number.isNaN(numericValue) ? String(value) : numericValue.toLocaleString();
+  }
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return "-";
+
+  const rawTimestamp = typeof timestamp === 'string'
+    ? parseInt(timestamp, 10)
+    : Number(timestamp);
+
+  const safeTimestamp = Number.isFinite(rawTimestamp) ? rawTimestamp : Date.now();
+  const date = new Date(safeTimestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
 function formatTimeAgo(timestamp) {

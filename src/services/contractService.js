@@ -508,7 +508,7 @@ export async function getUserBadge(address) {
   try {
     const badge = getModule("BADGE");
     const data = await badge.getUserBadge(address);
-    
+
     return {
       totalXP: data.totalXP.toString(),
       level: data.level.toString(),
@@ -526,6 +526,125 @@ export async function getUserBadge(address) {
   }
 }
 
+export async function getUserBadges(address, options = {}) {
+  try {
+    const { maxBadges = 20, fromBlock: explicitFromBlock } = options;
+    const targetAddress = address || (signer ? await signer.getAddress() : null);
+
+    if (!targetAddress) {
+      throw new Error("User address is required to fetch badges");
+    }
+
+    const activeProvider = provider || getReadOnlyProvider();
+    const badgeModule = moduleCache.has("BADGE")
+      ? moduleCache.get("BADGE")
+      : new ethers.Contract(MODULES.BADGE.address, MODULES.BADGE.abi, activeProvider);
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const defaultLookback = 100000;
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - defaultLookback);
+
+    const rawEvents = [];
+
+    if (badgeModule.filters?.BadgeEarned) {
+      const badgeEarnedEvents = await badgeModule.queryFilter(
+        badgeModule.filters.BadgeEarned(targetAddress),
+        fromBlock,
+        currentBlock
+      );
+
+      badgeEarnedEvents.forEach(event => {
+        rawEvents.push({ event, type: "badge" });
+      });
+    }
+
+    if (badgeModule.filters?.LevelUp) {
+      const levelUpEvents = await badgeModule.queryFilter(
+        badgeModule.filters.LevelUp(targetAddress),
+        fromBlock,
+        currentBlock
+      );
+
+      levelUpEvents.forEach(event => {
+        rawEvents.push({ event, type: "level" });
+      });
+    }
+
+    if (rawEvents.length === 0) {
+      return {
+        success: true,
+        badges: [],
+        total: "0"
+      };
+    }
+
+    const uniqueBlocks = [...new Set(rawEvents.map(item => item.event.blockNumber))];
+    const blockTimestamps = {};
+
+    await Promise.all(uniqueBlocks.map(async blockNumber => {
+      try {
+        const block = await activeProvider.getBlock(blockNumber);
+        blockTimestamps[blockNumber] = (block?.timestamp || Math.floor(Date.now() / 1000)) * 1000;
+      } catch (timestampError) {
+        console.warn(`⚠️ Failed to load block timestamp for ${blockNumber}:`, timestampError);
+        blockTimestamps[blockNumber] = Date.now();
+      }
+    }));
+
+    const badges = rawEvents
+      .sort((a, b) => b.event.blockNumber - a.event.blockNumber)
+      .slice(0, maxBadges)
+      .map(({ event, type }) => {
+        const timestamp = blockTimestamps[event.blockNumber] || Date.now();
+
+        if (type === "level") {
+          const levelValue = event.args?.newLevel ? event.args.newLevel.toString() : "";
+          const tierValue = event.args?.newTier ? event.args.newTier.toString() : "";
+
+          return {
+            id: `${event.transactionHash}-level`,
+            type,
+            name: levelValue ? `Level ${levelValue} Unlocked` : "Level Up",
+            level: levelValue,
+            tier: tierValue,
+            earnedAt: timestamp,
+            blockNumber: event.blockNumber,
+            transactionHash: event.transactionHash
+          };
+        }
+
+        const tierValue = event.args?.newTier ? event.args.newTier.toString() : "";
+
+        return {
+          id: `${event.transactionHash}-tier`,
+          type,
+          name: tierValue ? `Tier ${tierValue} Badge Earned` : "Badge Earned",
+          level: "",
+          tier: tierValue,
+          earnedAt: timestamp,
+          blockNumber: event.blockNumber,
+          transactionHash: event.transactionHash
+        };
+      });
+
+    return {
+      success: true,
+      badges,
+      total: badges.length.toString()
+    };
+  } catch (error) {
+    console.error("❌ Get user badges failed:", error);
+    return {
+      success: false,
+      badges: [],
+      total: "0",
+      error: error?.message || "Unknown error"
+    };
+  }
+}
+
 export async function getBadgeStats() {
   try {
     const badge = getModule("BADGE");
@@ -534,6 +653,160 @@ export async function getBadgeStats() {
   } catch (error) {
     console.error("❌ Get badge stats failed:", error);
     return "0";
+  }
+}
+
+export async function getLeaderboard(options = {}) {
+  try {
+    const {
+      limit = 10,
+      maxUsers = 50,
+      includeUserRank = true,
+      fromBlock: explicitFromBlock
+    } = options;
+
+    const activeProvider = provider || getReadOnlyProvider();
+    const profileModule = moduleCache.has("PROFILE")
+      ? moduleCache.get("PROFILE")
+      : new ethers.Contract(MODULES.PROFILE.address, MODULES.PROFILE.abi, activeProvider);
+
+    const currentBlock = await activeProvider.getBlockNumber();
+    const defaultLookback = 120000;
+    const fromBlock = explicitFromBlock !== undefined
+      ? Math.max(0, explicitFromBlock)
+      : Math.max(0, currentBlock - defaultLookback);
+
+    const addressMap = new Map();
+
+    if (profileModule.filters?.UserRegistered) {
+      const registeredEvents = await profileModule.queryFilter(
+        profileModule.filters.UserRegistered(),
+        fromBlock,
+        currentBlock
+      );
+
+      registeredEvents.forEach(event => {
+        const addr = event.args?.user;
+        if (addr) {
+          addressMap.set(addr.toLowerCase(), addr);
+        }
+      });
+    }
+
+    if (profileModule.filters?.ProfileUpdated) {
+      const updatedEvents = await profileModule.queryFilter(
+        profileModule.filters.ProfileUpdated(),
+        fromBlock,
+        currentBlock
+      );
+
+      updatedEvents.forEach(event => {
+        const addr = event.args?.user;
+        if (addr) {
+          addressMap.set(addr.toLowerCase(), addr);
+        }
+      });
+    }
+
+    const uniqueAddresses = Array.from(addressMap.values()).slice(0, maxUsers);
+
+    if (uniqueAddresses.length === 0) {
+      return {
+        success: true,
+        entries: [],
+        totalUsers: "0"
+      };
+    }
+
+    const profilePromises = uniqueAddresses.map(async (address) => {
+      try {
+        const data = await profileModule.getUserProfile(address);
+
+        return {
+          address,
+          username: data.username,
+          gmCount: data.gmCount.toString(),
+          deployCount: data.deployCount.toString(),
+          donateCount: data.donateCount.toString(),
+          linkCount: data.linkCount.toString(),
+          voteCount: data.voteCount.toString(),
+          totalXP: data.totalXP.toString(),
+          level: data.level.toString(),
+          tier: data.tier.toString(),
+          totalDonated: data.totalDonated.toString()
+        };
+      } catch (profileError) {
+        console.warn(`⚠️ Failed to load profile for ${address}:`, profileError);
+        return null;
+      }
+    });
+
+    const profiles = (await Promise.all(profilePromises)).filter(Boolean);
+
+    if (profiles.length === 0) {
+      return {
+        success: true,
+        entries: [],
+        totalUsers: "0"
+      };
+    }
+
+    const sortedProfiles = profiles.sort((a, b) => {
+      const xpA = ethers.BigNumber.from(a.totalXP || "0");
+      const xpB = ethers.BigNumber.from(b.totalXP || "0");
+
+      if (xpA.eq(xpB)) return 0;
+      return xpA.lt(xpB) ? 1 : -1;
+    });
+
+    const entries = sortedProfiles.slice(0, limit).map((profile, index) => ({
+      rank: (index + 1).toString(),
+      address: profile.address,
+      username: profile.username,
+      totalXP: profile.totalXP,
+      level: profile.level,
+      tier: profile.tier,
+      gmCount: profile.gmCount,
+      deployCount: profile.deployCount,
+      donateCount: profile.donateCount,
+      linkCount: profile.linkCount,
+      voteCount: profile.voteCount,
+      totalDonated: profile.totalDonated
+    }));
+
+    let userRank = null;
+    if (includeUserRank && signer) {
+      try {
+        const currentUser = await signer.getAddress();
+        const foundIndex = sortedProfiles.findIndex(profile =>
+          profile.address.toLowerCase() === currentUser.toLowerCase()
+        );
+
+        if (foundIndex >= 0) {
+          userRank = {
+            rank: (foundIndex + 1).toString(),
+            totalUsers: sortedProfiles.length.toString()
+          };
+        }
+      } catch (rankError) {
+        console.warn("⚠️ Failed to resolve current user rank:", rankError);
+      }
+    }
+
+    return {
+      success: true,
+      entries,
+      totalUsers: sortedProfiles.length.toString(),
+      userRank
+    };
+  } catch (error) {
+    console.error("❌ Get leaderboard failed:", error);
+    return {
+      success: false,
+      entries: [],
+      totalUsers: "0",
+      error: error?.message || "Unknown error"
+    };
   }
 }
 
@@ -685,7 +958,9 @@ export default {
   vote,
   getGovernanceStats,
   getUserBadge,
+  getUserBadges,
   getBadgeStats,
+  getLeaderboard,
   withdrawDonations
 };
 
