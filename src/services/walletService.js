@@ -18,15 +18,30 @@ export class WalletService {
 
   // ✅ Multi-provider MetaMask fix
   initializeMetaMaskFix() {
-    if (typeof window !== "undefined" && window.ethereum) {
-      window.addEventListener("DOMContentLoaded", () => {
-        if (window.ethereum.providers) {
-          const metamaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
-          if (metamaskProvider && !Object.isFrozen(window.ethereum)) {
-            window.ethereum = Object.assign({}, metamaskProvider);
-          }
-        }
-      });
+    if (typeof window === "undefined" || !window.ethereum) {
+      return;
+    }
+
+    const applyFix = () => {
+      if (!window.ethereum?.providers?.length) {
+        return;
+      }
+
+      const metamaskProvider = window.ethereum.providers.find(provider => provider?.isMetaMask);
+
+      if (!metamaskProvider || window.ethereum === metamaskProvider) {
+        return;
+      }
+
+      if (!Object.isFrozen(window.ethereum)) {
+        window.ethereum = metamaskProvider;
+      }
+    };
+
+    if (typeof document !== "undefined" && document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", applyFix, { once: true });
+    } else {
+      applyFix();
     }
   }
 
