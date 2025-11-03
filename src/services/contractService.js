@@ -21,6 +21,7 @@ let readOnlyProvider;
 
 // ✅ YENİ: Tüm modül contract'larını cache'le
 const moduleCache = new Map();
+const readOnlyModuleCache = new Map();
 
 // 🧩 Initialize Provider & Contract
 export async function initContract() {
@@ -74,6 +75,20 @@ export function getModule(name) {
   console.warn(`⚠️ Module ${name} not in cache, creating new instance`);
   const contract = new ethers.Contract(mod.address, mod.abi, signer);
   moduleCache.set(name, contract);
+  return contract;
+}
+
+function getReadOnlyModule(name) {
+  if (readOnlyModuleCache.has(name)) {
+    return readOnlyModuleCache.get(name);
+  }
+
+  const mod = MODULES[name];
+  if (!mod) throw new Error(`❌ Module not found: ${name}`);
+
+  const provider = getReadOnlyProvider();
+  const contract = new ethers.Contract(mod.address, mod.abi, provider);
+  readOnlyModuleCache.set(name, contract);
   return contract;
 }
 
@@ -487,18 +502,75 @@ export async function getGovernanceStats() {
   try {
     const gov = getModule("GOVERNANCE");
     const userAddress = await signer.getAddress();
-    
+
     const [totalProposals, totalVotes] = await gov.getGovernanceStats();
     const userVotes = await gov.getUserVoteCount(userAddress);
-    
-    return { 
-      totalProposals: totalProposals.toString(), 
+
+    return {
+      totalProposals: totalProposals.toString(),
       totalVotes: totalVotes.toString(),
       userVotes: userVotes.toString()
     };
   } catch (error) {
     console.error("❌ Get governance stats failed:", error);
     return { totalProposals: "0", totalVotes: "0", userVotes: "0" };
+  }
+}
+
+export async function getActiveProposals() {
+  try {
+    const govReadOnly = getReadOnlyModule("GOVERNANCE");
+    const proposalIds = await govReadOnly.getActiveProposals();
+
+    let userAddress = null;
+    if (signer) {
+      try {
+        userAddress = await signer.getAddress();
+      } catch (error) {
+        console.warn("⚠️ Unable to get signer address for proposals:", error?.message || error);
+        userAddress = null;
+      }
+    }
+
+    const proposals = await Promise.all(
+      proposalIds.map(async (proposalIdBn) => {
+        const proposalData = await govReadOnly.getProposal(proposalIdBn);
+        const [proposalId, creator, title, description, link, startTime, endTime, forVotes, againstVotes, executed] = proposalData;
+
+        let userHasVoted = false;
+        if (userAddress) {
+          try {
+            userHasVoted = await govReadOnly.hasUserVoted(proposalIdBn, userAddress);
+          } catch (voteError) {
+            console.warn(`⚠️ hasUserVoted failed for proposal ${proposalIdBn.toString()}:`, voteError?.message || voteError);
+          }
+        }
+
+        return {
+          id: proposalId.toString(),
+          creator,
+          title,
+          description,
+          link,
+          startTime: startTime?.toString?.() || "0",
+          endTime: endTime?.toString?.() || "0",
+          forVotes: forVotes?.toString?.() || "0",
+          againstVotes: againstVotes?.toString?.() || "0",
+          executed,
+          userHasVoted: Boolean(userHasVoted)
+        };
+      })
+    );
+
+    const sorted = proposals.sort((a, b) => Number(b.startTime) - Number(a.startTime));
+
+    return {
+      success: true,
+      proposals: sorted
+    };
+  } catch (error) {
+    console.error("❌ Get active proposals failed:", error);
+    return { success: false, proposals: [] };
   }
 }
 

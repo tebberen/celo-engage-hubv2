@@ -18,6 +18,7 @@ import {
   getUserSharedLinks,
   createProposal,
   vote,
+  getActiveProposals,
   getGovernanceStats,
   getUserBadge,
   getBadgeStats,
@@ -72,10 +73,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Kullanıcı linklerini yükle
   await loadUserSharedLinks();
-  
+
   renderCommunityLinks();
   renderCeloLinks();
-  
+  await renderGovernance();
+
   // Sayfa yüklendiğinde bağlantı kontrolü yap
   await checkExistingConnection();
   
@@ -305,6 +307,152 @@ function hideAutoLinkForm() {
   const autoForm = document.getElementById('autoLinkForm');
   if (autoForm) {
     autoForm.classList.remove('active');
+  }
+}
+
+async function renderGovernance() {
+  const container = document.getElementById("proposalsList");
+  if (!container) return;
+
+  container.innerHTML = `<p class="loading-state">Loading active proposals...</p>`;
+
+  try {
+    const { proposals } = await getActiveProposals();
+
+    if (!proposals || proposals.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p>No active proposals at the moment. Check back soon! 🚀</p>
+        </div>
+      `;
+      return;
+    }
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const isConnected = Boolean(userAddress);
+
+    container.innerHTML = proposals.map(proposal => {
+      const endTimeSeconds = Number(proposal.endTime || 0);
+      const votingClosed = endTimeSeconds ? nowSeconds >= endTimeSeconds : false;
+      const alreadyVoted = Boolean(proposal.userHasVoted);
+      const executed = Boolean(proposal.executed);
+      const disableVoting = !isConnected || alreadyVoted || votingClosed || executed;
+
+      const statusLabel = executed
+        ? "Proposal executed"
+        : votingClosed
+          ? "Voting ended"
+          : `Ends in ${formatTimeRemaining(endTimeSeconds)}`;
+
+      const voteStatus = !isConnected
+        ? "Connect your wallet to vote."
+        : alreadyVoted
+          ? "You have already voted on this proposal."
+          : votingClosed || executed
+            ? "Voting is closed for this proposal."
+            : "You can vote now!";
+
+      const linkHtml = proposal.link
+        ? `<a href="${proposal.link}" target="_blank" rel="noopener" class="proposal-link">View proposal ↗</a>`
+        : "";
+
+      return `
+        <div class="proposal-card" data-proposal-id="${proposal.id}">
+          <div class="proposal-header">
+            <h5>${proposal.title || "Untitled Proposal"}</h5>
+            <span class="proposal-status">${statusLabel}</span>
+          </div>
+          <p class="proposal-description">${proposal.description || "No description provided."}</p>
+          <div class="proposal-meta">
+            <span>For: ${proposal.forVotes}</span>
+            <span>Against: ${proposal.againstVotes}</span>
+          </div>
+          ${linkHtml}
+          <div class="proposal-actions">
+            <button
+              class="vote-btn"
+              data-id="${proposal.id}"
+              data-support="for"
+              ${disableVoting ? "disabled" : ""}
+            >✅ Vote For</button>
+            <button
+              class="vote-btn"
+              data-id="${proposal.id}"
+              data-support="against"
+              ${disableVoting ? "disabled" : ""}
+            >❌ Vote Against</button>
+          </div>
+          <p class="proposal-note">${voteStatus}</p>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.vote-btn').forEach(button => {
+      button.addEventListener("click", onVoteButtonClick);
+    });
+
+  } catch (error) {
+    console.error("❌ Render governance failed:", error);
+    container.innerHTML = `
+      <div class="error-state">
+        <p>Failed to load proposals. Please try again later.</p>
+      </div>
+    `;
+  }
+}
+
+async function onVoteButtonClick(event) {
+  event.preventDefault();
+  const button = event.currentTarget;
+  const proposalId = button?.getAttribute("data-id");
+  const support = button?.getAttribute("data-support") === "for";
+
+  await submitVote(proposalId, support, button);
+}
+
+async function submitVote(proposalId, support, button) {
+  if (!ensureConnected()) return;
+
+  if (!proposalId) {
+    console.warn("⚠️ Proposal id missing for vote");
+    return;
+  }
+
+  const originalText = button ? button.innerText : '';
+  if (button) {
+    button.disabled = true;
+    button.innerText = "Submitting...";
+  }
+
+  toggleLoading(true, "Submitting your vote...");
+
+  try {
+    await vote(proposalId, support);
+    alert("🗳️ Vote submitted successfully!");
+  } catch (err) {
+    console.error("❌ Vote action failed:", err);
+    handleTransactionError(err, "vote");
+
+    if (button && document.contains(button)) {
+      button.disabled = false;
+      button.innerText = originalText;
+    }
+
+    toggleLoading(false);
+    return;
+  }
+
+  try {
+    await loadDashboard();
+  } catch (refreshError) {
+    console.error("⚠️ Failed to refresh dashboard after vote:", refreshError);
+
+    if (button && document.contains(button)) {
+      button.disabled = false;
+      button.innerText = originalText;
+    }
+  } finally {
+    toggleLoading(false);
   }
 }
 
@@ -747,6 +895,8 @@ async function loadDashboard() {
     updateElementText("profileLinkCount", profile.linkCount);
     updateElementText("profileVoteCount", profile.voteCount);
 
+    await renderGovernance();
+
     lastProfileSnapshot = profile;
 
     console.log("📊 Dashboard loaded successfully");
@@ -1163,6 +1313,31 @@ function formatTimeAgo(timestamp) {
 
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears}y ago`;
+}
+
+function formatTimeRemaining(endTimestampSeconds) {
+  if (!endTimestampSeconds) return "No deadline";
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const targetSeconds = typeof endTimestampSeconds === "string"
+    ? parseInt(endTimestampSeconds, 10)
+    : endTimestampSeconds;
+
+  const diffSeconds = Math.floor(targetSeconds - nowSeconds);
+
+  if (!Number.isFinite(diffSeconds) || diffSeconds <= 0) {
+    return "Ended";
+  }
+
+  const days = Math.floor(diffSeconds / 86400);
+  const hours = Math.floor((diffSeconds % 86400) / 3600);
+  const minutes = Math.floor((diffSeconds % 3600) / 60);
+  const seconds = diffSeconds % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
 }
 
 function dedupeUserLinks(links) {
