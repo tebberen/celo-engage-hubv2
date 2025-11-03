@@ -24,8 +24,7 @@ import {
   loadUserProfile,
   withdrawDonations,
   registerUserProfile,
-  saveUsername,
-  getUsername
+  updateUsername
 } from "./services/contractService.js";
 
 import {
@@ -634,25 +633,24 @@ async function handleCreateProfile() {
     }
     
     toggleLoading(true, "Creating your profile on blockchain...");
-    
-    const result = await registerUserProfile();
-    
-    if (result.success && !result.alreadyRegistered) {
-      await saveUsername(username);
-      alert("🎉 Profile created successfully!");
-      hideProfileCreationModal();
-      await loadDashboard();
-      setOwnerOnlyVisibility(isOwnerAddress(userAddress));
-    } else if (result.alreadyRegistered) {
-      alert("✅ Profile already exists!");
-      hideProfileCreationModal();
-      await loadDashboard();
-      setOwnerOnlyVisibility(isOwnerAddress(userAddress));
-    }
-    
+
+    const registrationResult = await registerUserProfile();
+
+    toggleLoading(true, "Saving your username on-chain...");
+    await updateUsername(username);
+
+    const successMessage = registrationResult.alreadyRegistered
+      ? "✅ Profile updated successfully!"
+      : "🎉 Profile created successfully!";
+
+    alert(successMessage);
+    hideProfileCreationModal();
+    await loadDashboard();
+    setOwnerOnlyVisibility(isOwnerAddress(userAddress));
+
   } catch (err) {
     console.error("❌ Profile creation error:", err);
-    
+
     if (err.message.includes('user rejected')) {
       alert("❌ Transaction was rejected. Please try again.");
     } else {
@@ -738,6 +736,11 @@ async function loadDashboard() {
 
     // Profile Section
     updateElementText("profileAddress", shortenAddress(userAddress));
+    const normalizedUsername =
+      typeof profile.username === "string" && profile.username.trim().length > 0
+        ? profile.username.trim()
+        : "-";
+    updateElementText("profileUsername", normalizedUsername);
     updateElementText("profileLevel", profile.level);
     updateElementText("profileTier", profile.tier);
     updateElementText("profileXP", profile.totalXP);
