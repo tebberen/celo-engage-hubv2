@@ -146,18 +146,14 @@ export class WalletService {
       // Multi-provider fix'i başlat
       this.initializeMetaMaskFix();
 
+      const ethereum = window.ethereum;
+
       // Provider'ı başlat
-      this.provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+      this.provider = new ethers.providers.Web3Provider(ethereum, "any");
       this.web3 = this.provider;
 
-      // Celo ağına geç
-      const networkSwitched = await this.switchToCeloNetwork();
-      if (!networkSwitched) {
-        throw new Error("Celo ağına geçiş yapılamadı!");
-      }
-
-      // Hesapları iste
-      const accounts = await window.ethereum.request({
+      // Hesapları iste (önce izin alınmalı)
+      const accounts = await ethereum.request({
         method: "eth_requestAccounts"
       });
 
@@ -166,11 +162,17 @@ export class WalletService {
       }
 
       this.signer = this.provider.getSigner();
-      this.account = accounts[0];
+      this.account = ethers.utils.getAddress(accounts[0]);
       this.connectionType = 'metamask';
 
       // Event listener'ları kur
       this.setupMetaMaskEventListeners();
+
+      // Ağ geçişini hesap izninden sonra dene
+      const switched = await this.ensureCeloNetwork();
+      if (!switched) {
+        throw new Error("Celo ağına geçiş yapılamadı!");
+      }
 
       console.log("✅ Cüzdan bağlantısı başarılı:", this.account);
       return {
@@ -181,9 +183,11 @@ export class WalletService {
       };
     } catch (error) {
       console.error("❌ Cüzdan bağlantı hatası:", error);
-      
+
       if (error.code === 4001) {
         throw new Error("Bağlantı kullanıcı tarafından reddedildi!");
+      } else if (error.code === 4902 || error?.message?.includes("Unrecognized chain")) {
+        throw new Error("Lütfen MetaMask üzerinden Celo ağını ekleyin ve tekrar deneyin.");
       } else {
         throw new Error("Bağlantı hatası: " + error.message);
       }
