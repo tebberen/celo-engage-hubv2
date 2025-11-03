@@ -2,7 +2,7 @@
 
 // ✅ ETHERERS IMPORT - HATA ÇÖZÜMÜ
 import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
-import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0';
+import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0?bundle';
 import { CELO_PARAMS, CURRENT_NETWORK } from '../utils/constants.js';
 
 export class WalletService {
