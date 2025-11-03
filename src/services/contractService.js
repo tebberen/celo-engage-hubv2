@@ -121,32 +121,48 @@ export async function registerUserProfile() {
   }
 }
 
-// ✅ YENİ: Username kaydetme fonksiyonu (localStorage ile geçici çözüm)
-export async function saveUsername(username) {
+export async function updateUsername(username) {
   try {
-    const userAddress = await signer.getAddress();
-    
-    // Username'i localStorage'a kaydet
-    localStorage.setItem(`celoEngageHub_username_${userAddress}`, username);
-    
-    console.log("✅ Username saved locally:", username);
-    return { success: true, username: username };
+    if (!username || !username.trim()) {
+      throw new Error("Username is required");
+    }
+
+    const profile = getModule("PROFILE");
+    const sanitizedUsername = username.trim();
+
+    const { sentTx } = await sendWithReferral(profile, "updateUsername", [sanitizedUsername]);
+    console.log("✅ Username updated on-chain:", sanitizedUsername);
+
+    return { success: true, txHash: sentTx.hash, username: sanitizedUsername };
   } catch (error) {
-    console.error("❌ Username save failed:", error);
+    console.error("❌ Username update failed:", error);
     throw error;
   }
 }
 
-// ✅ YENİ: Username getirme fonksiyonu
-export async function getUsername() {
+export async function fetchUsername(address) {
   try {
-    const userAddress = await signer.getAddress();
-    const username = localStorage.getItem(`celoEngageHub_username_${userAddress}`);
-    return username || null;
+    const profile = getModule("PROFILE");
+    const targetAddress = address || (await signer.getAddress());
+    const userProfile = await profile.getUserProfile(targetAddress);
+
+    const username = userProfile.username || null;
+    return username && username.length > 0 ? username : null;
   } catch (error) {
-    console.error("❌ Username get failed:", error);
+    console.error("❌ Username fetch failed:", error);
     return null;
   }
+}
+
+// ⚠️ Deprecated: Local storage username helpers kept for backward compatibility
+export async function saveUsername(username) {
+  console.warn("⚠️ saveUsername is deprecated. Use updateUsername instead.");
+  return updateUsername(username);
+}
+
+export async function getUsername(address) {
+  console.warn("⚠️ getUsername is deprecated. Use fetchUsername instead.");
+  return fetchUsername(address);
 }
 
 // ========================= GM MODULE ========================= //
@@ -732,6 +748,7 @@ export async function loadUserProfile(address) {
       level: data.level.toString(),
       tier: data.tier.toString(),
       totalDonated: data.totalDonated.toString(),
+      username: data.username || null,
       exists: data.exists
     };
   } catch (error) {
@@ -746,6 +763,7 @@ export async function loadUserProfile(address) {
       level: "1",
       tier: "1",
       totalDonated: "0",
+      username: null,
       exists: false
     };
   }
@@ -773,8 +791,8 @@ export async function checkUserProfileStatus() {
   try {
     const userAddress = await signer.getAddress();
     const profile = await loadUserProfile(userAddress);
-    const username = await getUsername();
-    
+    const username = profile.username || null;
+
     return {
       hasProfile: profile.exists,
       username: username,
@@ -812,8 +830,8 @@ export async function getUserFullStats() {
       getGovernanceStats(),
       getUserBadge(userAddress)
     ]);
-    
-    const username = await getUsername();
+
+    const username = profile.username || null;
     
     return {
       username: username,
@@ -840,6 +858,8 @@ export default {
   
   // Profile Management
   registerUserProfile,
+  updateUsername,
+  fetchUsername,
   saveUsername,
   getUsername,
   loadUserProfile,
