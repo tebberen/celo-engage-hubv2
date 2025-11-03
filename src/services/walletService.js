@@ -2,10 +2,22 @@
 
 // ✅ ETHERERS IMPORT - HATA ÇÖZÜMÜ
 import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
-import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0?external=js-sha3';
-
-const WalletConnectProviderCtor = WalletConnectProvider?.default ?? WalletConnectProvider;
 import { CELO_PARAMS, CURRENT_NETWORK } from '../utils/constants.js';
+
+let walletConnectCtorPromise = null;
+
+async function loadWalletConnectProviderCtor() {
+  if (!walletConnectCtorPromise) {
+    walletConnectCtorPromise = import('https://esm.sh/@walletconnect/web3-provider@1.8.0?bundle')
+      .then((module) => module?.default ?? module)
+      .catch((error) => {
+        walletConnectCtorPromise = null;
+        throw error;
+      });
+  }
+
+  return walletConnectCtorPromise;
+}
 
 export class WalletService {
   constructor() {
@@ -20,7 +32,7 @@ export class WalletService {
 
   // ✅ Multi-provider MetaMask fix
   initializeMetaMaskFix() {
-    if (typeof window === "undefined" || !window.ethereum) {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -29,21 +41,38 @@ export class WalletService {
         return;
       }
 
-      const metamaskProvider = window.ethereum.providers.find(provider => provider?.isMetaMask);
+      const metamaskProvider = window.ethereum.providers.find((provider) => provider?.isMetaMask);
 
       if (!metamaskProvider || window.ethereum === metamaskProvider) {
         return;
       }
 
-      if (!Object.isFrozen(window.ethereum)) {
-        window.ethereum = metamaskProvider;
+      if (Object.isFrozen(window.ethereum)) {
+        console.warn("MetaMask provider düzeltmesi uygulanamadı: window.ethereum dondurulmuş.");
+        return;
       }
+
+      window.ethereum = metamaskProvider;
     };
 
-    if (typeof document !== "undefined" && document.readyState === "loading") {
-      window.addEventListener("DOMContentLoaded", applyFix, { once: true });
-    } else {
+    if (window.ethereum?.providers?.length) {
       applyFix();
+      return;
+    }
+
+    const handleEthereumInitialized = () => {
+      applyFix();
+    };
+
+    window.removeEventListener("ethereum#initialized", handleEthereumInitialized);
+    window.addEventListener("ethereum#initialized", handleEthereumInitialized, { once: true });
+
+    if (typeof document !== "undefined") {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", applyFix, { once: true });
+      } else {
+        applyFix();
+      }
     }
   }
 
@@ -64,20 +93,31 @@ export class WalletService {
       return true;
     } catch (err) {
       if (err.code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [CELO_PARAMS]
-        });
-        return true;
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [CELO_PARAMS]
+          });
+          return true;
+        } catch (addError) {
+          console.error("Celo ağı ekleme hatası:", addError);
+          throw addError;
+        }
+      }
+      if (err.code === 4001) {
+        console.warn("Kullanıcı Celo ağına geçişi reddetti.");
+        return false;
       }
       console.error("Ağ değiştirme hatası:", err);
-      return false;
+      throw err;
     }
   }
 
   // Cüzdan bağlantısını kontrol et
   async checkWalletConnection() {
     try {
+      this.initializeMetaMaskFix();
+
       if (this.hasMetaMask()) {
         const accounts = await window.ethereum.request({
           method: 'eth_accounts'
@@ -171,7 +211,9 @@ export class WalletService {
       // Ağ geçişini hesap izninden sonra dene
       const switched = await this.ensureCeloNetwork();
       if (!switched) {
-        throw new Error("Celo ağına geçiş yapılamadı!");
+        const switchError = new Error("Celo ağına geçiş isteğini onaylamanız gerekiyor.");
+        switchError.code = "CELO_SWITCH_REJECTED";
+        throw switchError;
       }
 
       console.log("✅ Cüzdan bağlantısı başarılı:", this.account);
@@ -186,6 +228,8 @@ export class WalletService {
 
       if (error.code === 4001) {
         throw new Error("Bağlantı kullanıcı tarafından reddedildi!");
+      } else if (error.code === "CELO_SWITCH_REJECTED") {
+        throw new Error("Lütfen MetaMask üzerinden Celo ağına geçiş isteğini onaylayın ve tekrar deneyin.");
       } else if (error.code === 4902 || error?.message?.includes("Unrecognized chain")) {
         throw new Error("Lütfen MetaMask üzerinden Celo ağını ekleyin ve tekrar deneyin.");
       } else {
@@ -243,6 +287,15 @@ export class WalletService {
     }
 
     const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
+
+    let WalletConnectProviderCtor;
+
+    try {
+      WalletConnectProviderCtor = await loadWalletConnectProviderCtor();
+    } catch (error) {
+      console.error('WalletConnect sağlayıcısı yüklenemedi:', error);
+      throw new Error('WalletConnect modülü yüklenemedi. Lütfen sayfayı yenileyin ve tekrar deneyin.');
+    }
 
     this.walletConnectProvider = new WalletConnectProviderCtor({
       rpc: {
