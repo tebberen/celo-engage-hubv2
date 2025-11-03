@@ -2,7 +2,9 @@
 
 // ✅ ETHERERS IMPORT - HATA ÇÖZÜMÜ
 import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js';
-import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0';
+import WalletConnectProvider from 'https://esm.sh/@walletconnect/web3-provider@1.8.0?external=js-sha3';
+
+const WalletConnectProviderCtor = WalletConnectProvider?.default ?? WalletConnectProvider;
 import { CELO_PARAMS, CURRENT_NETWORK } from '../utils/constants.js';
 
 export class WalletService {
@@ -18,15 +20,30 @@ export class WalletService {
 
   // ✅ Multi-provider MetaMask fix
   initializeMetaMaskFix() {
-    if (typeof window !== "undefined" && window.ethereum) {
-      window.addEventListener("DOMContentLoaded", () => {
-        if (window.ethereum.providers) {
-          const metamaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
-          if (metamaskProvider && !Object.isFrozen(window.ethereum)) {
-            window.ethereum = Object.assign({}, metamaskProvider);
-          }
-        }
-      });
+    if (typeof window === "undefined" || !window.ethereum) {
+      return;
+    }
+
+    const applyFix = () => {
+      if (!window.ethereum?.providers?.length) {
+        return;
+      }
+
+      const metamaskProvider = window.ethereum.providers.find(provider => provider?.isMetaMask);
+
+      if (!metamaskProvider || window.ethereum === metamaskProvider) {
+        return;
+      }
+
+      if (!Object.isFrozen(window.ethereum)) {
+        window.ethereum = metamaskProvider;
+      }
+    };
+
+    if (typeof document !== "undefined" && document.readyState === "loading") {
+      window.addEventListener("DOMContentLoaded", applyFix, { once: true });
+    } else {
+      applyFix();
     }
   }
 
@@ -223,7 +240,7 @@ export class WalletService {
 
     const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
 
-    this.walletConnectProvider = new WalletConnectProvider({
+    this.walletConnectProvider = new WalletConnectProviderCtor({
       rpc: {
         [chainIdDecimal]: CURRENT_NETWORK.rpcUrl
       },
