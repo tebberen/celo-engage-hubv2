@@ -1,0 +1,354 @@
+{
+  "tr": {
+    "brand": {
+      "title": "Celo Engage Hub",
+      "subtitle": "Önce topluluğu destekle, sonra bağlantını bırak."
+    },
+    "nav": {
+      "home": "Home",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "donate": "Donate",
+      "link": "Link",
+      "governance": "Governance",
+      "badge": "Badge",
+      "leaderboard": "Leaderboard"
+    },
+    "actions": {
+      "languageToggle": "Dili değiştir",
+      "themeToggle": "Temayı değiştir",
+      "profile": "Profil"
+    },
+    "ecosystem": {
+      "title": "Celo Ekosistemi",
+      "foundation": "Celo Foundation",
+      "docs": "Celo Docs",
+      "explorer": "Celo Explorer",
+      "github": "Engage Hub GitHub"
+    },
+    "home": {
+      "title": "Topluluk Akışı",
+      "subtitle": "Son paylaşılan bağlantılar ve etkinlikler"
+    },
+    "gm": {
+      "title": "GM Gönder",
+      "subtitle": "Kısa bir selam bırak, XP kazan.",
+      "messageLabel": "Mesaj (opsiyonel)",
+      "placeholder": "GM Celo dünyası!",
+      "submit": "GM Gönder",
+      "helper": "+1 XP"
+    },
+    "deploy": {
+      "title": "Deploy Et",
+      "subtitle": "Düşük gas ile basit kontrat dağıt.",
+      "nameLabel": "Kontrat adı (opsiyonel)",
+      "namePlaceholder": "AutoName-...",
+      "submit": "Kontratı Dağıt",
+      "helper": "+1 XP",
+      "history": "Dağıtılan Kontratlar"
+    },
+    "donate": {
+      "title": "Donate",
+      "subtitle": "0.1 CELO / cUSD altı bağışlar reddedilir.",
+      "celo": "CELO",
+      "cusd": "cUSD",
+      "celoAmount": "Miktar (CELO)",
+      "celoSubmit": "CELO Bağışla",
+      "cusdApproveLabel": "Onay Miktarı (cUSD)",
+      "cusdApprove": "cUSD Onayla",
+      "cusdAmount": "Bağış Miktarı (cUSD)",
+      "cusdSubmit": "cUSD Bağışla",
+      "owner": {
+        "title": "Sahip Paneli",
+        "withdrawTitle": "Bağış Çekimi",
+        "withdrawCelo": "CELO Miktarı",
+        "withdrawCeloBtn": "CELO Çek",
+        "withdrawCusd": "cUSD Miktarı",
+        "withdrawCusdBtn": "cUSD Çek",
+        "proposalTitle": "Yeni Öneri",
+        "proposalLabel": "Başlık",
+        "proposalDescription": "Açıklama",
+        "proposalLink": "Bağlantı",
+        "proposalSubmit": "Öneri Oluştur"
+      }
+    },
+    "link": {
+      "title": "Link Paylaş",
+      "subtitle": "Linkler yalnızca https:// ile başlamalı.",
+      "urlLabel": "URL",
+      "submit": "Link Paylaş",
+      "helper": "+2 XP"
+    },
+    "governance": {
+      "title": "Governance",
+      "subtitle": "Aktif ve tamamlanan önerilere katıl.",
+      "active": "Aktif Öneriler",
+      "completed": "Tamamlanan Öneriler",
+      "noneActive": "Aktif öneri yok.",
+      "noneCompleted": "Tamamlanan öneri yok.",
+      "completedLabel": "Tamamlandı",
+      "voteYes": "✅ Evet",
+      "voteNo": "❌ Hayır",
+      "voteYesShort": "Evet",
+      "voteNoShort": "Hayır",
+      "detail": "Detay"
+    },
+    "badge": {
+      "title": "Rozetler & Tier",
+      "subtitle": "XP → Level → Tier yolculuğunu takip et.",
+      "mintTitle": "Gelecek NFT Basımı",
+      "mintSubtitle": "Rozetlerini NFT olarak basmak için yakında burada olacağız.",
+      "mintCta": "Yakında",
+      "detailTitle": "Rozet Durumu",
+      "detailTotalXp": "Toplam XP",
+      "detailLevel": "Seviye",
+      "detailTier": "Tier",
+      "detailGm": "GM: +1 XP",
+      "detailDeploy": "Deploy: +1 XP",
+      "detailDonate": "Donate: +3 XP",
+      "detailLink": "Link: +2 XP",
+      "detailVote": "Vote: +1 XP"
+    },
+    "leaderboard": {
+      "title": "Liderlik Tablosu",
+      "subtitle": "Topluluk kahramanları burada.",
+      "tabs": {
+        "links": "Link",
+        "gm": "GM",
+        "deploy": "Deploy",
+        "celo": "CELO Donor",
+        "cusd": "cUSD Donor",
+        "votes": "Vote",
+        "badges": "Level"
+      },
+      "empty": "Veri bulunamadı."
+    },
+    "profile": {
+      "title": "Profil",
+      "close": "Profili kapat",
+      "viewProfile": "Profilini görüntüle",
+      "metricsTitle": "Etkinlik İstatistikleri",
+      "empty": "Profil bilgisi bulunamadı.",
+      "newUser": "Yeni Kullanıcı",
+      "stats": {
+        "xp": "XP",
+        "level": "Level",
+        "tier": "Tier"
+      },
+      "metrics": {
+        "link": "Link",
+        "deploy": "Deploy",
+        "gm": "GM",
+        "vote": "Vote",
+        "donate": "Donate"
+      },
+      "badge": "Tier",
+      "nextLevel": "Sonraki seviye",
+      "nextLevelMax": "Maks"
+    },
+    "username": {
+      "title": "Profil Oluştur",
+      "subtitle": "Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.",
+      "label": "Kullanıcı adı",
+      "submit": "Kaydol"
+    },
+    "feed": {
+      "empty": "Henüz link paylaşılmadı.",
+      "new": "Yeni"
+    },
+    "deployments": {
+      "empty": "Henüz deploy edilmiş kontrat yok."
+    },
+    "global": {
+      "visitors": "Ziyaretçi",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "link": "Link",
+      "vote": "Vote",
+      "badge": "Badge",
+      "donor": "Donor",
+      "totalCelo": "Toplam CELO",
+      "totalCusd": "Toplam cUSD"
+    },
+    "network": {
+      "online": "Çevrimiçi",
+      "offline": "Çevrimdışı"
+    }
+  },
+  "en": {
+    "brand": {
+      "title": "Celo Engage Hub",
+      "subtitle": "Support others first, then leave your link."
+    },
+    "nav": {
+      "home": "Home",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "donate": "Donate",
+      "link": "Share",
+      "governance": "Governance",
+      "badge": "Badges",
+      "leaderboard": "Leaderboard"
+    },
+    "actions": {
+      "languageToggle": "Switch language",
+      "themeToggle": "Toggle theme",
+      "profile": "Profile"
+    },
+    "ecosystem": {
+      "title": "Celo Ecosystem",
+      "foundation": "Celo Foundation",
+      "docs": "Celo Docs",
+      "explorer": "Celo Explorer",
+      "github": "Engage Hub GitHub"
+    },
+    "home": {
+      "title": "Community Feed",
+      "subtitle": "Latest shared links and activity"
+    },
+    "gm": {
+      "title": "Send GM",
+      "subtitle": "Drop a quick greeting, earn XP.",
+      "messageLabel": "Message (optional)",
+      "placeholder": "GM Celo world!",
+      "submit": "Send GM",
+      "helper": "+1 XP"
+    },
+    "deploy": {
+      "title": "Deploy",
+      "subtitle": "Ship simple contracts with low gas.",
+      "nameLabel": "Contract name (optional)",
+      "namePlaceholder": "AutoName-...",
+      "submit": "Deploy Contract",
+      "helper": "+1 XP",
+      "history": "Deployed Contracts"
+    },
+    "donate": {
+      "title": "Donate",
+      "subtitle": "Donations below 0.1 CELO / cUSD are rejected.",
+      "celo": "CELO",
+      "cusd": "cUSD",
+      "celoAmount": "Amount (CELO)",
+      "celoSubmit": "Donate CELO",
+      "cusdApproveLabel": "Approval Amount (cUSD)",
+      "cusdApprove": "Approve cUSD",
+      "cusdAmount": "Donation Amount (cUSD)",
+      "cusdSubmit": "Donate cUSD",
+      "owner": {
+        "title": "Owner Panel",
+        "withdrawTitle": "Donation Withdrawals",
+        "withdrawCelo": "CELO Amount",
+        "withdrawCeloBtn": "Withdraw CELO",
+        "withdrawCusd": "cUSD Amount",
+        "withdrawCusdBtn": "Withdraw cUSD",
+        "proposalTitle": "New Proposal",
+        "proposalLabel": "Title",
+        "proposalDescription": "Description",
+        "proposalLink": "Link",
+        "proposalSubmit": "Create Proposal"
+      }
+    },
+    "link": {
+      "title": "Share Link",
+      "subtitle": "Links must start with https://",
+      "urlLabel": "URL",
+      "submit": "Share Link",
+      "helper": "+2 XP"
+    },
+    "governance": {
+      "title": "Governance",
+      "subtitle": "Join the active and completed proposals.",
+      "active": "Active Proposals",
+      "completed": "Completed Proposals",
+      "noneActive": "No active proposals.",
+      "noneCompleted": "No completed proposals yet.",
+      "completedLabel": "Completed",
+      "voteYes": "✅ Yes",
+      "voteNo": "❌ No",
+      "voteYesShort": "Yes",
+      "voteNoShort": "No",
+      "detail": "Details"
+    },
+    "badge": {
+      "title": "Badges & Tiers",
+      "subtitle": "Track your XP → Level → Tier journey.",
+      "mintTitle": "Upcoming NFT Mint",
+      "mintSubtitle": "You'll be able to mint your badges as NFTs soon.",
+      "mintCta": "Soon",
+      "detailTitle": "Badge Progress",
+      "detailTotalXp": "Total XP",
+      "detailLevel": "Level",
+      "detailTier": "Tier",
+      "detailGm": "GM: +1 XP",
+      "detailDeploy": "Deploy: +1 XP",
+      "detailDonate": "Donate: +3 XP",
+      "detailLink": "Link: +2 XP",
+      "detailVote": "Vote: +1 XP"
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "subtitle": "Community champions live here.",
+      "tabs": {
+        "links": "Links",
+        "gm": "GM",
+        "deploy": "Deploy",
+        "celo": "CELO Donors",
+        "cusd": "cUSD Donors",
+        "votes": "Votes",
+        "badges": "Levels"
+      },
+      "empty": "No data yet."
+    },
+    "profile": {
+      "title": "Profile",
+      "close": "Close profile",
+      "viewProfile": "View public profile",
+      "metricsTitle": "Activity Stats",
+      "empty": "Profile information not found.",
+      "newUser": "New Explorer",
+      "stats": {
+        "xp": "XP",
+        "level": "Level",
+        "tier": "Tier"
+      },
+      "metrics": {
+        "link": "Links",
+        "deploy": "Deployments",
+        "gm": "GM Posts",
+        "vote": "Votes",
+        "donate": "Donations"
+      },
+      "badge": "Tier",
+      "nextLevel": "Next level",
+      "nextLevelMax": "Max"
+    },
+    "username": {
+      "title": "Create Profile",
+      "subtitle": "Choose a username to join the Celo Engage Hub community.",
+      "label": "Username",
+      "submit": "Join"
+    },
+    "feed": {
+      "empty": "No links shared yet.",
+      "new": "New"
+    },
+    "deployments": {
+      "empty": "No contracts deployed yet."
+    },
+    "global": {
+      "visitors": "Visitors",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "link": "Links",
+      "vote": "Votes",
+      "badge": "Badges",
+      "donor": "Donors",
+      "totalCelo": "Total CELO",
+      "totalCusd": "Total cUSD"
+    },
+    "network": {
+      "online": "Online",
+      "offline": "Offline"
+    }
+  }
+}
