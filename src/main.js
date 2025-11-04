@@ -1,1732 +1,836 @@
-// ========================= CELO ENGAGE HUB - UPDATED MAIN.JS ========================= //
-// ✅ 3'LÜ GRID + OTOMATİK LINK FORM + KULLANICI LINK SİSTEMİ
-
-// ✅ DOĞRU IMPORT YOLLARI
-import { 
-  initContract,
-  sendGM,
-  getGMStats,
-  deployContract,
-  getDeployStats,
-  donateCELO,
-  donateCUSD,
-  getDonateStats,
-  shareLink,
-  getLinkStats,
-  getAllSharedLinks,
-  getLinksFromEvents,
-  getUserSharedLinks,
-  createProposal,
-  vote,
-  getActiveProposals,
-  getGovernanceStats,
-  getUserBadge,
-  getUserBadgeList,
-  getBadgeStats,
-  loadUserProfile,
-  withdrawDonations,
-  registerUserProfile,
-  updateUsername
-} from "./services/contractService.js";
-
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 import {
   OWNER_ADDRESS,
-  DEFAULT_GM_MESSAGE,
-  INITIAL_SUPPORT_LINKS,
-  CELO_ECOSYSTEM_LINKS,
-  CURRENT_NETWORK,
+  UI_MESSAGES,
   MIN_DONATION,
-  getUserSharedLinksFromStorage,
-  saveUserLinkToStorage
+  CURRENT_NETWORK,
+  MODULES,
+  MODULE_ADDRESS_BOOK,
+  DEFAULT_NETWORK,
 } from "./utils/constants.js";
+import {
+  connectWalletMetaMask,
+  connectWalletConnect,
+  disconnectWallet,
+  onWalletEvent,
+} from "./services/walletService.js";
+import {
+  registerToastHandler,
+  doGM,
+  doDeploy,
+  doDonateCELO,
+  doApproveCUSD,
+  doDonateCUSD,
+  doShareLink,
+  govCreateProposal,
+  govVote,
+  registerProfile,
+  withdrawDonations,
+  loadProfile,
+  loadGlobalStats,
+  loadRecentLinks,
+  loadGovernance,
+  loadLeaderboard,
+  loadUserLinks,
+  loadUserDeployments,
+  getAnalyticsConfig,
+} from "./services/contractService.js";
 
-import { formatCeloAmount, formatNumber } from "./utils/formatters.js";
+const state = {
+  address: null,
+  profile: null,
+  global: null,
+  governance: { active: [], completed: [] },
+  leaderboard: null,
+  isOwner: false,
+  theme: localStorage.getItem("celo-engage-theme") || "light",
+};
 
-// ✅ WALLET SERVICE CLASS OLARAK IMPORT
-import WalletService from "./services/walletService.js";
+const elements = {
+  app: document.getElementById("app"),
+  navButtons: document.querySelectorAll(".nav-btn"),
+  sections: document.querySelectorAll(".section"),
+  connectMetaMask: document.getElementById("connectMetaMask"),
+  connectWalletConnect: document.getElementById("connectWalletConnect"),
+  disconnectWallet: document.getElementById("disconnectWallet"),
+  walletControls: document.querySelector(".wallet-controls"),
+  profilePanel: document.getElementById("profilePanel"),
+  profileStats: document.getElementById("profileStats"),
+  badgeStack: document.getElementById("badgeStack"),
+  xpProgress: document.getElementById("xpProgress"),
+  profileUsername: document.getElementById("profileUsername"),
+  profileAddress: document.getElementById("profileAddress"),
+  publicProfileLink: document.getElementById("publicProfileLink"),
+  linkFeed: document.getElementById("linkFeed"),
+  gmForm: document.getElementById("gmForm"),
+  deployForm: document.getElementById("deployForm"),
+  donateTabs: document.querySelectorAll("#donateSection .tab-btn"),
+  donatePanels: document.querySelectorAll("#donateSection .tab-panel"),
+  donateCeloForm: document.getElementById("donateCeloForm"),
+  approveCusdForm: document.getElementById("approveCusdForm"),
+  donateCusdForm: document.getElementById("donateCusdForm"),
+  linkForm: document.getElementById("linkForm"),
+  proposalForm: document.getElementById("proposalForm"),
+  activeProposals: document.getElementById("activeProposals"),
+  pastProposals: document.getElementById("pastProposals"),
+  badgeDetails: document.getElementById("badgeDetails"),
+  leaderboardTabs: document.querySelectorAll("#leaderboardSection .tab-btn"),
+  leaderboardPanels: document.querySelectorAll("#leaderboardSection .tab-panel"),
+  leaderboardLists: {
+    topLinks: document.getElementById("leaderboardLinks"),
+    topGM: document.getElementById("leaderboardGM"),
+    topDeploy: document.getElementById("leaderboardDeploy"),
+    topCelo: document.getElementById("leaderboardCelo"),
+    topCusd: document.getElementById("leaderboardCusd"),
+    topVotes: document.getElementById("leaderboardVotes"),
+    topBadges: document.getElementById("leaderboardBadges"),
+  },
+  ownerPanel: document.getElementById("ownerPanel"),
+  withdrawCeloForm: document.getElementById("withdrawCeloForm"),
+  withdrawCusdForm: document.getElementById("withdrawCusdForm"),
+  globalCounters: document.getElementById("globalCounters"),
+  toastContainer: document.getElementById("toastContainer"),
+  usernameModal: document.getElementById("usernameModal"),
+  usernameForm: document.getElementById("usernameForm"),
+  usernameInput: document.getElementById("usernameInput"),
+  themeToggle: document.getElementById("themeToggle"),
+  networkName: document.getElementById("networkName"),
+  networkStatus: document.getElementById("networkStatus"),
+  duneLink: document.getElementById("duneLink"),
+  graphLink: document.getElementById("graphLink"),
+  deployedContracts: document.getElementById("deployedContracts"),
+};
 
-// ✅ ETHERERS IMPORT
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+let wsProvider = null;
+let wsBackoff = 2000;
 
-// ========================= GLOBAL DEĞİŞKENLER ========================= //
-let userAddress = "";
-let appInitialized = false;
-let isLoading = false;
-const walletService = new WalletService();
-
-// ✅ YENİ: Link tıklama takibi (localStorage ile)
-let linkClicks = JSON.parse(localStorage.getItem('celoEngageHub_linkClicks')) || {};
-
-// ✅ YENİ: Kullanıcı linkleri
-let userSharedLinks = [];
-let lastProfileSnapshot = null;
-let lastAutoContractName = "";
-
-const DEFAULT_CONTRACT_NAME = "MyContract";
-const MAX_SUPPORT_CLICKS = 3;
-const MIN_SUPPORT_CLICKS_REQUIRED = 3;
-const OWNER_ONLY_ELEMENT_IDS = ["donationOwnerPanel", "governanceOwnerPanel"];
-const TOP_DONORS_DISPLAY_LIMIT = 5;
-
-// ========================= APP INIT ========================= //
-
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("🚀 Celo Engage Hub - Starting with user links system...");
+function init() {
+  applyTheme(state.theme);
   setupNavigation();
-  setupUI();
-  
-  // Kullanıcı linklerini yükle
-  await loadUserSharedLinks();
-
-  renderCommunityLinks();
-  renderCeloLinks();
-  await renderGovernance();
-
-  // Sayfa yüklendiğinde bağlantı kontrolü yap
-  await checkExistingConnection();
-  
-  console.log("✅ App ready with user links!");
-});
-
-function isOwnerAddress(address) {
-  return Boolean(address) && address.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  setupTabs();
+  setupLeaderboardTabs();
+  setupForms();
+  setupWalletButtons();
+  setupThemeToggle();
+  setupToastBridge();
+  updateAnalyticsLinks();
+  renderNetworkInfo(false);
+  loadInitialData();
+  initWalletListeners();
+  initWebsocket();
 }
 
-function setOwnerOnlyVisibility(isOwner) {
-  OWNER_ONLY_ELEMENT_IDS.forEach(id => {
-    const element = document.getElementById(id);
-    if (!element) return;
+document.addEventListener("DOMContentLoaded", init);
 
-    const shouldShow = Boolean(isOwner);
-    element.style.display = shouldShow ? "block" : "none";
-    element.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+function applyTheme(theme) {
+  state.theme = theme;
+  elements.app.dataset.theme = theme;
+  localStorage.setItem("celo-engage-theme", theme);
+}
+
+function setupThemeToggle() {
+  elements.themeToggle.addEventListener("click", () => {
+    applyTheme(state.theme === "dark" ? "light" : "dark");
   });
 }
-
-// ========================= YENİ: KULLANICI LINK SİSTEMİ ========================= //
-
-const MAX_USER_LINKS = 24;
-
-async function loadUserSharedLinks() {
-  try {
-    console.log("📥 Loading user shared links...");
-
-    // Önce blockchain'den linkleri almaya çalış
-    const blockchainLinks = await getLinksFromEvents({ maxLinks: MAX_USER_LINKS });
-
-    const localLinks = getUserSharedLinksFromStorage();
-
-    const mergedLinks = blockchainLinks.success && blockchainLinks.links.length > 0
-      ? [...blockchainLinks.links, ...localLinks]
-      : localLinks;
-
-    userSharedLinks = dedupeUserLinks(mergedLinks).slice(0, MAX_USER_LINKS);
-
-    const sourceLabel = blockchainLinks.success && blockchainLinks.links.length > 0
-      ? "blockchain"
-      : "localStorage";
-
-    console.log(`✅ Loaded ${userSharedLinks.length} links from ${sourceLabel}`);
-
-  } catch (error) {
-    console.error("❌ Load user shared links failed:", error);
-    userSharedLinks = dedupeUserLinks(getUserSharedLinksFromStorage()).slice(0, MAX_USER_LINKS);
-  }
-}
-
-function renderCommunityLinks() {
-  renderFeaturedLinks();
-  renderUserLinkCards();
-}
-
-function renderFeaturedLinks() {
-  const container = document.getElementById("linksContainer");
-  if (!container) return;
-
-  const activeLinks = INITIAL_SUPPORT_LINKS.filter(link => {
-    const clickCount = linkClicks[link] || 0;
-    return clickCount < MAX_SUPPORT_CLICKS;
-  });
-
-  if (activeLinks.length === 0) {
-    container.innerHTML = `
-      <div class="feature-card">
-        <h3>🎉 All Links Supported!</h3>
-        <p>All community links have received enough support. New links coming soon!</p>
-        <button class="action-button" onclick="showAutoLinkForm()">Share Your Link Anyway 🔗</button>
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = activeLinks.slice(0, 9).map(link => {
-    const clickCount = linkClicks[link] || 0;
-    const clicksLeft = Math.max(0, MAX_SUPPORT_CLICKS - clickCount);
-
-    return `
-      <div class="link-card">
-        <div class="link-platform">🌍 Community Link</div>
-        <a href="${link}" target="_blank" class="support-link" data-link="${link}">
-          ${link.length > 50 ? link.substring(0, 50) + '...' : link}
-        </a>
-        <button class="supportBtn" data-link="${link}">
-          👆 Visit & Support (${clicksLeft} left)
-        </button>
-        <div class="link-stats">
-          <div class="stat-item">
-            <div class="stat-value">${clickCount}</div>
-            <div>Clicks</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${clicksLeft}</div>
-            <div>Remaining</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  container.querySelectorAll('.supportBtn[data-link]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-
-  container.querySelectorAll('.support-link[data-link]').forEach(linkElement => {
-    linkElement.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-}
-
-function renderUserLinkCards() {
-  const userContainer = document.getElementById('userLinksContainer');
-  if (!userContainer) return;
-
-  if (!userSharedLinks || userSharedLinks.length === 0) {
-    userContainer.innerHTML = `
-      <div class="links-empty">
-        <p>No community links shared yet. Be the first to contribute!</p>
-      </div>
-    `;
-    return;
-  }
-
-  const sortedLinks = dedupeUserLinks([...userSharedLinks]).sort((a, b) => {
-    const aTime = a.timestamp || 0;
-    const bTime = b.timestamp || 0;
-    return bTime - aTime;
-  });
-
-  userContainer.innerHTML = sortedLinks.slice(0, MAX_USER_LINKS).map(item => {
-    const clickCount = linkClicks[item.link] || 0;
-    const owner = item.user ? shortenAddress(item.user) : 'Unknown';
-    const timeAgo = formatTimeAgo(item.timestamp);
-    const timeAgoLabel = timeAgo === "just now" ? "just now" : `${timeAgo}`;
-
-    return `
-      <div class="link-card user-link">
-        <div class="link-platform">👤 Community Submission</div>
-        <a href="${item.link}" target="_blank" class="support-link" data-link="${item.link}">
-          ${item.link.length > 50 ? item.link.substring(0, 50) + '...' : item.link}
-        </a>
-        <div class="user-address">Owner: ${owner}</div>
-        <div class="link-meta">Shared ${timeAgoLabel}</div>
-        <button class="supportBtn" data-link="${item.link}">
-          🔗 Visit Link
-        </button>
-        <div class="link-stats">
-          <div class="stat-item">
-            <div class="stat-value">${clickCount}</div>
-            <div>Visits</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">${timeAgoLabel}</div>
-            <div>Shared</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  userContainer.querySelectorAll('.supportBtn[data-link]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-
-  userContainer.querySelectorAll('.support-link[data-link]').forEach(linkElement => {
-    linkElement.addEventListener('click', function(e) {
-      e.preventDefault();
-      const clickedLink = this.getAttribute('data-link');
-      handleLinkClick(clickedLink);
-    });
-  });
-}
-
-function handleLinkClick(link) {
-  console.log("🔗 Link clicked:", link);
-
-  // 1. Linki yeni sekmede aç
-  window.open(link, '_blank');
-
-  // 2. Tıklama sayısını güncelle
-  linkClicks[link] = (linkClicks[link] || 0) + 1;
-  localStorage.setItem('celoEngageHub_linkClicks', JSON.stringify(linkClicks));
-
-  // 3. UI'ı güncelle
-  renderCommunityLinks();
-  
-  // 4. OTOMATİK LINK PAYLAŞIM FORMUNU GÖSTER (sadece community linklerine tıklandığında)
-  const isCommunityLink = INITIAL_SUPPORT_LINKS.includes(link);
-  if (isCommunityLink) {
-    showAutoLinkForm();
-  }
-
-  console.log(`📊 Link ${link} click count: ${linkClicks[link]}/${MAX_SUPPORT_CLICKS}`);
-}
-
-function getUserSupportRequirement() {
-  const trackedLinks = INITIAL_SUPPORT_LINKS.length > 0
-    ? INITIAL_SUPPORT_LINKS
-    : Object.keys(linkClicks || {});
-
-  const availableCapacity = trackedLinks.length * MAX_SUPPORT_CLICKS;
-  const requiredClicks = availableCapacity === 0
-    ? 0
-    : Math.min(MIN_SUPPORT_CLICKS_REQUIRED, availableCapacity);
-
-  let totalSupportClicks = 0;
-
-  trackedLinks.forEach(link => {
-    const value = linkClicks?.[link];
-    let numericValue = 0;
-
-    if (typeof value === "number") {
-      numericValue = value;
-    } else if (value && typeof value === "object" && typeof value.total === "number") {
-      numericValue = value.total;
-    }
-
-    totalSupportClicks += Math.min(numericValue, MAX_SUPPORT_CLICKS);
-  });
-
-  const remainingClicks = Math.max(0, requiredClicks - totalSupportClicks);
-
-  return {
-    totalSupportClicks,
-    requiredClicks,
-    remainingClicks,
-    isRequirementMet: remainingClicks === 0
-  };
-}
-
-function resetSupportProgress() {
-  linkClicks = {};
-  localStorage.setItem('celoEngageHub_linkClicks', JSON.stringify(linkClicks));
-}
-
-function showAutoLinkForm() {
-  const autoForm = document.getElementById('autoLinkForm');
-  if (autoForm) {
-    autoForm.classList.add('active');
-    
-    // Formu sayfanın görünen kısmına kaydır
-    setTimeout(() => {
-      autoForm.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }, 300);
-  }
-}
-
-function hideAutoLinkForm() {
-  const autoForm = document.getElementById('autoLinkForm');
-  if (autoForm) {
-    autoForm.classList.remove('active');
-  }
-}
-
-async function renderGovernance() {
-  const container = document.getElementById("proposalsList");
-  if (!container) return;
-
-  container.innerHTML = `<p class="loading-state">Loading active proposals...</p>`;
-
-  try {
-    const { proposals } = await getActiveProposals();
-
-    if (!proposals || proposals.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <p>No active proposals at the moment. Check back soon! 🚀</p>
-        </div>
-      `;
-      return;
-    }
-
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const isConnected = Boolean(userAddress);
-
-    container.innerHTML = proposals.map(proposal => {
-      const endTimeSeconds = Number(proposal.endTime || 0);
-      const votingClosed = endTimeSeconds ? nowSeconds >= endTimeSeconds : false;
-      const alreadyVoted = Boolean(proposal.userHasVoted);
-      const executed = Boolean(proposal.executed);
-      const disableVoting = !isConnected || alreadyVoted || votingClosed || executed;
-
-      const statusLabel = executed
-        ? "Proposal executed"
-        : votingClosed
-          ? "Voting ended"
-          : `Ends in ${formatTimeRemaining(endTimeSeconds)}`;
-
-      const voteStatus = !isConnected
-        ? "Connect your wallet to vote."
-        : alreadyVoted
-          ? "You have already voted on this proposal."
-          : votingClosed || executed
-            ? "Voting is closed for this proposal."
-            : "You can vote now!";
-
-      const linkHtml = proposal.link
-        ? `<a href="${proposal.link}" target="_blank" rel="noopener" class="proposal-link">View proposal ↗</a>`
-        : "";
-
-      return `
-        <div class="proposal-card" data-proposal-id="${proposal.id}">
-          <div class="proposal-header">
-            <h5>${proposal.title || "Untitled Proposal"}</h5>
-            <span class="proposal-status">${statusLabel}</span>
-          </div>
-          <p class="proposal-description">${proposal.description || "No description provided."}</p>
-          <div class="proposal-meta">
-            <span>For: ${proposal.forVotes}</span>
-            <span>Against: ${proposal.againstVotes}</span>
-          </div>
-          ${linkHtml}
-          <div class="proposal-actions">
-            <button
-              class="vote-btn"
-              data-id="${proposal.id}"
-              data-support="for"
-              ${disableVoting ? "disabled" : ""}
-            >✅ Vote For</button>
-            <button
-              class="vote-btn"
-              data-id="${proposal.id}"
-              data-support="against"
-              ${disableVoting ? "disabled" : ""}
-            >❌ Vote Against</button>
-          </div>
-          <p class="proposal-note">${voteStatus}</p>
-        </div>
-      `;
-    }).join('');
-
-    container.querySelectorAll('.vote-btn').forEach(button => {
-      button.addEventListener("click", onVoteButtonClick);
-    });
-
-  } catch (error) {
-    console.error("❌ Render governance failed:", error);
-    container.innerHTML = `
-      <div class="error-state">
-        <p>Failed to load proposals. Please try again later.</p>
-      </div>
-    `;
-  }
-}
-
-async function onVoteButtonClick(event) {
-  event.preventDefault();
-  const button = event.currentTarget;
-  const proposalId = button?.getAttribute("data-id");
-  const support = button?.getAttribute("data-support") === "for";
-
-  await submitVote(proposalId, support, button);
-}
-
-async function submitVote(proposalId, support, button) {
-  if (!ensureConnected()) return;
-
-  if (!proposalId) {
-    console.warn("⚠️ Proposal id missing for vote");
-    return;
-  }
-
-  const originalText = button ? button.innerText : '';
-  if (button) {
-    button.disabled = true;
-    button.innerText = "Submitting...";
-  }
-
-  toggleLoading(true, "Submitting your vote...");
-
-  try {
-    await vote(proposalId, support);
-    alert("🗳️ Vote submitted successfully!");
-  } catch (err) {
-    console.error("❌ Vote action failed:", err);
-    handleTransactionError(err, "vote");
-
-    if (button && document.contains(button)) {
-      button.disabled = false;
-      button.innerText = originalText;
-    }
-
-    toggleLoading(false);
-    return;
-  }
-
-  try {
-    await loadDashboard();
-  } catch (refreshError) {
-    console.error("⚠️ Failed to refresh dashboard after vote:", refreshError);
-
-    if (button && document.contains(button)) {
-      button.disabled = false;
-      button.innerText = originalText;
-    }
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleAutoShareLink() {
-  try {
-    if (!ensureConnected()) {
-      alert("⚠️ Please connect your wallet first to share a link!");
-      return;
-    }
-
-    const linkInput = document.getElementById("autoLinkInput");
-    const link = linkInput?.value?.trim();
-
-    if (!link) {
-      alert("Please enter a link");
-      return;
-    }
-
-    // URL validasyonu
-    if (!link.startsWith('http://') && !link.startsWith('https://')) {
-      alert("Please enter a valid URL starting with http:// or https://");
-      return;
-    }
-
-    // Link uzunluğu kontrolü
-    if (link.length > 500) {
-      alert("Link is too long. Please use a shorter URL.");
-      return;
-    }
-
-    const supportStatus = getUserSupportRequirement();
-    if (!supportStatus.isRequirementMet) {
-      alert(`⚠️ Please support community links at least ${supportStatus.requiredClicks} times before sharing your own link. ${supportStatus.remainingClicks} more support click(s) needed.`);
-      return;
-    }
-
-    toggleLoading(true, "Sharing your link on blockchain...");
-
-    // ✅ Link paylaşma işlemi
-    const result = await shareLink(link);
-
-    if (!result?.success) {
-      throw new Error("Link sharing was not confirmed. Please try again.");
-    }
-
-    resetSupportProgress();
-    alert("🎉 Link shared successfully! Thank you for contributing to the community!");
-
-    // Linki localStorage'a kaydet
-    saveUserLinkToStorage(link, userAddress);
-
-    // Link listesini yenile
-    await loadUserSharedLinks();
-
-    // Input'u temizle ve formu gizle
-    if (linkInput) linkInput.value = "";
-    hideAutoLinkForm();
-
-    // Dashboard'u ve linkleri güncelle
-    await loadDashboard();
-    renderCommunityLinks();
-
-  } catch (err) {
-    console.error("❌ Auto Link Share Error:", err);
-    
-    // Kullanıcı dostu hata mesajları
-    if (err.message.includes('user rejected')) {
-      alert("❌ Transaction was rejected. Please try again.");
-    } else if (err.message.includes('insufficient funds')) {
-      alert("❌ Insufficient funds for transaction. Please add CELO to your wallet.");
-    } else {
-      alert("❌ Failed to share link: " + err.message);
-    }
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-// ========================= NAVIGATION ========================= //
 
 function setupNavigation() {
-  const navButtons = document.querySelectorAll('.nav-button');
-  const sections = document.querySelectorAll('.section');
+  elements.navButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.target;
+      elements.navButtons.forEach((b) => b.classList.toggle("active", b === btn));
+      elements.sections.forEach((section) => section.classList.toggle("active", section.id === target));
+    });
+  });
+  if (elements.navButtons.length) {
+    elements.navButtons[0].classList.add("active");
+  }
+}
 
-  navButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const targetSection = button.getAttribute('data-section');
-      
-      // Tüm butonlardan active classını kaldır
-      navButtons.forEach(btn => btn.classList.remove('active'));
-      // Tüm sectionları gizle
-      sections.forEach(section => section.classList.remove('active'));
-      
-      // Aktif buton ve sectionı ayarla
-      button.classList.add('active');
-      document.getElementById(`${targetSection}Section`).classList.add('active');
-      
-      // Özel section yüklemeleri
-      if (targetSection === 'badges' && userAddress) {
-        loadBadgeInfo();
-      }
-      
-      // Eğer home section'a geçiliyorsa, otomatik formu gizle
-      if (targetSection === 'home') {
-        hideAutoLinkForm();
-      }
+function setupTabs() {
+  elements.donateTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tab;
+      elements.donateTabs.forEach((t) => t.classList.toggle("active", t === tab));
+      elements.donatePanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.content === target));
     });
   });
 }
 
-// ========================= CÜZDAN SİSTEMİ ========================= //
+function setupLeaderboardTabs() {
+  elements.leaderboardTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.tab;
+      elements.leaderboardTabs.forEach((t) => t.classList.toggle("active", t === tab));
+      elements.leaderboardPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.content === target));
+    });
+  });
+}
 
-// Modal elementlerini seç
-const walletModal = document.getElementById('walletModal');
-const connectWalletBtn = document.getElementById('connectWallet');
-const closeModal = document.querySelector('.close');
-const connectMetaMaskBtn = document.getElementById('connectMetaMask');
-const connectWalletConnectBtn = document.getElementById('connectWalletConnect');
-const disconnectWalletBtn = document.getElementById('disconnectWallet');
+function setupForms() {
+  elements.gmForm.addEventListener("submit", handleGMSubmit);
+  elements.deployForm.addEventListener("submit", handleDeploySubmit);
+  elements.donateCeloForm.addEventListener("submit", handleDonateCeloSubmit);
+  elements.approveCusdForm.addEventListener("submit", handleApproveCusdSubmit);
+  elements.donateCusdForm.addEventListener("submit", handleDonateCusdSubmit);
+  elements.linkForm.addEventListener("submit", handleShareLinkSubmit);
+  elements.proposalForm.addEventListener("submit", handleProposalSubmit);
+  elements.withdrawCeloForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "CELO"));
+  elements.withdrawCusdForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "cUSD"));
+  elements.usernameForm.addEventListener("submit", handleRegisterSubmit);
+}
 
-// Mevcut bağlantıyı kontrol et
-async function checkExistingConnection() {
-  try {
-    const isConnected = await walletService.checkWalletConnection();
-    if (isConnected) {
-      console.log("🔗 Existing wallet connection found");
-      userAddress = walletService.getAccount();
-      await initializeApp();
+function setupWalletButtons() {
+  elements.connectMetaMask.addEventListener("click", () => connectWallet(connectWalletMetaMask));
+  elements.connectWalletConnect.addEventListener("click", () => connectWallet(connectWalletConnect));
+  elements.disconnectWallet.addEventListener("click", async () => {
+    await disconnectWallet();
+    state.address = null;
+    state.profile = null;
+    state.isOwner = false;
+    renderProfile(null);
+    renderOwnerPanel();
+    elements.disconnectWallet.hidden = true;
+    renderNetworkInfo(false);
+    showToast("success", "Cüzdan bağlantısı kesildi.");
+  });
+}
+
+function setupToastBridge() {
+  registerToastHandler(({ type, message, hash, explorer }) => {
+    showToast(type, message, hash, explorer);
+    if (type === "success") {
+      refreshAfterTransaction();
     }
+  });
+}
+
+function updateAnalyticsLinks() {
+  const analytics = getAnalyticsConfig();
+  elements.duneLink.href = analytics.dune;
+  elements.graphLink.href = analytics.graph;
+}
+
+async function connectWallet(connector) {
+  try {
+    const details = await connector();
+    state.address = details.address;
+    state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+    elements.disconnectWallet.hidden = false;
+    renderNetworkInfo(true);
+    showToast("success", "Cüzdan bağlandı.");
+    await afterWalletConnected();
   } catch (error) {
-    console.log("No existing wallet connection");
+    console.error("connectWallet error", error);
+    showToast("error", error?.message || UI_MESSAGES.error);
   }
 }
 
-// Connect Wallet butonuna tıklandığında modal'ı aç
-if (connectWalletBtn) {
-  connectWalletBtn.addEventListener('click', () => {
-    walletModal.style.display = 'block';
+async function afterWalletConnected() {
+  await refreshProfile();
+  await refreshGlobalStats();
+  await refreshGovernance();
+  await refreshLeaderboard();
+  renderOwnerPanel();
+}
+
+function initWalletListeners() {
+  onWalletEvent(async ({ event, address, valid }) => {
+    switch (event) {
+      case "connected":
+        state.address = address;
+        state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        elements.disconnectWallet.hidden = false;
+        renderNetworkInfo(true);
+        await afterWalletConnected();
+        break;
+      case "accountsChanged":
+        state.address = address;
+        state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        await afterWalletConnected();
+        break;
+      case "disconnected":
+        state.address = null;
+        state.profile = null;
+        state.isOwner = false;
+        renderProfile(null);
+        renderOwnerPanel();
+        elements.disconnectWallet.hidden = true;
+        renderNetworkInfo(false);
+        break;
+      case "networkChanged":
+        renderNetworkInfo(valid);
+        if (!valid) {
+          showToast("error", UI_MESSAGES.wrongNetwork);
+        } else {
+          await refreshGlobalStats();
+        }
+        break;
+      default:
+        break;
+    }
   });
 }
 
-// Modal'ı kapatma işlevi
-if (closeModal) {
-  closeModal.addEventListener('click', () => {
-    walletModal.style.display = 'none';
-  });
+function renderNetworkInfo(valid) {
+  elements.networkName.textContent = CURRENT_NETWORK.name;
+  elements.networkStatus.classList.toggle("online", Boolean(valid && state.address));
 }
 
-// Modal dışına tıklandığında kapat
-window.addEventListener('click', (event) => {
-  if (event.target === walletModal) {
-    walletModal.style.display = 'none';
+function showToast(type, message, hash, explorer) {
+  if (!message) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type || "info"}`;
+  toast.innerHTML = `
+    <strong>${message}</strong>
+    ${hash ? `<span class="hash"><a href="${explorer || `${CURRENT_NETWORK.explorer}/tx/${hash}`}" target="_blank" rel="noopener">${shorten(hash)}</a></span>` : ""}
+  `;
+  elements.toastContainer.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 400);
+  }, 5000);
+}
+
+function shorten(value, start = 6, end = 4) {
+  if (!value) return "—";
+  return `${value.slice(0, start)}…${value.slice(-end)}`;
+}
+
+async function handleGMSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const message = document.getElementById("gmMessage").value.trim();
+  try {
+    await doGM(message);
+    document.getElementById("gmMessage").value = "";
+  } catch (error) {
+    console.error("GM error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleDeploySubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const name = document.getElementById("deployName").value.trim();
+  try {
+    await doDeploy(name);
+    document.getElementById("deployName").value = "";
+  } catch (error) {
+    console.error("Deploy error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleDonateCeloSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const amount = Number(document.getElementById("celoAmount").value || 0);
+  if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  try {
+    await doDonateCELO(amount);
+    document.getElementById("celoAmount").value = "";
+  } catch (error) {
+    console.error("Donate CELO error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleApproveCusdSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const amount = Number(document.getElementById("cusdApproveAmount").value || 0);
+  if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  try {
+    await doApproveCUSD(amount);
+  } catch (error) {
+    console.error("Approve cUSD error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleDonateCusdSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const amount = Number(document.getElementById("cusdAmount").value || 0);
+  if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  try {
+    await doDonateCUSD(amount);
+    document.getElementById("cusdAmount").value = "";
+  } catch (error) {
+    console.error("Donate cUSD error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleShareLinkSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const url = document.getElementById("linkUrl").value.trim();
+  if (!url.startsWith("https://")) {
+    return showToast("error", UI_MESSAGES.invalidLink);
+  }
+  try {
+    await doShareLink(url);
+    document.getElementById("linkUrl").value = "";
+  } catch (error) {
+    console.error("Share link error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleProposalSubmit(event) {
+  event.preventDefault();
+  if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
+  const title = document.getElementById("proposalTitle").value.trim();
+  const description = document.getElementById("proposalDescription").value.trim();
+  const link = document.getElementById("proposalLink").value.trim();
+  try {
+    await govCreateProposal(title, description, link);
+    event.target.reset();
+  } catch (error) {
+    console.error("Proposal error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleWithdrawSubmit(event, token) {
+  event.preventDefault();
+  if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
+  const amountInput = event.target.querySelector("input");
+  const amount = amountInput?.value || "";
+  try {
+    await withdrawDonations(token, amount);
+    if (amountInput) amountInput.value = "";
+  } catch (error) {
+    console.error("Withdraw error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleRegisterSubmit(event) {
+  event.preventDefault();
+  const username = elements.usernameInput.value.trim();
+  if (!username) return;
+  try {
+    await registerProfile(username);
+    closeUsernameModal();
+    await refreshProfile();
+  } catch (error) {
+    console.error("Register error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+function refreshAfterTransaction() {
+  refreshProfile();
+  refreshGlobalStats();
+  refreshGovernance();
+  refreshLeaderboard();
+  refreshFeed();
+}
+
+async function refreshProfile() {
+  if (!state.address) {
+    renderProfile(null);
+    renderDeployments([]);
+    return;
+  }
+  try {
+    const [profile, deployments] = await Promise.all([
+      loadProfile(state.address),
+      loadUserDeployments(state.address),
+    ]);
+    state.profile = profile;
+    renderProfile(profile);
+    renderDeployments(deployments);
+    if (!profile?.exists) {
+      openUsernameModal();
+    } else {
+      closeUsernameModal();
+    }
+  } catch (error) {
+    console.error("loadProfile error", error);
+    renderProfile(null);
+  }
+}
+
+async function refreshGlobalStats() {
+  try {
+    const stats = await loadGlobalStats();
+    state.global = stats;
+    renderGlobalCounters(stats);
+  } catch (error) {
+    console.error("global stats error", error);
+  }
+}
+
+async function refreshFeed() {
+  try {
+    const [links, personalLinks] = await Promise.all([
+      loadRecentLinks(20),
+      state.address ? loadUserLinks(state.address).catch(() => []) : Promise.resolve([]),
+    ]);
+    const combined = [...links];
+    personalLinks.forEach((item) => {
+      if (!combined.find((entry) => entry.link === item.link)) {
+        combined.unshift({
+          user: item.address,
+          link: item.link,
+          blockNumber: null,
+          transactionHash: null,
+        });
+      }
+    });
+    renderLinkFeed(combined);
+  } catch (error) {
+    console.error("feed error", error);
+  }
+}
+
+async function refreshGovernance() {
+  try {
+    const data = await loadGovernance();
+    state.governance = data;
+    renderGovernance(data);
+  } catch (error) {
+    console.error("governance error", error);
+  }
+}
+
+async function refreshLeaderboard() {
+  try {
+    const data = await loadLeaderboard();
+    state.leaderboard = data;
+    renderLeaderboard(data);
+  } catch (error) {
+    console.error("leaderboard error", error);
+  }
+}
+
+function renderProfile(profile) {
+  if (!profile) {
+    elements.profileUsername.textContent = "—";
+    elements.profileAddress.textContent = "—";
+    elements.profileStats.innerHTML = "<p>Profil bilgisi bulunamadı.</p>";
+    elements.badgeStack.innerHTML = "";
+    elements.xpProgress.innerHTML = "";
+    elements.publicProfileLink.removeAttribute("href");
+    renderBadgeDetails(null);
+    return;
+  }
+
+  elements.profileUsername.textContent = profile.username || "Yeni Kullanıcı";
+  elements.profileAddress.textContent = shorten(profile.address);
+  elements.publicProfileLink.href = `/profile?addr=${profile.address}`;
+
+  const stats = [
+    { label: "GM", value: profile.gmCount },
+    { label: "Deploy", value: profile.deployCount },
+    { label: "Link", value: profile.linkCount },
+    { label: "Vote", value: profile.voteCount },
+    { label: "Donate", value: profile.donateCount },
+    { label: "XP", value: profile.totalXP },
+    { label: "Level", value: profile.level },
+    { label: "Tier", value: profile.tier },
+  ];
+
+  elements.profileStats.innerHTML = stats
+    .map((stat) => `<dt>${stat.label}</dt><dd>${formatNumber(stat.value)}</dd>`)
+    .join("");
+
+  elements.badgeStack.innerHTML = renderTierBadges(profile);
+  elements.xpProgress.innerHTML = renderXpProgress(profile);
+  renderBadgeDetails(profile);
+}
+
+function renderTierBadges(profile) {
+  const tiers = [1, 2, 3, 4, 5];
+  return tiers
+    .map((tier) => {
+      const active = profile.tier >= tier ? "active" : "";
+      return `<span class="badge-chip ${active}">Tier ${tier}</span>`;
+    })
+    .join("");
+}
+
+function renderXpProgress(profile) {
+  const nextLevel = profile.level >= 5 ? "Maks" : profile.level + 1;
+  const progressPercent = Math.min(100, Math.floor((profile.totalXP % 20) * 5));
+  return `
+    <div><strong>Seviye:</strong> ${profile.level}</div>
+    <div><strong>Tier:</strong> ${profile.tier}</div>
+    <div class="bar"><span style="width:${progressPercent}%"></span></div>
+    <small>Sonraki seviye: ${nextLevel}</small>
+  `;
+}
+
+function renderBadgeDetails(profile) {
+  if (!elements.badgeDetails) return;
+  const xp = profile?.totalXP || 0;
+  const level = profile?.level || 0;
+  const tier = profile?.tier || 0;
+  elements.badgeDetails.innerHTML = `
+    <h3>Rozet Durumu</h3>
+    <p>Toplam XP: <strong>${formatNumber(xp)}</strong></p>
+    <p>Seviye: <strong>${level}</strong> · Tier: <strong>${tier}</strong></p>
+    <ul>
+      <li>GM: +1 XP</li>
+      <li>Deploy: +1 XP</li>
+      <li>Donate: +3 XP</li>
+      <li>Link: +2 XP</li>
+      <li>Vote: +1 XP</li>
+    </ul>
+  `;
+}
+
+function renderGlobalCounters(stats) {
+  if (!stats) return;
+  const counters = [
+    { label: "Ziyaretçi", value: stats.visitors },
+    { label: "GM", value: stats.gm },
+    { label: "Deploy", value: stats.deploy },
+    { label: "Link", value: stats.links },
+    { label: "Vote", value: stats.votes },
+    { label: "Badge", value: stats.badges },
+    { label: "Donor", value: stats.donors },
+    { label: "Toplam CELO", value: formatCurrency(stats.totalCelo) },
+    { label: "Toplam cUSD", value: formatCurrency(stats.totalCusd) },
+  ];
+  elements.globalCounters.innerHTML = counters
+    .map(
+      (counter) => `
+      <div class="counter-card">
+        <span>${counter.label}</span>
+        <strong>${counter.value}</strong>
+      </div>
+    `
+    )
+    .join("");
+}
+
+function renderLinkFeed(entries) {
+  if (!entries?.length) {
+    elements.linkFeed.innerHTML = "<p>Henüz link paylaşılmadı.</p>";
+    return;
+  }
+  elements.linkFeed.innerHTML = entries
+    .map((item) => `
+      <article class="feed-item">
+        <div class="meta">
+          <span>${shorten(item.user || "0x0")}</span>
+          <time>${item.blockNumber ? `#${item.blockNumber}` : "Yeni"}</time>
+        </div>
+        <a class="link" href="${item.link}" target="_blank" rel="noopener">${item.link}</a>
+      </article>
+    `)
+    .join("");
+}
+
+function renderDeployments(contracts) {
+  if (!elements.deployedContracts) return;
+  if (!contracts?.length) {
+    elements.deployedContracts.innerHTML = "<li>Henüz deploy edilmiş kontrat yok.</li>";
+    return;
+  }
+  elements.deployedContracts.innerHTML = contracts
+    .map((addr) => `<li><a href="${CURRENT_NETWORK.explorer}/address/${addr}" target="_blank" rel="noopener">${shorten(addr)}</a></li>`)
+    .join("");
+}
+
+function renderGovernance({ active, completed }) {
+  elements.activeProposals.innerHTML = active.length
+    ? active.map(renderProposalCard).join("")
+    : "<li>Aktif öneri yok.</li>";
+  elements.pastProposals.innerHTML = completed.length
+    ? completed.map((proposal) => renderProposalCard(proposal, true)).join("")
+    : "<li>Tamamlanan öneri yok.</li>";
+}
+
+function renderProposalCard(proposal, readonly = false) {
+  const now = Math.floor(Date.now() / 1000);
+  const remaining = proposal.endTime > now ? formatDuration(proposal.endTime - now) : "Tamamlandı";
+  const votes = `✅ ${proposal.yesVotes} / ❌ ${proposal.noVotes}`;
+  const actions = readonly
+    ? ""
+    : `<div class="vote-actions">
+        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="true">Evet</button>
+        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="false">Hayır</button>
+      </div>`;
+
+  return `
+    <li class="proposal-card">
+      <header>
+        <strong>${proposal.title}</strong>
+        <small>${remaining}</small>
+      </header>
+      <p>${proposal.description}</p>
+      ${proposal.link ? `<a href="${proposal.link}" target="_blank" rel="noopener">Detay</a>` : ""}
+      <footer>
+        <span>${votes}</span>
+        ${actions}
+      </footer>
+    </li>
+  `;
+}
+
+elements.activeProposals.addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-proposal]");
+  if (!button) return;
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const proposalId = Number(button.dataset.proposal);
+  const support = button.dataset.vote === "true";
+  try {
+    await govVote(proposalId, support);
+  } catch (error) {
+    console.error("vote error", error);
+    showToast("error", parseError(error));
   }
 });
 
-// MetaMask bağlantısı için tıklama olayı
-if (connectMetaMaskBtn) {
-  connectMetaMaskBtn.addEventListener('click', async () => {
-    walletModal.style.display = 'none';
-    await connectWallet();
-  });
+function renderLeaderboard(data) {
+  if (!data) return;
+  renderLeaderboardList(elements.leaderboardLists.topLinks, data.links);
+  renderLeaderboardList(elements.leaderboardLists.topGM, data.gm);
+  renderLeaderboardList(elements.leaderboardLists.topDeploy, data.deploy);
+  renderLeaderboardList(elements.leaderboardLists.topCelo, data.donors);
+  renderLeaderboardList(elements.leaderboardLists.topCusd, data.cusdDonors);
+  renderLeaderboardList(elements.leaderboardLists.topVotes, data.votes);
+  renderLeaderboardList(elements.leaderboardLists.topBadges, data.badges);
 }
 
-// WalletConnect için tıklama olayı
-if (connectWalletConnectBtn) {
-  connectWalletConnectBtn.addEventListener('click', async () => {
-    walletModal.style.display = 'none';
-    await connectWalletConnect();
-  });
-}
-
-async function connectWallet() {
-  try {
-    toggleLoading(true, "Connecting to wallet...");
-
-    const result = await walletService.connectWallet();
-    userAddress = result.account;
-    
-    if (!userAddress) throw new Error("Wallet not connected");
-    
-    if (walletService.getConnectionType() !== 'walletconnect') {
-      await walletService.ensureCeloNetwork();
-    }
-    
-    await initializeApp();
-    
-    console.log("✅ Wallet connected successfully:", userAddress);
-    
-  } catch (err) {
-    console.error("❌ Connection failed:", err);
-    
-    let errorMessage = "Connection failed: " + err.message;
-    if (err.message.includes('rejected')) {
-      errorMessage = "Connection was rejected. Please try again.";
-    } else if (err.message.includes('MetaMask')) {
-      errorMessage = "MetaMask not found. Please install MetaMask.";
-    }
-    
-    alert(errorMessage);
-    toggleLoading(false);
-  }
-}
-
-async function connectWalletConnect() {
-  try {
-    toggleLoading(true, "Connecting with WalletConnect...");
-
-    const result = await walletService.connectWalletConnect();
-    userAddress = result.account;
-
-    if (!userAddress) throw new Error("Wallet not connected");
-
-    if (walletService.getConnectionType() !== 'walletconnect') {
-      await walletService.ensureCeloNetwork();
-    }
-
-    await initializeApp();
-
-    console.log("✅ WalletConnect connected:", userAddress);
-
-  } catch (err) {
-    console.error("❌ WalletConnect connection failed:", err);
-
-    let errorMessage = err?.message || "WalletConnect connection failed.";
-    if (errorMessage.toLowerCase().includes('closed')) {
-      errorMessage = "WalletConnect connection was cancelled. Please scan the QR code to connect.";
-    } else if (errorMessage.toLowerCase().includes('network')) {
-      errorMessage = "Unable to connect via WalletConnect. Please check your network and try again.";
-    }
-
-    alert(errorMessage);
-    toggleLoading(false);
-  }
-}
-
-async function initializeApp() {
-  try {
-    // UI Güncelleme
-    document.getElementById("walletAddress").innerText = shortenAddress(userAddress);
-    document.getElementById("walletStatus").innerHTML = `<p>🟢 Connected</p><span>${CURRENT_NETWORK.name}</span>`;
-    document.getElementById("walletInfo").style.display = "block";
-    document.getElementById("connectWallet").style.display = "none";
-    
-    // Balance göster
-    try {
-      const balance = await walletService.getBalance();
-      document.getElementById("walletBalance").innerText = `${parseFloat(balance).toFixed(4)} CELO`;
-    } catch (balanceError) {
-      console.warn("⚠️ Balance unavailable");
-      document.getElementById("walletBalance").innerText = "Balance unavailable";
-    }
-    
-    await initContract();
-
-    const userIsOwner = isOwnerAddress(userAddress);
-    setOwnerOnlyVisibility(userIsOwner);
-
-    // Profil kontrolü
-    const userProfile = await loadUserProfile(userAddress);
-
-    if (!userProfile.exists) {
-      console.log("🆕 New user - showing profile creation");
-      await loadBadgeInfo(userProfile);
-      showProfileCreationModal();
-    } else {
-      console.log("✅ Existing user - loading dashboard");
-      await loadDashboard();
-    }
-    
-    appInitialized = true;
-    toggleLoading(false);
-    
-  } catch (err) {
-    console.error("❌ Initialize app failed:", err);
-    setOwnerOnlyVisibility(false);
-    toggleLoading(false);
-  }
-}
-
-async function disconnectWallet() {
-  try {
-    await walletService.disconnect();
-
-    userAddress = "";
-    appInitialized = false;
-    lastProfileSnapshot = null;
-    lastAutoContractName = "";
-
-    // UI'ı sıfırla
-    document.getElementById("walletStatus").innerHTML = `<p>🔴 Not connected</p><span>—</span>`;
-    document.getElementById("walletInfo").style.display = "none";
-    document.getElementById("connectWallet").style.display = "block";
-    
-    // İstatistikleri sıfırla
-    resetUserStats();
-    
-    // Owner panellerini gizle
-    setOwnerOnlyVisibility(false);
-    
-    // Profil modal'ını gizle
-    hideProfileCreationModal();
-    
-    console.log("🔌 Wallet disconnected");
-    
-  } catch (err) {
-    console.error("Disconnect error:", err);
-    alert("Disconnect failed: " + err.message);
-  }
-}
-
-function resetUserStats() {
-  const statsToReset = [
-    "userGmCounter", "userDeployCounter", "userDonateCounter", 
-    "userLinkCounter", "userVoteCounter", "userTotalDonated",
-    "profileAddress", "profileLevel", "profileTier", "profileXP",
-    "profileGMCount", "profileDeployCount", "profileDonateCount",
-    "profileLinkCount", "profileVoteCount"
-  ];
-  
-  statsToReset.forEach(id => {
-    const element = document.getElementById(id);
-    if (element) {
-      if (id === "profileAddress") {
-        element.innerText = "-";
-      } else if (id === "userTotalDonated") {
-        element.innerText = "0 CELO";
-      } else {
-        element.innerText = "0";
-      }
-    }
-  });
-  
-  // Badge bilgilerini temizle
-  const badgeInfo = document.getElementById("userBadgeInfo");
-  if (badgeInfo) badgeInfo.innerHTML = "";
-}
-
-// ========================= PROFİL OLUŞTURMA SİSTEMİ ========================= //
-
-function showProfileCreationModal() {
-  const modal = document.getElementById('profileCreationModal');
-  if (modal) {
-    modal.style.display = 'block';
-  }
-}
-
-function hideProfileCreationModal() {
-  const modal = document.getElementById('profileCreationModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-async function handleCreateProfile() {
-  try {
-    const usernameInput = document.getElementById('usernameInput');
-    const username = usernameInput?.value.trim();
-    
-    if (!username) {
-      alert("Please enter a username!");
-      return;
-    }
-    
-    if (username.length < 3) {
-      alert("Username must be at least 3 characters long!");
-      return;
-    }
-    
-    if (username.length > 32) {
-      alert("Username must be less than 32 characters!");
-      return;
-    }
-    
-    toggleLoading(true, "Creating your profile on blockchain...");
-
-    const registrationResult = await registerUserProfile();
-
-    toggleLoading(true, "Saving your username on-chain...");
-    await updateUsername(username);
-
-    const successMessage = registrationResult.alreadyRegistered
-      ? "✅ Profile updated successfully!"
-      : "🎉 Profile created successfully!";
-
-    alert(successMessage);
-    hideProfileCreationModal();
-    await loadDashboard();
-    setOwnerOnlyVisibility(isOwnerAddress(userAddress));
-
-  } catch (err) {
-    console.error("❌ Profile creation error:", err);
-
-    if (err.message.includes('user rejected')) {
-      alert("❌ Transaction was rejected. Please try again.");
-    } else {
-      alert("Profile creation failed: " + err.message);
-    }
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-// ========================= DASHBOARD SİSTEMİ ========================= //
-
-async function loadDashboard() {
-  try {
-    if (!userAddress) return;
-    
-    toggleLoading(true, "Loading your profile...");
-
-    // Tüm istatistikleri paralel olarak yükle
-    const [
-      gmStats,
-      deployStats,
-      donateStats,
-      linkStats,
-      govStats,
-      badgeStats,
-      profile
-    ] = await Promise.all([
-      getGMStats().catch(err => ({ total: "0", userCount: "0" })),
-      getDeployStats().catch(err => ({ total: "0", userDeploys: "0" })),
-      getDonateStats().catch(err => ({
-        totalDonatedValue: "0",
-        totalDonatorsCount: "0",
-        dailyWithdrawn: "0",
-        dailyLimit: "0",
-        dailyRemaining: "0",
-        topDonors: [],
-        topDonorsCount: "0",
-        userDonationCount: "0",
-        userTotalDonated: "0"
-      })),
-      getLinkStats().catch(err => ({ total: "0", userCount: "0" })),
-      getGovernanceStats().catch(err => ({ totalVotes: "0", userVotes: "0" })),
-      getBadgeStats().catch(err => "0"),
-      loadUserProfile(userAddress).catch(err => ({
-        gmCount: "0", deployCount: "0", donateCount: "0", 
-        linkCount: "0", voteCount: "0", totalXP: "0", 
-        level: "1", tier: "1", totalDonated: "0", exists: false
-      }))
-    ]);
-
-    // Global Stats
-    updateElementText("globalGM", gmStats.total);
-    updateElementText("globalDeploy", deployStats.total);
-    updateElementText("globalLinks", linkStats.total);
-    updateElementText("globalVotes", govStats.totalVotes);
-    updateElementText("globalBadges", badgeStats);
-
-    // GM Section
-    updateElementText("gmCounter", gmStats.total);
-    updateElementText("userGmCounter", profile.gmCount);
-
-    // Deploy Section
-    updateElementText("deployCounter", deployStats.total);
-    updateElementText("userDeployCounter", profile.deployCount);
-
-    // Donate Section
-    updateElementText("donateCounter", formatNumber(donateStats.totalDonatorsCount));
-    updateElementText("userDonateCounter", formatNumber(profile.donateCount));
-    updateElementText("userTotalDonated", formatCeloAmount(profile.totalDonated || "0", { maxFractionDigits: 4 }));
-    updateElementText("totalDonatedValue", formatCeloAmount(donateStats.totalDonatedValue || "0", { maxFractionDigits: 4 }));
-    updateElementText("totalDonatorsCount", formatNumber(donateStats.totalDonatorsCount));
-    updateElementText("dailyWithdrawLimit", formatCeloAmount(donateStats.dailyLimit || "0", { maxFractionDigits: 4 }));
-    updateElementText("dailyRemainingLimit", formatCeloAmount(donateStats.dailyRemaining || "0", { maxFractionDigits: 4 }));
-    updateElementText("topDonorsCount", formatNumber(donateStats.topDonorsCount));
-    renderTopDonorsList(donateStats.topDonors || []);
-
-    // Links Section
-    updateElementText("linkCounter", linkStats.total);
-    updateElementText("userLinkCounter", profile.linkCount);
-
-    // Governance Section
-    updateElementText("voteCounter", govStats.totalVotes);
-    updateElementText("userVoteCounter", profile.voteCount);
-
-    // Profile Section
-    updateElementText("profileAddress", shortenAddress(userAddress));
-    const normalizedUsername =
-      typeof profile.username === "string" && profile.username.trim().length > 0
-        ? profile.username.trim()
-        : "-";
-    updateElementText("profileUsername", normalizedUsername);
-    updateElementText("profileLevel", profile.level);
-    updateElementText("profileTier", profile.tier);
-    updateElementText("profileXP", profile.totalXP);
-    updateElementText("profileGMCount", profile.gmCount);
-    updateElementText("profileDeployCount", profile.deployCount);
-    updateElementText("profileDonateCount", profile.donateCount);
-    updateElementText("profileLinkCount", profile.linkCount);
-    updateElementText("profileVoteCount", profile.voteCount);
-
-    await renderGovernance();
-
-    lastProfileSnapshot = profile;
-
-    await loadBadgeInfo(profile);
-
-    console.log("📊 Dashboard loaded successfully");
-
-  } catch (err) {
-    console.error("⚠️ Dashboard Error:", err);
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-// ========================= MODÜL FONKSİYONLARI ========================= //
-
-async function handleGM() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const messageInput = document.getElementById("gmMessageInput");
-    const message = messageInput?.value || DEFAULT_GM_MESSAGE;
-    
-    if (!message.trim()) {
-      alert("GM message cannot be empty!");
-      return;
-    }
-    
-    toggleLoading(true, "Sending GM...");
-    await sendGM(message);
-    
-    alert("✅ GM sent successfully!");
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ GM Error:", err);
-    handleTransactionError(err, "GM");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleDeploy() {
-  try {
-    if (!ensureConnected()) return;
-
-    const nameInput = document.getElementById("contractNameInput");
-    let contractName = nameInput?.value?.trim() || "";
-    const shouldAutoGenerate =
-      !contractName ||
-      contractName === DEFAULT_CONTRACT_NAME ||
-      contractName === lastAutoContractName;
-
-    if (shouldAutoGenerate) {
-      contractName = generateAutoContractName();
-      lastAutoContractName = contractName;
-
-      if (nameInput) {
-        nameInput.value = contractName;
-        nameInput.dataset.autoName = contractName;
-      }
-    } else {
-      lastAutoContractName = "";
-    }
-
-    toggleLoading(true, "Deploying contract...");
-    await deployContract(contractName);
-
-    alert("✅ Contract deployed successfully!");
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ Deploy Error:", err);
-    handleTransactionError(err, "deploy");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleDonateCELO() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const amountInput = document.getElementById("donateAmountInput");
-    let amount = amountInput?.value || "0.1";
-    
-    // Virgülü noktaya çevir (Türkçe locale için)
-    amount = amount.replace(',', '.');
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      alert("Please enter a valid donation amount!");
-      return;
-    }
-    
-    // Minimum kontrolü
-    try {
-      const minDonation = parseFloat(ethers.utils.formatEther(MIN_DONATION));
-      if (parseFloat(amount) < minDonation) {
-        alert(`Minimum donation is ${minDonation} CELO`);
-        return;
-      }
-    } catch (error) {
-      console.warn("⚠️ Minimum donation check failed");
-    }
-    
-    const weiAmount = ethers.utils.parseEther(amount);
-    
-    toggleLoading(true, "Sending CELO donation...");
-    await donateCELO(weiAmount);
-    
-    alert("💛 CELO donation sent successfully!");
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ CELO Donation Error:", err);
-    handleTransactionError(err, "CELO donation");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleDonateCUSD() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const amountInput = document.getElementById("donateAmountInput");
-    let amount = amountInput?.value || "0.1";
-    
-    // Virgülü noktaya çevir
-    amount = amount.replace(',', '.');
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      alert("Please enter a valid donation amount!");
-      return;
-    }
-    
-    // Minimum kontrolü
-    try {
-      const minDonation = parseFloat(ethers.utils.formatEther(MIN_DONATION));
-      if (parseFloat(amount) < minDonation) {
-        alert(`Minimum donation is ${minDonation} cUSD`);
-        return;
-      }
-    } catch (error) {
-      console.warn("⚠️ Minimum donation check failed");
-    }
-    
-    const weiAmount = ethers.utils.parseEther(amount);
-    
-    toggleLoading(true, "Sending cUSD donation...");
-    await donateCUSD(weiAmount);
-    
-    alert("💵 cUSD donation sent successfully!");
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ cUSD Donation Error:", err);
-    handleTransactionError(err, "cUSD donation");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleShareLink() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const linkInput = document.getElementById("linkInput");
-    const link = linkInput?.value;
-    
-    if (!link) {
-      alert("Please enter a link");
-      return;
-    }
-    
-    if (!link.startsWith('http://') && !link.startsWith('https://')) {
-      alert("Please enter a valid URL starting with http:// or https://");
-      return;
-    }
-
-    const supportStatus = getUserSupportRequirement();
-    if (!supportStatus.isRequirementMet) {
-      alert(`⚠️ Please support community links at least ${supportStatus.requiredClicks} times before sharing your own link. ${supportStatus.remainingClicks} more support click(s) needed.`);
-      return;
-    }
-
-    toggleLoading(true, "Sharing link...");
-    await shareLink(link);
-
-    resetSupportProgress();
-
-    alert("🔗 Link shared successfully!");
-    if (linkInput) linkInput.value = "";
-    await loadDashboard();
-    renderCommunityLinks();
-
-  } catch (err) {
-    console.error("❌ Link Error:", err);
-    handleTransactionError(err, "link sharing");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function handleCreateProposal() {
-  try {
-    if (!ensureConnected()) return;
-    
-    const title = document.getElementById("proposalTitleInput")?.value;
-    const description = document.getElementById("proposalDescInput")?.value;
-    const link = document.getElementById("proposalLinkInput")?.value || "";
-    
-    if (!title || !description) {
-      alert("Title and description are required");
-      return;
-    }
-    
-    toggleLoading(true, "Creating proposal...");
-    await createProposal(title, description, link);
-    
-    alert("🗳️ Proposal created successfully!");
-    
-    // Inputları temizle
-    const titleInput = document.getElementById("proposalTitleInput");
-    const descInput = document.getElementById("proposalDescInput");
-    const linkInput = document.getElementById("proposalLinkInput");
-    
-    if (titleInput) titleInput.value = "";
-    if (descInput) descInput.value = "";
-    if (linkInput) linkInput.value = "";
-    
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ Proposal Error:", err);
-    handleTransactionError(err, "proposal creation");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-async function loadBadgeInfo(profileOverride = null) {
-  const badgeInfoElement = document.getElementById("userBadgeInfo");
-  const badgesListElement = document.getElementById("badgesList");
-
-  if (!userAddress) {
-    if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = "<p class=\"empty-state\">Connect your wallet to view your badges.</p>";
-    }
-    if (badgesListElement) {
-      badgesListElement.innerHTML = "<p class=\"empty-state\">No badge progress to display yet.</p>";
-    }
-    return;
-  }
-
-  if (badgeInfoElement) {
-    badgeInfoElement.innerHTML = "<p class=\"loading-state\">Loading badge summary...</p>";
-  }
-  if (badgesListElement) {
-    badgesListElement.innerHTML = "<p class=\"loading-state\">Loading badge progress...</p>";
-  }
-
-  try {
-    const profilePromise = profileOverride
-      ? Promise.resolve(profileOverride)
-      : (lastProfileSnapshot
-        ? Promise.resolve(lastProfileSnapshot)
-        : loadUserProfile(userAddress));
-
-    const [badgeSummary, badgeList, profileData] = await Promise.all([
-      getUserBadge(userAddress),
-      getUserBadgeList(userAddress),
-      profilePromise
-    ]);
-
-    const profile = profileData || {
-      gmCount: "0",
-      deployCount: "0",
-      donateCount: "0",
-      linkCount: "0",
-      voteCount: "0",
-      totalXP: badgeSummary.totalXP || "0",
-      level: badgeSummary.level || "1",
-      tier: badgeSummary.tier || "1"
-    };
-
-    if (!profileOverride && profile && typeof profile === "object" && profile.gmCount !== undefined) {
-      lastProfileSnapshot = profile;
-    }
-
-    const lastUpdateTimestamp = Number(badgeSummary.lastUpdate || "0");
-    const lastUpdateText = lastUpdateTimestamp > 0
-      ? new Date(lastUpdateTimestamp * 1000).toLocaleString()
-      : "—";
-
-    const requirementOrder = ["level", "gm", "deploy", "donate", "link", "vote"];
-    const requirementLabels = {
-      level: "Level",
-      gm: "GM",
-      deploy: "Deploys",
-      donate: "Donations",
-      link: "Links",
-      vote: "Votes"
-    };
-
-    const nextTierInfo = badgeList.nextTier;
-    let nextTierHtml = "";
-
-    if (nextTierInfo && Number(nextTierInfo.nextTier || "0") > Number(badgeSummary.tier || "0")) {
-      const nextRequirements = requirementOrder
-        .map(key => {
-          const required = Number(nextTierInfo.requirements?.[key] || "0");
-          if (!required) return null;
-          return `<li><strong>${requirementLabels[key]}:</strong> ${required}</li>`;
-        })
-        .filter(Boolean)
-        .join("");
-
-      nextTierHtml = `
-        <div class="badge-next-tier">
-          <h4>Next Tier Target</h4>
-          <p class="badge-next-tier-name">Tier ${nextTierInfo.nextTier}</p>
-          ${nextRequirements
-            ? `<ul class="badge-next-tier-list">${nextRequirements}</ul>`
-            : `<p class="badge-progress-empty">Keep engaging to reveal the next tier requirements.</p>`}
-        </div>
-      `;
-    } else {
-      nextTierHtml = `
-        <div class="badge-next-tier">
-          <h4>Next Tier Target</h4>
-          <p class="badge-progress-empty">You're at the highest tier — amazing work! 🎉</p>
-        </div>
-      `;
-    }
-
-    if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = `
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Level</h4>
-            <div>${badgeSummary.level}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Tier</h4>
-            <div>${badgeSummary.tier}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Total XP</h4>
-            <div>${badgeSummary.totalXP}</div>
-          </div>
-          <div class="stat-card">
-            <h4>Last Update</h4>
-            <div>${lastUpdateText}</div>
-          </div>
-        </div>
-        ${nextTierHtml}
-      `;
-    }
-
-    if (!badgeList.success) {
-      if (badgesListElement) {
-        badgesListElement.innerHTML = "<p class=\"empty-state\">Unable to load badge tiers right now.</p>";
-      }
-      return;
-    }
-
-    if (!badgeList.badges || badgeList.badges.length === 0) {
-      if (badgesListElement) {
-        badgesListElement.innerHTML = "<p class=\"empty-state\">No badge tiers configured yet.</p>";
-      }
-      return;
-    }
-
-    const userMetrics = {
-      level: Number(profile.level || "0"),
-      gm: Number(profile.gmCount || "0"),
-      deploy: Number(profile.deployCount || "0"),
-      donate: Number(profile.donateCount || "0"),
-      link: Number(profile.linkCount || "0"),
-      vote: Number(profile.voteCount || "0")
-    };
-
-    const unlockedTier = Number(badgeSummary.tier || "0");
-    const nextTierNumber = Number(nextTierInfo?.nextTier || "0");
-
-    const badgesHtml = badgeList.badges.map(badge => {
-      const tierNumber = Number(badge.tier || "0");
-      const isUnlocked = tierNumber <= unlockedTier;
-      const isNext = !isUnlocked && tierNumber === nextTierNumber;
-      const statusClass = isUnlocked
-        ? "badge-card-status--unlocked"
-        : isNext
-          ? "badge-card-status--progress"
-          : "badge-card-status--locked";
-      const statusText = isUnlocked ? "Unlocked" : isNext ? "In Progress" : "Locked";
-
-      const progressDetails = requirementOrder
-        .map(key => {
-          const requiredValue = Number(badge.requirements?.[key] || "0");
-          if (!requiredValue) return null;
-          const currentValue = userMetrics[key] || 0;
-          const ratio = requiredValue === 0 ? 1 : Math.min(1, currentValue / requiredValue);
-          const percent = Math.max(0, Math.min(100, Math.round(ratio * 100)));
-
-          return {
-            percent,
-            row: `
-              <div class="badge-progress-row">
-                <span class="badge-progress-label">${requirementLabels[key]}</span>
-                <div class="badge-progress-bar">
-                  <div class="badge-progress-fill" style="width:${percent}%"></div>
-                </div>
-                <span class="badge-progress-value">${currentValue}/${requiredValue}</span>
-              </div>
-            `
-          };
-        })
-        .filter(Boolean);
-
-      const averagePercent = progressDetails.length
-        ? Math.round(progressDetails.reduce((total, item) => total + item.percent, 0) / progressDetails.length)
-        : (isUnlocked ? 100 : 0);
-
-      const progressSummary = isUnlocked
-        ? `<div class="badge-card-progress-summary">Completed</div>`
-        : `<div class="badge-card-progress-summary">Overall progress: ${averagePercent}%</div>`;
-
-      const progressRows = progressDetails.length
-        ? progressDetails.map(item => item.row).join("")
-        : `<p class="badge-progress-empty">Engage with the community to unlock this badge.</p>`;
-
-      return `
-        <div class="badge-card ${isUnlocked ? "badge-card--unlocked" : ""} ${isNext ? "badge-card--next" : ""}">
-          <div class="badge-card-header">
-            <div>
-              <h4>${badge.name}</h4>
-              <span class="badge-card-tier">Tier ${badge.tier}</span>
-            </div>
-            <span class="badge-card-status ${statusClass}">${statusText}</span>
-          </div>
-          ${progressSummary}
-          <div class="badge-progress-list">
-            ${progressRows}
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    if (badgesListElement) {
-      badgesListElement.innerHTML = badgesHtml;
-    }
-  } catch (err) {
-    console.error("❌ Badge Error:", err);
-    if (badgeInfoElement) {
-      badgeInfoElement.innerHTML = "<p class=\"empty-state\">Failed to load badge info.</p>";
-    }
-    if (badgesListElement) {
-      badgesListElement.innerHTML = "<p class=\"empty-state\">We couldn't load your badges right now. Please try again later.</p>";
-    }
-  }
-}
-
-async function handleWithdraw() {
-  try {
-    if (!ensureConnected()) return;
-    
-    if (userAddress.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
-      alert("🚫 Only owner can withdraw donations!");
-      return;
-    }
-    
-    const confirmed = confirm("Are you sure you want to withdraw all donations?");
-    if (!confirmed) return;
-    
-    toggleLoading(true, "Withdrawing donations...");
-    await withdrawDonations();
-    
-    alert("💸 Withdraw successful!");
-    await loadDashboard();
-    
-  } catch (err) {
-    console.error("❌ Withdraw Error:", err);
-    handleTransactionError(err, "withdrawal");
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-// ========================= UI SETUP ========================= //
-
-function setupUI() {
-  console.log("🔄 Setting up UI with user links system...");
-
-  setOwnerOnlyVisibility(false);
-
-  // Mevcut buton event listener'ları
-  safeAddEventListener("gmButton", "click", handleGM);
-  safeAddEventListener("deployButton", "click", handleDeploy);
-  safeAddEventListener("donateCeloBtn", "click", handleDonateCELO);
-  safeAddEventListener("donateCusdBtn", "click", handleDonateCUSD);
-  safeAddEventListener("shareLinkBtn", "click", handleShareLink);
-  safeAddEventListener("createProposalBtn", "click", handleCreateProposal);
-  safeAddEventListener("withdrawDonationsBtn", "click", handleWithdraw);
-  
-  // ✅ YENİ: Otomatik link form butonu
-  safeAddEventListener("autoShareLinkBtn", "click", handleAutoShareLink);
-
-  safeAddEventListener("refreshUserLinksBtn", "click", async () => {
-    try {
-      toggleLoading(true, "Refreshing community links...");
-      await loadUserSharedLinks();
-      renderCommunityLinks();
-    } catch (error) {
-      console.error("❌ Refresh user links failed:", error);
-    } finally {
-      toggleLoading(false);
-    }
-  });
-  
-  // Disconnect butonu
-  if (disconnectWalletBtn) {
-    disconnectWalletBtn.addEventListener("click", disconnectWallet);
-  }
-  
-  // Profil oluşturma
-  safeAddEventListener("createProfileBtn", "click", handleCreateProfile);
-  safeAddEventListener("closeProfileModal", "click", hideProfileCreationModal);
-  
-  // Modal dışına tıklayınca kapatma
-  window.addEventListener('click', (event) => {
-    const profileModal = document.getElementById('profileCreationModal');
-    if (event.target === profileModal) {
-      hideProfileCreationModal();
-    }
-  });
-
-  // Quick Donate butonları
-  document.querySelectorAll('.supportBtn[data-amount]').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const amount = this.getAttribute('data-amount');
-      const token = this.getAttribute('data-token');
-      const amountInput = document.getElementById('donateAmountInput');
-      
-      if (amountInput) amountInput.value = amount;
-      
-      document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
-      const targetTokenBtn = document.querySelector(`.token-btn[data-token="${token}"]`);
-      if (targetTokenBtn) targetTokenBtn.classList.add('active');
-    });
-  });
-
-  // Token seçimi
-  document.querySelectorAll('.token-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.token-btn').forEach(tb => tb.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-}
-
-// ========================= UTILITY FUNCTIONS ========================= //
-
-function safeAddEventListener(elementId, event, handler) {
-  const element = document.getElementById(elementId);
-  if (element) {
-    element.addEventListener(event, handler);
-  } else {
-    console.warn(`⚠️ Element with id '${elementId}' not found`);
-  }
-}
-
-function updateElementText(elementId, text) {
-  const element = document.getElementById(elementId);
-  if (element) {
-    element.innerText = text;
-  }
-}
-
-function renderTopDonorsList(donors) {
-  const listElement = document.getElementById("topDonorsList");
-  if (!listElement) return;
-
-  if (!Array.isArray(donors) || donors.length === 0) {
-    listElement.innerHTML = '<li class="empty">No donors yet</li>';
-    return;
-  }
-
-  const items = donors.slice(0, TOP_DONORS_DISPLAY_LIMIT).map(donor => {
-    const address = donor.address || "";
-    const formattedAddress = shortenAddress(address);
-    const amount = formatCeloAmount(donor.amount || "0", { maxFractionDigits: 4 });
-    return `<li><span title="${address}">${formattedAddress}</span> — ${amount}</li>`;
-  }).join("");
-
-  listElement.innerHTML = items;
-}
-
-function shortenAddress(addr) {
-  return addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "";
-}
-
-function formatTimeAgo(timestamp) {
-  if (!timestamp) return "just now";
-
-  const now = Date.now();
-  const rawTimestamp = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-  const safeTimestamp = Number.isFinite(rawTimestamp) ? rawTimestamp : Date.now();
-  const diffMs = Math.max(0, now - safeTimestamp);
-  const diffSeconds = Math.floor(diffMs / 1000);
-
-  if (diffSeconds < 60) return `${diffSeconds}s ago`;
-
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  const diffWeeks = Math.floor(diffDays / 7);
-  if (diffWeeks < 4) return `${diffWeeks}w ago`;
-
-  const diffMonths = Math.floor(diffDays / 30);
-  if (diffMonths < 12) return `${diffMonths}mo ago`;
-
-  const diffYears = Math.floor(diffDays / 365);
-  return `${diffYears}y ago`;
-}
-
-function formatTimeRemaining(endTimestampSeconds) {
-  if (!endTimestampSeconds) return "No deadline";
-
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const targetSeconds = typeof endTimestampSeconds === "string"
-    ? parseInt(endTimestampSeconds, 10)
-    : endTimestampSeconds;
-
-  const diffSeconds = Math.floor(targetSeconds - nowSeconds);
-
-  if (!Number.isFinite(diffSeconds) || diffSeconds <= 0) {
-    return "Ended";
-  }
-
-  const days = Math.floor(diffSeconds / 86400);
-  const hours = Math.floor((diffSeconds % 86400) / 3600);
-  const minutes = Math.floor((diffSeconds % 3600) / 60);
-  const seconds = diffSeconds % 60;
-
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${seconds}s`;
-}
-
-function dedupeUserLinks(links) {
-  if (!Array.isArray(links)) return [];
-
-  const map = new Map();
-
-  links.forEach(item => {
-    if (!item || !item.link) return;
-    const user = (item.user || "").toLowerCase();
-    const key = `${user}::${item.link}`;
-    const timestamp = item.timestamp || Date.now();
-    const existing = map.get(key);
-
-    if (!existing || (timestamp && timestamp > (existing.timestamp || 0))) {
-      map.set(key, {
-        ...item,
-        timestamp
-      });
-    }
-  });
-
-  return Array.from(map.values());
-}
-
-function generateAutoContractName() {
-  const deployCount = parseInt(lastProfileSnapshot?.deployCount || "0", 10);
-  const nextCount = Number.isFinite(deployCount) ? deployCount + 1 : 1;
-  const paddedCount = nextCount.toString().padStart(2, "0");
-  const addressFragment = userAddress ? userAddress.slice(2, 6).toUpperCase() : "CEH";
-  const timeFragment = Date.now().toString(36).slice(-4).toUpperCase();
-
-  return `CEH-${addressFragment}-D${paddedCount}-${timeFragment}`;
-}
-
-function toggleLoading(state, message = "Loading...") {
-  isLoading = state;
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  
-  if (state) {
-    console.log("⏳ " + message);
-    // Burada bir loading indicator gösterilebilir
-  } else {
-    console.log("✅ Loading complete");
-  }
-}
-
-function ensureConnected() {
-  if (!userAddress) {
-    alert("⚠️ Please connect your wallet first!");
-    return false;
-  }
-  return true;
-}
-
-function handleTransactionError(error, action) {
-  let userMessage = `${action} failed: `;
-  
-  if (error.message.includes('user rejected')) {
-    userMessage += "Transaction was rejected.";
-  } else if (error.message.includes('insufficient funds')) {
-    userMessage += "Insufficient funds for gas.";
-  } else if (error.message.includes('network')) {
-    userMessage += "Network error. Please check your connection.";
-  } else {
-    userMessage += error.message;
-  }
-  
-  alert("❌ " + userMessage);
-}
-
-function renderCeloLinks() {
-  const container = document.querySelector('.ecosystem-box ul');
+function renderLeaderboardList(container, list) {
   if (!container) return;
-  
-  container.innerHTML = CELO_ECOSYSTEM_LINKS.map(item => `
-    <li><a href="${item.url}" target="_blank">${item.name}</a></li>
-  `).join('');
+  if (!list?.length) {
+    container.innerHTML = "<li class=\"leaderboard-item\">Veri bulunamadı.</li>";
+    return;
+  }
+  container.innerHTML = list
+    .map(
+      (entry, index) => `
+      <li class="leaderboard-item">
+        <span>${index + 1}. ${shorten(entry.address)}</span>
+        <strong>${formatNumber(entry.value)}</strong>
+      </li>
+    `
+    )
+    .join("");
 }
 
-// Global function for manual form triggering
-window.showAutoLinkForm = showAutoLinkForm;
+function renderOwnerPanel() {
+  if (!elements.ownerPanel) return;
+  elements.ownerPanel.hidden = !state.isOwner;
+}
 
-console.log("✅ main.js FULLY UPDATED with user links system! 🚀");
+function formatNumber(value) {
+  if (value === undefined || value === null) return "0";
+  if (typeof value === "number") {
+    return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  }
+  const num = Number(value);
+  if (Number.isNaN(num)) return "0";
+  return num.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+}
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+}
+
+function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours} saat ${minutes} dk`;
+  if (minutes > 0) return `${minutes} dk`;
+  return `${Math.max(0, Math.floor(seconds))} sn`;
+}
+
+function parseError(error) {
+  if (!error) return UI_MESSAGES.error;
+  if (error.data?.message) return error.data.message;
+  if (error.error?.message) return error.error.message;
+  if (typeof error.message === "string") return error.message;
+  return UI_MESSAGES.error;
+}
+
+function openUsernameModal() {
+  elements.usernameModal.setAttribute("aria-hidden", "false");
+}
+
+function closeUsernameModal() {
+  elements.usernameModal.setAttribute("aria-hidden", "true");
+}
+
+async function loadInitialData() {
+  await refreshGlobalStats();
+  await refreshFeed();
+  await refreshGovernance();
+  await refreshLeaderboard();
+}
+
+function initWebsocket() {
+  if (!CURRENT_NETWORK.wsUrl) return;
+  try {
+    if (wsProvider) {
+      wsProvider.destroy?.();
+    }
+    wsProvider = new ethers.providers.WebSocketProvider(CURRENT_NETWORK.wsUrl);
+    wsProvider._websocket.on("open", () => {
+      console.info("WS bağlandı");
+      wsBackoff = 2000;
+    });
+    wsProvider._websocket.on("close", () => {
+      console.warn("WS bağlantısı kapandı, yeniden deneniyor...");
+      scheduleReconnect();
+    });
+    wsProvider._websocket.on("error", (err) => {
+      console.warn("WS hatası", err);
+      scheduleReconnect();
+    });
+    subscribeToEvents();
+  } catch (error) {
+    console.error("WebSocket init error", error);
+    scheduleReconnect();
+  }
+}
+
+function scheduleReconnect() {
+  if (wsProvider) {
+    wsProvider.removeAllListeners?.();
+    wsProvider = null;
+  }
+  setTimeout(() => {
+    wsBackoff = Math.min(wsBackoff * 1.5, 60000);
+    initWebsocket();
+  }, wsBackoff);
+}
+
+function subscribeToEvents() {
+  if (!wsProvider) return;
+  const modules = [
+    { contract: "PROFILE", events: ["UserRegistered", "ProfileUpdated", "UsernameUpdated"] },
+    { contract: "GM", events: ["GMSent"] },
+    { contract: "DONATE", events: ["DonationMade", "Withdrawn"] },
+    { contract: "LINK", events: ["LinkShared"] },
+    { contract: "GOVERNANCE", events: ["ProposalCreated", "Voted", "Executed"] },
+    { contract: "BADGE", events: ["BadgeEarned", "LevelUp"] },
+  ];
+
+  modules.forEach(({ contract, events }) => {
+    try {
+      const address = MODULE_ADDRESS_BOOK[DEFAULT_NETWORK]?.[contract] || MODULES[contract]?.address;
+      if (!address) return;
+      const wsContract = new ethers.Contract(address, MODULES[contract].abi, wsProvider);
+      events.forEach((eventName) => {
+        wsContract.on(eventName, () => {
+          console.info(`Event: ${eventName}`);
+          refreshAfterTransaction();
+        });
+      });
+    } catch (error) {
+      console.error(`WS event subscribe error for ${contract}`, error);
+    }
+  });
+}
+
+export { state };

@@ -1,767 +1,269 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <!-- ✅ DÜZELTİLMİŞ CSP - Tüm hatalar için -->
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src *; style-src * 'unsafe-inline'; img-src * data: blob:;">
-  
-  <!-- ✅ ETHER.JS CDN - ContractService için ZORUNLU -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-  
-  <title>Celo Engage Hub</title>
-  <link rel="stylesheet" href="src/styles/main.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌐</text></svg>">
-  <style>
-    /* ✅ SADECE GEREKLİ INLINE STILLER - DİĞER HER ŞEY main.css'TE */
-    .wallet-btn {
-      background-color: #35D07F;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-      transition: background 0.3s ease;
-    }
-    .wallet-btn:hover {
-      background-color: #2fb46d;
-    }
-    #walletStatus {
-      background: #fff;
-      padding: 8px;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 14px;
-      border: 1px solid #ddd;
-    }
-    
-    .step-indicator {
-      margin: 0 0 20px 0;
-      font-weight: bold;
-      color: #000000;
-      font-size: 20px;
-      text-align: center;
-      width: 100%;
-    }
-    .step-number {
-      background: #FBCC5C;
-      color: black;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 10px;
-    }
-    .step-container {
-      background: #FFFDF6;
-      border: 2px solid #FBCC5C;
-      padding: 25px;
-      border-radius: 12px;
-      text-align: center;
-      height: fit-content;
-      width: 100%;
-    }
-
-    .supportBtn {
-      background: #FBCC5C;
-      color: black;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      width: 100%;
-    }
-    .supportBtn:hover {
-      background: #000000;
-      color: #FBCC5C;
-      transform: translateY(-2px);
-    }
-    .owner-badge {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      color: black;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: bold;
-      font-size: 10px;
-      margin-top: 5px;
-      display: inline-block;
-    }
-
-    /* ✅ YENİ EKLENEN STILLER - Tüm özellikler için */
-    .section {
-      display: none;
-      padding: 20px;
-    }
-    .section.active {
-      display: block;
-    }
-    .nav-button {
-      padding: 10px 15px;
-      margin: 0 5px;
-      border: none;
-      border-radius: 8px;
-      background: #f0f0f0;
-      cursor: pointer;
-    }
-    .nav-button.active {
-      background: #35D07F;
-      color: white;
-    }
-    .feature-card {
-      background: #FFFDF6;
-      border: 2px solid #FBCC5C;
-      padding: 20px;
-      border-radius: 12px;
-      margin: 15px 0;
-    }
-    .input-group {
-      margin: 15px 0;
-    }
-    .input-group input, .input-group textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin: 5px 0;
-    }
-    .action-button {
-      background: #35D07F;
-      color: black;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 5px;
-      font-weight: bold;
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin: 20px 0;
-    }
-    .stat-card {
-      background: #FFFDF6;
-      border: 1px solid #FBCC5C;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-    }
-    .badge {
-      display: inline-block;
-      background: #FFD700;
-      color: black;
-      padding: 5px 10px;
-      border-radius: 15px;
-      margin: 2px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    /* ✅ DONATE ÖZEL STİLLERİ */
-    .donate-buttons {
-      display: flex;
-      gap: 10px;
-      margin: 15px 0;
-      flex-wrap: wrap;
-    }
-    .donate-buttons button {
-      flex: 1;
-      min-width: 120px;
-    }
-    .token-selector {
-      display: flex;
-      gap: 10px;
-      margin: 15px 0;
-    }
-    .token-btn {
-      flex: 1;
-      padding: 12px;
-      border: 2px solid #FBCC5C;
-      background: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .token-btn.active {
-      background: #FBCC5C;
-      color: black;
-    }
-    .withdraw-section {
-      background: #FFF0F0;
-      border: 2px solid #FF6B6B;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-
-    /* ✅ YENİ: WALLET MODAL STİLLERİ */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 15% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 300px;
-      border-radius: 12px;
-      text-align: center;
-      animation: modalSlideIn 0.3s ease-out;
-    }
-    @keyframes modalSlideIn {
-      from { transform: translateY(-50px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close:hover {
-      color: black;
-    }
-    .wallet-option-btn {
-      background: #FFFDF6;
-      border: 2px solid #FBCC5C;
-      border-radius: 8px;
-      padding: 15px;
-      width: 100%;
-      margin: 10px 0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: start;
-      transition: all 0.3s ease;
-    }
-    .wallet-option-btn:hover:not(:disabled) {
-      background: #FBCC5C !important;
-      transform: translateY(-2px);
-    }
-    .wallet-option-btn:disabled {
-      background: #f0f0f0;
-      border: 2px solid #ddd;
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    .disconnect-btn {
-      background-color: #f44336;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-      font-weight: bold;
-      transition: background 0.3s ease;
-    }
-    .disconnect-btn:hover {
-      background-color: #d32f2f;
-    }
-
-    /* ✅ PROFİL OLUŞTURMA MODAL STİLLERİ */
-    .profile-stats-preview {
-      background: #FFF0C2;
-      border: 2px solid #FBCC5C;
-      border-radius: 12px;
-      padding: 15px;
-      margin: 15px 0;
-    }
-    .profile-stats-preview h4 {
-      margin: 0 0 10px 0;
-      color: #000;
-      text-align: center;
-    }
-    #usernameInput {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #FBCC5C;
-      border-radius: 8px;
-      font-size: 16px;
-      margin: 10px 0;
-    }
-    #usernameInput:focus {
-      outline: none;
-      border-color: #35D07F;
-    }
-  </style>
-</head>
-<body>
-  <div class="centered-content">
-    <header>
-      <div class="title-bar">
-        <span class="emoji">🌐</span> <span>Celo Engage Hub</span>
-      </div>
-      <p class="subtitle"><i>Social TX – Where Every Interaction Builds Real Value</i></p>
-      <p class="description">If you want support, support first</p>
-
-      <!-- ✅ YENİ NAVIGATION - Links section kaldırıldı -->
-      <div class="nav-bar">
-        <button class="nav-button active" data-section="home">🏠 Home</button>
-        <button class="nav-button" data-section="gm">👋 GM</button>
-        <button class="nav-button" data-section="deploy">🚀 Deploy</button>
-        <button class="nav-button" data-section="donate">💛 Donate</button>
-        <!-- 🔗 LINKS SECTION KALDIRILDI - Artık ana sayfada -->
-        <button class="nav-button" data-section="governance">🗳️ Governance</button>
-        <button class="nav-button" data-section="profile">👤 Profile</button>
-        <button class="nav-button" data-section="badges">🏆 Badges</button>
-        <button class="nav-button" data-section="leaderboard">🏆 Leaderboard</button>
-      </div>
-    </header>
-
-    <div class="container">
-      <aside class="sidebar">
-        <!-- ✅ GÜNCELLENMİŞ WALLET BOX -->
-        <div class="wallet-box">
-          <div id="walletStatus">
-            <p>🔴 Not connected</p>
-            <span id="networkLabel">—</span>
-          </div>
-          <!-- Connect Wallet Butonu -->
-          <button id="connectWallet" class="wallet-btn">Connect Wallet</button>
-          
-          <!-- Bağlandıktan sonra görünecek bilgiler ve Disconnect Butonu -->
-          <div id="walletInfo" style="display: none;">
-            <p><strong>Address:</strong> <span id="walletAddress"></span></p>
-            <p><strong>Balance:</strong> <span id="walletBalance"></span></p>
-            <!-- YENİ: Disconnect Butonu -->
-            <button id="disconnectWallet" class="disconnect-btn">Disconnect</button>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Celo Engage Hub</title>
+    <link rel="stylesheet" href="src/styles/main.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>" />
+  </head>
+  <body>
+    <div id="app" class="app-shell" data-theme="light">
+      <header class="app-header">
+        <div class="brand-area">
+          <div class="brand-logo">⚡</div>
+          <div class="brand-copy">
+            <h1>Celo Engage Hub</h1>
+            <p>Support others first, then leave your link.</p>
           </div>
         </div>
-
-        <!-- ✅ YENİ: BAĞLANTI SEÇENEKLERİ MODAL'ı -->
-        <div id="walletModal" class="modal">
-          <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Connect a Wallet</h3>
-            
-            <!-- MetaMask Seçeneği -->
-            <button id="connectMetaMask" class="wallet-option-btn">
-              <img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="MetaMask" style="width: 32px; height: 32px; margin-right: 15px;">
-              <div style="text-align: left;">
-                <div style="font-weight: bold;">MetaMask</div>
-                <div style="font-size: 0.8em; color: #666;">Desktop & Mobile</div>
-              </div>
-            </button>
-            
-            <!-- WalletConnect Seçeneği (Coming Soon) -->
-            <button id="connectWalletConnect" class="wallet-option-btn" disabled>
-              <img src="https://walletconnect.com/_next/static/media/logo_mark.84dd8525.svg" alt="WalletConnect" style="width: 32px; height: 32px; margin-right: 15px; background: #3b99fc; border-radius: 8px; padding: 4px;">
-              <div style="text-align: left;">
-                <div style="font-weight: bold;">WalletConnect</div>
-                <div style="font-size: 0.8em; color: #666;">Coming Soon</div>
-              </div>
-            </button>
+        <nav class="app-nav" aria-label="Ana gezinme">
+          <button class="nav-btn" data-target="homeSection">Akış</button>
+          <button class="nav-btn" data-target="gmSection">GM</button>
+          <button class="nav-btn" data-target="deploySection">Deploy</button>
+          <button class="nav-btn" data-target="donateSection">Donate</button>
+          <button class="nav-btn" data-target="linkSection">Link</button>
+          <button class="nav-btn" data-target="governanceSection">Governance</button>
+          <button class="nav-btn" data-target="badgeSection">Badge</button>
+          <button class="nav-btn" data-target="leaderboardSection">Leaderboard</button>
+        </nav>
+        <div class="header-actions">
+          <div class="network-indicator">
+            <span id="networkName">—</span>
+            <span class="status-dot" id="networkStatus"></span>
+          </div>
+          <button id="themeToggle" aria-label="Tema değiştir">🌗</button>
+          <div class="wallet-controls">
+            <button id="connectMetaMask" class="wallet-btn">MetaMask</button>
+            <button id="connectWalletConnect" class="wallet-btn">WalletConnect</button>
+            <button id="disconnectWallet" class="wallet-btn ghost" hidden>✕</button>
           </div>
         </div>
+      </header>
 
-        <!-- ✅ YENİ: PROFİL OLUŞTURMA MODAL'I -->
-        <div id="profileCreationModal" class="modal">
-          <div class="modal-content">
-            <span class="close" id="closeProfileModal">&times;</span>
-            <h3>👤 Create Your Profile</h3>
-            <p>Welcome to Celo Engage Hub! Create your profile to start earning badges and tracking your stats.</p>
-            
-            <div class="input-group">
-              <input type="text" id="usernameInput" placeholder="Enter your username" maxlength="32">
-              <small>Username will be stored on the blockchain</small>
-            </div>
-            
-            <div class="profile-stats-preview">
-              <h4>Your starting stats:</h4>
-              <div class="stats-grid">
-                <div class="stat-card">
-                  <h4>Level</h4>
-                  <div>1</div>
-                </div>
-                <div class="stat-card">
-                  <h4>Tier</h4>
-                  <div>1</div>
-                </div>
-                <div class="stat-card">
-                  <h4>XP</h4>
-                  <div>0</div>
-                </div>
-              </div>
-            </div>
-            
-            <button id="createProfileBtn" class="action-button">Create Profile 🚀</button>
-            <p><small>This will require a transaction on Celo network</small></p>
+      <main class="app-main">
+        <aside class="profile-summary" id="profilePanel">
+          <div class="panel-header">
+            <h2>Profil</h2>
+            <span id="profileUsername">—</span>
           </div>
-        </div>
-
-        <!-- ✅ GÜNCELLENMİŞ: SIDEBAR DONATE KUTUSU -->
-        <div class="donate-box">
-          <h3>💛 Quick Donate</h3>
-          <p>Fast support with preset amounts</p>
-          <div class="donate-buttons">
-            <button class="supportBtn" data-amount="0.1" data-token="CELO">0.1 CELO</button>
-            <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
-            <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
-            <button class="supportBtn" data-amount="0.1" data-token="cUSD">0.1 cUSD</button>
+          <div class="profile-address" id="profileAddress">—</div>
+          <div class="badge-stack" id="badgeStack"></div>
+          <dl class="profile-stats" id="profileStats"></dl>
+          <div class="xp-progress" id="xpProgress"></div>
+          <div class="profile-links">
+            <a id="publicProfileLink" target="_blank" rel="noopener">Profilini görüntüle</a>
           </div>
-        </div>
+        </aside>
 
-        <!-- 🟡 CELO ECOSYSTEM -->
-        <div class="ecosystem-box">
-          <h3>🟡 Celo Ecosystem</h3>
-          <ul>
-            <li><a href="https://celo.org" target="_blank">🌍 Celo Official</a></li>
-            <li><a href="https://docs.celo.org" target="_blank">📘 Celo Documentation</a></li>
-            <li><a href="https://developers.celo.org" target="_blank">💻 Developer Portal</a></li>
-            <li><a href="https://celoscan.io" target="_blank">🔎 Celo Explorer</a></li>
-            <li><a href="https://forum.celo.org" target="_blank">💬 Celo Forum</a></li>
-            <li><a href="https://x.com/Celo" target="_blank">🐦 Celo Twitter</a></li>
-            <li><a href="https://chat.celo.org" target="_blank">💬 Celo Discord</a></li>
-            <li><a href="https://blog.celo.org" target="_blank">📰 Celo Blog</a></li>
-            <li><a href="https://github.com/celo-org" target="_blank">💻 Celo GitHub</a></li>
-          </ul>
-        </div>
-
-        <!-- 📊 GLOBAL STATS -->
-        <div class="global-stats">
-          <h3>📊 Global Stats</h3>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-value" id="globalVisitors">0</div>
-              <div class="stat-label">Visitors</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="globalGM">0</div>
-              <div class="stat-label">GM Count</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="globalDeploy">0</div>
-              <div class="stat-label">Deploys</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="globalLinks">0</div>
-              <div class="stat-label">Links</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="globalVotes">0</div>
-              <div class="stat-label">Votes</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value" id="globalBadges">0</div>
-              <div class="stat-label">Badges</div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <main class="main-content">
-        <!-- ✅ YENİ HOME SECTION - 3'lü grid ve otomatik form -->
         <section id="homeSection" class="section active">
-          <div class="step-indicator">
-            <span class="step-number">1</span> Support Community Members
+          <div class="section-header">
+            <h2>Topluluk Akışı</h2>
+            <p>Son paylaşılan bağlantılar ve etkinlikler</p>
           </div>
-          
-          <div class="step-container">
-            <div class="support-header">
-              <h3>🤝 Support Others First</h3>
-              <p>Click on community links to support others, then share your own link</p>
-            </div>
-
-            <!-- ✅ YENİ: 3'LÜ GRID BURADA -->
-            <div class="links-section">
-              <h4 class="links-section-title">✨ Featured Support Links</h4>
-              <p class="links-section-description">Visit at least three community links to unlock your sharing form.</p>
-              <div class="links-grid" id="linksContainer">
-                <!-- Link kartları buraya dinamik olarak eklenecek -->
-              </div>
-            </div>
-
-            <div class="links-section user-links-section">
-              <div class="links-section-header">
-                <h4 class="links-section-title">🧑‍🤝‍🧑 Community Shared Links</h4>
-                <button id="refreshUserLinksBtn" class="ghost-button" type="button">↻ Refresh</button>
-              </div>
-              <p class="links-section-description">See what fellow builders have recently shared on-chain.</p>
-              <div class="links-grid" id="userLinksContainer">
-                <!-- Kullanıcı link kartları dinamik olarak eklenecek -->
-              </div>
-            </div>
-
-            <!-- ✅ YENİ: OTOMATİK LINK PAYLAŞIM FORM -->
-            <div id="autoLinkForm" class="auto-link-form">
-              <h3>🎉 Now Share Your Own Link!</h3>
-              <p>You supported the community! Now share your link for others to discover you.</p>
-              
-              <div class="input-group">
-                <input type="text" id="autoLinkInput" placeholder="Enter your link (https://...)" />
-              </div>
-              
-              <button id="autoShareLinkBtn" class="action-button">
-                Share My Link on Blockchain 🔗
-              </button>
-              
-              <p><small>This will require a transaction on Celo network</small></p>
-            </div>
-          </div>
+          <div id="linkFeed" class="feed-list"></div>
         </section>
 
-        <!-- ✅ GM SECTION -->
         <section id="gmSection" class="section">
-          <div class="feature-card">
-            <h3>👋 Send GM</h3>
-            <div class="input-group">
-              <input type="text" id="gmMessageInput" placeholder="Enter your GM message (optional)" value="Hello from Celo Engage Hub!">
-            </div>
-            <button id="gmButton" class="action-button">Send GM 🌟</button>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>Global GM Count</h4>
-                <div id="gmCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your GM Count</h4>
-                <div id="userGmCounter">0</div>
-              </div>
-            </div>
+          <div class="section-header">
+            <h2>GM Gönder</h2>
+            <p>Kısa bir selam bırak, XP kazan.</p>
           </div>
+          <form id="gmForm" class="card">
+            <label for="gmMessage">Mesaj (opsiyonel)</label>
+            <textarea id="gmMessage" maxlength="140" placeholder="GM Celo dünyası!"></textarea>
+            <button type="submit" class="primary-btn">GM Gönder</button>
+            <p class="helper">+1 XP</p>
+          </form>
         </section>
 
-        <!-- ✅ DEPLOY SECTION -->
         <section id="deploySection" class="section">
-          <div class="feature-card">
-            <h3>🚀 Deploy Contract</h3>
-            <div class="input-group">
-              <input type="text" id="contractNameInput" placeholder="Enter contract name (optional)">
-              <small class="input-hint">Leave blank to auto-generate a unique name for each deploy.</small>
-            </div>
-            <button id="deployButton" class="action-button">Deploy Contract 🚀</button>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>Global Deploy Count</h4>
-                <div id="deployCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your Deploy Count</h4>
-                <div id="userDeployCounter">0</div>
-              </div>
-            </div>
+          <div class="section-header">
+            <h2>Deploy Et</h2>
+            <p>Düşük gas ile basit kontrat dağıt.</p>
+          </div>
+          <form id="deployForm" class="card">
+            <label for="deployName">Kontrat adı (opsiyonel)</label>
+            <input id="deployName" type="text" maxlength="32" placeholder="AutoName-..." />
+            <button type="submit" class="primary-btn">Kontratı Dağıt</button>
+            <p class="helper">+1 XP</p>
+          </form>
+          <div class="card" id="deployHistory">
+            <h3>Dağıtılan Kontratlar</h3>
+            <ul id="deployedContracts"></ul>
           </div>
         </section>
 
-        <!-- ✅ DONATE SECTION -->
         <section id="donateSection" class="section">
-          <div class="feature-card">
-            <h3>💛 Make a Donation</h3>
-            <p><strong>Minimum donation: 0.1 CELO or 0.1 cUSD</strong></p>
-            
-            <div class="input-group">
-              <input type="number" id="donateAmountInput" placeholder="Enter amount (min 0.1)" step="0.1" min="0.1" value="0.1">
+          <div class="section-header">
+            <h2>Donate</h2>
+            <p>0.1 CELO / cUSD altı bağışlar reddedilir.</p>
+          </div>
+          <div class="card donate-card">
+            <div class="tab-list" role="tablist">
+              <button type="button" class="tab-btn active" data-tab="celo">CELO</button>
+              <button type="button" class="tab-btn" data-tab="cusd">cUSD</button>
             </div>
-
-            <!-- Token Seçimi -->
-            <div class="token-selector">
-              <button class="token-btn active" data-token="CELO">CELO 💛</button>
-              <button class="token-btn" data-token="cUSD">cUSD 💵</button>
+            <div class="tab-panel active" data-content="celo">
+              <form id="donateCeloForm">
+                <label for="celoAmount">Miktar (CELO)</label>
+                <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                <button type="submit" class="primary-btn">CELO Bağışla</button>
+              </form>
             </div>
-
-            <!-- Donate Butonları -->
-            <div class="donate-buttons">
-              <button id="donateCeloBtn" class="action-button">Donate CELO 💛</button>
-              <button id="donateCusdBtn" class="action-button">Donate cUSD 💵</button>
+            <div class="tab-panel" data-content="cusd">
+              <form id="approveCusdForm">
+                <label for="cusdApproveAmount">Onay Miktarı (cUSD)</label>
+                <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
+                <button type="submit" class="secondary-btn">cUSD Onayla</button>
+              </form>
+              <form id="donateCusdForm">
+                <label for="cusdAmount">Bağış Miktarı (cUSD)</label>
+                <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                <button type="submit" class="primary-btn">cUSD Bağışla</button>
+              </form>
             </div>
-
-            <!-- Hızlı Donate Butonları -->
-            <div class="donate-buttons">
-              <button class="supportBtn" data-amount="0.1" data-token="CELO">0.1 CELO</button>
-              <button class="supportBtn" data-amount="0.5" data-token="CELO">0.5 CELO</button>
-              <button class="supportBtn" data-amount="1" data-token="CELO">1 CELO</button>
-              <button class="supportBtn" data-amount="5" data-token="CELO">5 CELO</button>
+          </div>
+          <div id="ownerPanel" class="card owner-only" hidden>
+            <h3>Sahip Paneli</h3>
+            <div class="owner-section">
+              <h4>Bağış Çekimi</h4>
+              <form id="withdrawCeloForm">
+                <label for="withdrawCeloAmount">CELO Miktarı</label>
+                <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
+                <button type="submit" class="secondary-btn">CELO Çek</button>
+              </form>
+              <form id="withdrawCusdForm">
+                <label for="withdrawCusdAmount">cUSD Miktarı</label>
+                <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
+                <button type="submit" class="secondary-btn">cUSD Çek</button>
+              </form>
             </div>
-
-            <!-- Owner Withdraw Panel -->
-            <div id="donationOwnerPanel" class="withdraw-section" style="display: none;" data-owner-only="true">
-              <h4>💰 Owner Withdraw Panel</h4>
-              <p>Withdraw donations to project owner</p>
-              <button id="withdrawDonationsBtn" class="action-button" style="background: #FF6B6B;">Withdraw Donations 🏦</button>
-              
-              <div class="stats-grid">
-                <div class="stat-card">
-                  <h4>Total Donated</h4>
-                  <div id="totalDonatedValue">0 CELO</div>
-                </div>
-                <div class="stat-card">
-                  <h4>Total Donators</h4>
-                  <div id="totalDonatorsCount">0</div>
-                </div>
-                <div class="stat-card">
-                  <h4>Daily Limit</h4>
-                  <div id="dailyWithdrawLimit">1000 CELO</div>
-                </div>
-                <div class="stat-card">
-                  <h4>Remaining Today</h4>
-                  <div id="dailyRemainingLimit">0 CELO</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Donate İstatistikleri -->
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>Total Donators</h4>
-                <div id="donateCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your Donations</h4>
-                <div id="userDonateCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your Total Donated</h4>
-                <div id="userTotalDonated">0 CELO</div>
-              </div>
-              <div class="stat-card">
-                <h4>Top Donors</h4>
-                <div id="topDonorsCount">0</div>
-                <ul id="topDonorsList" class="top-donors-list"></ul>
-              </div>
+            <div class="owner-section">
+              <h4>Yeni Öneri</h4>
+              <form id="proposalForm">
+                <label for="proposalTitle">Başlık</label>
+                <input id="proposalTitle" type="text" required maxlength="80" />
+                <label for="proposalDescription">Açıklama</label>
+                <textarea id="proposalDescription" required maxlength="280"></textarea>
+                <label for="proposalLink">Bağlantı</label>
+                <input id="proposalLink" type="url" placeholder="https://" />
+                <button type="submit" class="primary-btn">Öneri Oluştur</button>
+              </form>
             </div>
           </div>
         </section>
 
-        <!-- 🔗 LINKS SECTION KALDIRILDI - Artık ana sayfada otomatik form var -->
+        <section id="linkSection" class="section">
+          <div class="section-header">
+            <h2>Link Paylaş</h2>
+            <p>Linkler yalnızca https:// ile başlamalı.</p>
+          </div>
+          <form id="linkForm" class="card">
+            <label for="linkUrl">URL</label>
+            <input id="linkUrl" type="url" placeholder="https://" required />
+            <button type="submit" class="primary-btn">Link Paylaş</button>
+            <p class="helper">+2 XP</p>
+          </form>
+        </section>
 
-        <!-- ✅ GOVERNANCE SECTION -->
         <section id="governanceSection" class="section">
-          <div class="feature-card">
-            <h3>🗳️ Governance</h3>
-            
-            <!-- Owner Only: Create Proposal -->
-            <div id="governanceOwnerPanel" style="display: none;" data-owner-only="true">
-              <h4>Create Proposal (Owner Only)</h4>
-              <div class="input-group">
-                <input type="text" id="proposalTitleInput" placeholder="Proposal Title">
-                <textarea id="proposalDescInput" placeholder="Proposal Description"></textarea>
-                <input type="text" id="proposalLinkInput" placeholder="Proposal Link (optional)">
-              </div>
-              <button id="createProposalBtn" class="action-button">Create Proposal 📝</button>
+          <div class="section-header">
+            <h2>Governance</h2>
+            <p>Aktif ve tamamlanan önerilere katıl.</p>
+          </div>
+          <div class="governance-columns">
+            <div class="card">
+              <h3>Aktif Öneriler</h3>
+              <ul id="activeProposals" class="proposal-list"></ul>
             </div>
-
-            <!-- Active Proposals -->
-            <h4>Active Proposals</h4>
-            <div id="proposalsList">
-              <!-- Proposals will be loaded here -->
-            </div>
-
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>Total Votes</h4>
-                <div id="voteCounter">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Your Votes</h4>
-                <div id="userVoteCounter">0</div>
-              </div>
+            <div class="card">
+              <h3>Tamamlanan Öneriler</h3>
+              <ul id="pastProposals" class="proposal-list"></ul>
             </div>
           </div>
         </section>
 
-        <!-- ✅ PROFILE SECTION -->
-        <section id="profileSection" class="section">
-          <div class="feature-card">
-            <h3>👤 Your Profile</h3>
-            <div id="profileInfo">
-              <p><strong>Address:</strong> <span id="profileAddress">-</span></p>
-              <p><strong>Username:</strong> <span id="profileUsername">-</span></p>
-              <p><strong>Level:</strong> <span id="profileLevel">1</span></p>
-              <p><strong>Tier:</strong> <span id="profileTier">1</span></p>
-              <p><strong>Total XP:</strong> <span id="profileXP">0</span></p>
-            </div>
-            
-            <h4>Your Statistics</h4>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <h4>GM Count</h4>
-                <div id="profileGMCount">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Deploy Count</h4>
-                <div id="profileDeployCount">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Donate Count</h4>
-                <div id="profileDonateCount">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Link Count</h4>
-                <div id="profileLinkCount">0</div>
-              </div>
-              <div class="stat-card">
-                <h4>Vote Count</h4>
-                <div id="profileVoteCount">0</div>
-              </div>
-            </div>
-
-            <h4>Your Links</h4>
-            <div id="userLinksList">
-              <!-- User links will be loaded here -->
-            </div>
-
-            <h4>Your Contracts</h4>
-            <div id="userContractsList">
-              <!-- User contracts will be loaded here -->
-            </div>
+        <section id="badgeSection" class="section">
+          <div class="section-header">
+            <h2>Rozetler & Tier</h2>
+            <p>XP → Level → Tier yolculuğunu takip et.</p>
+          </div>
+          <div class="card" id="badgeDetails"></div>
+          <div class="card">
+            <h3>Gelecek NFT Basımı</h3>
+            <p>Rozetlerini NFT olarak basmak için yakında burada olacağız.</p>
+            <button type="button" class="secondary-btn" disabled>Yakında</button>
           </div>
         </section>
 
-        <!-- ✅ BADGES SECTION -->
-        <section id="badgesSection" class="section">
-          <div class="feature-card">
-            <h3>🏆 Your Badges</h3>
-            <div id="userBadgeInfo">
-              <!-- Badge info will be loaded here -->
-            </div>
-            <div id="badgesList">
-              <!-- Badges will be displayed here -->
-            </div>
-          </div>
-        </section>
-
-        <!-- ✅ LEADERBOARD SECTION -->
         <section id="leaderboardSection" class="section">
-          <div class="feature-card">
-            <h3>🏆 Leaderboard</h3>
-            <div id="leaderboardContent" class="leaderboard-content">
-              <!-- Leaderboard metrics render dynamically -->
+          <div class="section-header">
+            <h2>Liderlik Tablosu</h2>
+            <p>Topluluk kahramanları burada.</p>
+          </div>
+          <div class="card">
+            <div class="tab-list leaderboard-tabs" role="tablist">
+              <button class="tab-btn active" data-tab="topLinks">Link</button>
+              <button class="tab-btn" data-tab="topGM">GM</button>
+              <button class="tab-btn" data-tab="topDeploy">Deploy</button>
+              <button class="tab-btn" data-tab="topCelo">CELO Donor</button>
+              <button class="tab-btn" data-tab="topCusd">cUSD Donor</button>
+              <button class="tab-btn" data-tab="topVotes">Vote</button>
+              <button class="tab-btn" data-tab="topBadges">Level</button>
+            </div>
+            <div class="leaderboard-panels">
+              <div class="tab-panel active" data-content="topLinks">
+                <ol id="leaderboardLinks" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topGM">
+                <ol id="leaderboardGM" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topDeploy">
+                <ol id="leaderboardDeploy" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topCelo">
+                <ol id="leaderboardCelo" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topCusd">
+                <ol id="leaderboardCusd" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topVotes">
+                <ol id="leaderboardVotes" class="leaderboard-list"></ol>
+              </div>
+              <div class="tab-panel" data-content="topBadges">
+                <ol id="leaderboardBadges" class="leaderboard-list"></ol>
+              </div>
             </div>
           </div>
         </section>
       </main>
+
+      <footer class="app-footer">
+        <div class="global-counters" id="globalCounters"></div>
+        <div class="analytics-links">
+          <a id="graphLink" target="_blank" rel="noopener">The Graph</a>
+          <a id="duneLink" target="_blank" rel="noopener">Dune Dashboard</a>
+        </div>
+      </footer>
     </div>
-  </div>
 
-  <!-- ✅ DÜZELTİLMİŞ MAIN.JS YOLU -->
-  <script type="module" src="src/main.js"></script>
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
-  <script>
-    // Quick donate butonları için ek güvence
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log("✅ Quick Donate buttons are ready!");
-    });
-  </script>
-</body>
+    <div id="usernameModal" class="modal" aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <h2>Profil Oluştur</h2>
+        <p>Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.</p>
+        <form id="usernameForm">
+          <label for="usernameInput">Kullanıcı adı</label>
+          <input id="usernameInput" type="text" maxlength="32" required />
+          <div class="modal-actions">
+            <button type="submit" class="primary-btn">Kaydol</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
 </html>
