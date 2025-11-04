@@ -36,6 +36,14 @@ import {
   getAnalyticsConfig,
 } from "./services/contractService.js";
 
+let deviceId = localStorage.getItem("celo-engage-device-id");
+if (!deviceId) {
+  deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
+  localStorage.setItem("celo-engage-device-id", deviceId);
+}
+
+const storedClickerMap = safeParseStorage(localStorage.getItem("celo-engage-link-clickers"), {});
+
 const state = {
   address: null,
   profile: null,
@@ -43,9 +51,13 @@ const state = {
   governance: { active: [], completed: [] },
   leaderboard: null,
   isOwner: false,
-  theme: localStorage.getItem("celo-engage-theme") || "dark",
+  theme: "golden",
   language: localStorage.getItem("celo-engage-lang") || "tr",
   translations: {},
+  linkClickers: storedClickerMap,
+  sharePromptLink: null,
+  deviceId,
+  feedEntries: [],
 };
 
 const elements = {
@@ -71,7 +83,6 @@ const elements = {
   donateCeloForm: document.getElementById("donateCeloForm"),
   approveCusdForm: document.getElementById("approveCusdForm"),
   donateCusdForm: document.getElementById("donateCusdForm"),
-  linkForm: document.getElementById("linkForm"),
   proposalForm: document.getElementById("proposalForm"),
   activeProposals: document.getElementById("activeProposals"),
   pastProposals: document.getElementById("pastProposals"),
@@ -95,10 +106,13 @@ const elements = {
   usernameModal: document.getElementById("usernameModal"),
   usernameForm: document.getElementById("usernameForm"),
   usernameInput: document.getElementById("usernameInput"),
-  themeToggle: document.getElementById("themeToggle"),
   languageToggle: document.getElementById("languageToggle"),
   profileButton: document.getElementById("profileButton"),
   profileModal: document.getElementById("profileModal"),
+  shareModal: document.getElementById("shareModal"),
+  shareLinkForm: document.getElementById("shareLinkForm"),
+  shareLinkInput: document.getElementById("shareLinkInput"),
+  sharePromptLink: document.getElementById("sharePromptLink"),
   networkName: document.getElementById("networkName"),
   networkStatus: document.getElementById("networkStatus"),
   duneLink: document.getElementById("duneLink"),
@@ -110,7 +124,7 @@ let wsProvider = null;
 let wsBackoff = 2000;
 
 function init() {
-  applyTheme(state.theme);
+  applyTheme();
   setupLanguage();
   setupNavigation();
   const initialSection = document.querySelector(".section.active");
@@ -121,8 +135,9 @@ function init() {
   setupLeaderboardTabs();
   setupForms();
   setupWalletButtons();
-  setupThemeToggle();
   setupProfileModal();
+  setupShareModal();
+  setupFeedInteractions();
   setupToastBridge();
   updateAnalyticsLinks();
   renderNetworkInfo(false);
@@ -185,6 +200,7 @@ function applyLanguage(lang) {
   renderBadgeDetails(state.profile);
   renderGlobalCounters(state.global);
   renderNavigationAria();
+  updateLinkFeedView();
 }
 
 function translateDocument() {
@@ -236,8 +252,12 @@ function setupProfileModal() {
   }
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && elements.profileModal.classList.contains("is-open")) {
+    if (event.key !== "Escape") return;
+    if (elements.profileModal?.classList.contains("is-open")) {
       closeProfileModal();
+    }
+    if (elements.shareModal?.classList.contains("is-open")) {
+      closeShareModal();
     }
   });
 }
@@ -246,47 +266,212 @@ function openProfileModal() {
   if (!elements.profileModal) return;
   elements.profileModal.classList.add("is-open");
   elements.profileModal.setAttribute("aria-hidden", "false");
-  document.body.classList.add("modal-open");
+  updateBodyModalState();
 }
 
 function closeProfileModal() {
   if (!elements.profileModal) return;
   elements.profileModal.classList.remove("is-open");
   elements.profileModal.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("modal-open");
+  updateBodyModalState();
 }
 
-function applyTheme(theme) {
-  state.theme = theme;
-  elements.app.dataset.theme = theme;
-  localStorage.setItem("celo-engage-theme", theme);
+function setupShareModal() {
+  if (!elements.shareModal) return;
+  const dismissElements = elements.shareModal.querySelectorAll('[data-dismiss="shareModal"]');
+  dismissElements.forEach((btn) => {
+    btn.addEventListener("click", closeShareModal);
+  });
+  if (elements.shareLinkInput && !elements.shareLinkInput.value) {
+    elements.shareLinkInput.value = "https://";
+  }
 }
 
-function setupThemeToggle() {
-  elements.themeToggle.addEventListener("click", () => {
-    applyTheme(state.theme === "dark" ? "light" : "dark");
+function openShareModal(link) {
+  if (!elements.shareModal) return;
+  state.sharePromptLink = link || null;
+  if (elements.sharePromptLink) {
+    elements.sharePromptLink.textContent = link || "—";
+  }
+  if (elements.shareLinkInput) {
+    elements.shareLinkInput.value = "https://";
+    elements.shareLinkInput.focus({ preventScroll: true });
+  }
+  elements.shareModal.classList.add("is-open");
+  elements.shareModal.setAttribute("aria-hidden", "false");
+  updateBodyModalState();
+}
+
+function closeShareModal() {
+  if (!elements.shareModal) return;
+  elements.shareModal.classList.remove("is-open");
+  elements.shareModal.setAttribute("aria-hidden", "true");
+  if (elements.shareLinkInput) {
+    elements.shareLinkInput.value = "https://";
+  }
+  if (elements.sharePromptLink) {
+    elements.sharePromptLink.textContent = "—";
+  }
+  state.sharePromptLink = null;
+  updateBodyModalState();
+}
+
+function setupFeedInteractions() {
+  if (!elements.linkFeed) return;
+  elements.linkFeed.addEventListener("click", handleFeedClick);
+}
+
+function handleFeedClick(event) {
+  const trigger = event.target.closest("[data-feed-link]");
+  if (!trigger) return;
+  event.preventDefault();
+  const encodedLink = trigger.getAttribute("data-feed-link");
+  const url = encodedLink ? decodeURIComponent(encodedLink) : trigger.getAttribute("href");
+  if (!url) return;
+  window.open(url, "_blank", "noopener");
+  registerLinkInteraction(url);
+  openShareModal(url);
+}
+
+function registerLinkInteraction(url) {
+  const key = getLinkKey(url);
+  if (!key) return;
+  const userId = getCurrentUserId();
+  const existing = new Set(state.linkClickers[key] || []);
+  if (!existing.has(userId)) {
+    existing.add(userId);
+    state.linkClickers[key] = Array.from(existing);
+    persistLinkClickers();
+  }
+  updateLinkFeedView();
+}
+
+function persistLinkClickers() {
+  localStorage.setItem("celo-engage-link-clickers", JSON.stringify(state.linkClickers));
+}
+
+function updateLinkFeedView() {
+  if (!elements.linkFeed) return;
+  const visibleEntries = filterFeedEntries(state.feedEntries);
+  if (!visibleEntries.length) {
+    elements.linkFeed.innerHTML = `<p class="feed-empty">${t("feed.empty", "Henüz link paylaşılmadı.")}</p>`;
+    return;
+  }
+  elements.linkFeed.innerHTML = visibleEntries.map(renderFeedCard).join("");
+}
+
+function filterFeedEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.filter((item) => getLinkClickCount(item.link) < 3);
+}
+
+function renderFeedCard(item) {
+  const rawLink = item.link || "";
+  const safeLink = escapeHtml(rawLink);
+  const encodedLink = encodeURIComponent(rawLink);
+  const key = getLinkKey(rawLink);
+  const clicks = getLinkClickCount(item.link);
+  const remaining = Math.max(0, 3 - clicks);
+  const userLabel = escapeHtml(shorten(item.user || "0x0"));
+  const blockLabel = item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni");
+  return `
+    <article class="feed-card" data-feed-key="${key}">
+      <div class="feed-card__meta">
+        <span>${userLabel}</span>
+        <time>${blockLabel}</time>
+      </div>
+      <a class="feed-card__link" data-feed-link="${encodedLink}" href="${safeLink}" target="_blank" rel="noopener">${safeLink}</a>
+      <div class="feed-card__footer">
+        <span>${t("feed.remaining", "Kalan tıklama")}: ${remaining}</span>
+      </div>
+    </article>
+  `;
+}
+
+function getLinkClickCount(url) {
+  const key = getLinkKey(url);
+  const entries = state.linkClickers[key];
+  return Array.isArray(entries) ? entries.length : 0;
+}
+
+function getLinkKey(url) {
+  const normalized = normalizeLink(url);
+  return normalized ? encodeURIComponent(normalized) : "";
+}
+
+function normalizeLink(url) {
+  return typeof url === "string" ? url.trim().toLowerCase() : "";
+}
+
+function getCurrentUserId() {
+  return (state.address ? state.address.toLowerCase() : state.deviceId) || state.deviceId;
+}
+
+function escapeHtml(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).replace(/[&<>"]|'/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return char;
+    }
   });
 }
 
+function updateBodyModalState() {
+  const profileOpen = elements.profileModal?.classList.contains("is-open");
+  const shareOpen = elements.shareModal?.classList.contains("is-open");
+  const usernameOpen = elements.usernameModal?.getAttribute("aria-hidden") === "false";
+  document.body.classList.toggle("modal-open", Boolean(profileOpen || shareOpen || usernameOpen));
+}
+
+function safeParseStorage(value, fallback = {}) {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed === "object" && parsed !== null ? parsed : fallback;
+  } catch (error) {
+    console.warn("storage parse error", error);
+    return fallback;
+  }
+}
+
+function applyTheme() {
+  state.theme = "golden";
+  if (elements.app) {
+    elements.app.dataset.theme = "golden";
+  }
+  localStorage.setItem("celo-engage-theme", "golden");
+}
+
 function setupNavigation() {
-  elements.navButtons.forEach((btn) => {
+  const sectionButtons = Array.from(elements.navButtons).filter((btn) => btn.dataset.target);
+  sectionButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
-      elements.navButtons.forEach((b) => b.classList.toggle("active", b === btn));
+      sectionButtons.forEach((b) => b.classList.toggle("active", b === btn));
       elements.sections.forEach((section) => {
         const isTarget = section.id === target;
         section.classList.toggle("active", isTarget);
         if (isTarget) {
           section.classList.remove("fade-in");
-          // force reflow for animation restart
           void section.offsetWidth;
           section.classList.add("fade-in");
         }
       });
     });
   });
-  if (elements.navButtons.length) {
-    elements.navButtons[0].classList.add("active");
+  if (sectionButtons.length) {
+    sectionButtons[0].classList.add("active");
   }
 }
 
@@ -316,7 +501,9 @@ function setupForms() {
   elements.donateCeloForm.addEventListener("submit", handleDonateCeloSubmit);
   elements.approveCusdForm.addEventListener("submit", handleApproveCusdSubmit);
   elements.donateCusdForm.addEventListener("submit", handleDonateCusdSubmit);
-  elements.linkForm.addEventListener("submit", handleShareLinkSubmit);
+  if (elements.shareLinkForm) {
+    elements.shareLinkForm.addEventListener("submit", handleShareLinkSubmit);
+  }
   elements.proposalForm.addEventListener("submit", handleProposalSubmit);
   elements.withdrawCeloForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "CELO"));
   elements.withdrawCusdForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "cUSD"));
@@ -515,13 +702,16 @@ async function handleDonateCusdSubmit(event) {
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const url = document.getElementById("linkUrl").value.trim();
+  const url = elements.shareLinkInput?.value.trim() || "";
   if (!url.startsWith("https://")) {
     return showToast("error", UI_MESSAGES.invalidLink);
   }
   try {
     await doShareLink(url);
-    document.getElementById("linkUrl").value = "";
+    if (elements.shareLinkInput) {
+      elements.shareLinkInput.value = "https://";
+    }
+    closeShareModal();
   } catch (error) {
     console.error("Share link error", error);
     showToast("error", parseError(error));
@@ -631,7 +821,8 @@ async function refreshFeed() {
         });
       }
     });
-    renderLinkFeed(combined);
+    state.feedEntries = combined;
+    updateLinkFeedView();
   } catch (error) {
     console.error("feed error", error);
   }
@@ -772,21 +963,8 @@ function renderGlobalCounters(stats) {
 }
 
 function renderLinkFeed(entries) {
-  if (!entries?.length) {
-    elements.linkFeed.innerHTML = `<p>${t("feed.empty", "Henüz link paylaşılmadı.")}</p>`;
-    return;
-  }
-  elements.linkFeed.innerHTML = entries
-    .map((item) => `
-      <article class="feed-item">
-        <div class="meta">
-          <span>${shorten(item.user || "0x0")}</span>
-          <time>${item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni")}</time>
-        </div>
-        <a class="link" href="${item.link}" target="_blank" rel="noopener">${item.link}</a>
-      </article>
-    `)
-    .join("");
+  state.feedEntries = Array.isArray(entries) ? entries : [];
+  updateLinkFeedView();
 }
 
 function renderDeployments(contracts) {
@@ -927,10 +1105,12 @@ function parseError(error) {
 
 function openUsernameModal() {
   elements.usernameModal.setAttribute("aria-hidden", "false");
+  updateBodyModalState();
 }
 
 function closeUsernameModal() {
   elements.usernameModal.setAttribute("aria-hidden", "true");
+  updateBodyModalState();
 }
 
 async function loadInitialData() {
