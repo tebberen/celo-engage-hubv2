@@ -8,7 +8,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>" />
   </head>
   <body>
-    <div id="app" class="app-shell" data-theme="dark">
+    <div id="app" class="app-shell" data-theme="golden">
       <header class="app-header">
         <div class="brand-area">
           <div class="brand-logo">⚡</div>
@@ -22,10 +22,9 @@
           <button class="nav-btn" data-target="gmSection" data-i18n="nav.gm">GM</button>
           <button class="nav-btn" data-target="deploySection" data-i18n="nav.deploy">Deploy</button>
           <button class="nav-btn" data-target="donateSection" data-i18n="nav.donate">Donate</button>
-          <button class="nav-btn" data-target="linkSection" data-i18n="nav.link">Link</button>
           <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
-          <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badge</button>
-          <button class="nav-btn" data-target="leaderboardSection" data-i18n="nav.leaderboard">Leaderboard</button>
+          <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badges</button>
+          <button class="nav-btn" id="profileButton" data-i18n="nav.profile">Profile</button>
         </nav>
         <div class="header-actions">
           <button id="languageToggle" class="icon-btn" aria-label="Dil değiştir" data-i18n-aria-label="actions.languageToggle">🌐</button>
@@ -33,8 +32,6 @@
             <span id="networkName">—</span>
             <span class="status-dot" id="networkStatus"></span>
           </div>
-          <button id="themeToggle" class="icon-btn" aria-label="Tema değiştir" data-i18n-aria-label="actions.themeToggle">🌗</button>
-          <button id="profileButton" class="primary-btn ghost" data-i18n="actions.profile">Profile</button>
           <div class="wallet-controls">
             <button id="connectMetaMask" class="wallet-btn">MetaMask</button>
             <button id="connectWalletConnect" class="wallet-btn">WalletConnect</button>
@@ -154,19 +151,6 @@
           </div>
         </section>
 
-        <section id="linkSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="link.title">Link Paylaş</h2>
-            <p data-i18n="link.subtitle">Linkler yalnızca https:// ile başlamalı.</p>
-          </div>
-          <form id="linkForm" class="card">
-            <label for="linkUrl" data-i18n="link.urlLabel">URL</label>
-            <input id="linkUrl" type="url" placeholder="https://" required />
-            <button type="submit" class="primary-btn" data-i18n="link.submit">Link Paylaş</button>
-            <p class="helper" data-i18n="link.helper">+2 XP</p>
-          </form>
-        </section>
-
         <section id="governanceSection" class="section">
           <div class="section-header">
             <h2 data-i18n="governance.title">Governance</h2>
@@ -273,6 +257,29 @@
     </div>
 
     <div id="toastContainer" class="toast-container" role="status" aria-live="assertive"></div>
+
+    <div id="shareModal" class="share-modal" aria-hidden="true">
+      <div class="share-modal__backdrop" data-dismiss="shareModal"></div>
+      <div class="share-modal__dialog" role="dialog" aria-modal="true">
+        <button class="modal-close icon-btn" data-dismiss="shareModal" aria-label="Close share" data-i18n-aria-label="sharePrompt.close">✕</button>
+        <div class="share-modal__content">
+          <h2 data-i18n="sharePrompt.title">Bağlantını Paylaş</h2>
+          <p class="share-modal__context">
+            <span data-i18n="sharePrompt.context">İncelediğin bağlantı:</span>
+            <strong id="sharePromptLink">—</strong>
+          </p>
+          <p data-i18n="sharePrompt.subtitle">Topluluğa katkı için kendi bağlantını ekle.</p>
+          <form id="shareLinkForm" class="share-modal__form">
+            <label for="shareLinkInput" data-i18n="sharePrompt.label">URL</label>
+            <input id="shareLinkInput" type="url" placeholder="https://" required data-i18n-placeholder="sharePrompt.placeholder" />
+            <div class="share-modal__actions">
+              <button type="button" class="secondary-btn" data-dismiss="shareModal" data-i18n="sharePrompt.cancel">Vazgeç</button>
+              <button type="submit" class="primary-btn" data-i18n="sharePrompt.submit">Link Gönder</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <div id="usernameModal" class="modal" aria-hidden="true">
       <div class="modal-dialog" role="dialog" aria-modal="true">

@@ -9,10 +9,9 @@
       "gm": "GM",
       "deploy": "Deploy",
       "donate": "Donate",
-      "link": "Link",
       "governance": "Governance",
-      "badge": "Badge",
-      "leaderboard": "Leaderboard"
+      "badge": "Rozetler",
+      "profile": "Profil"
     },
     "actions": {
       "languageToggle": "Dili değiştir",
@@ -72,12 +71,15 @@
         "proposalSubmit": "Öneri Oluştur"
       }
     },
-    "link": {
-      "title": "Link Paylaş",
-      "subtitle": "Linkler yalnızca https:// ile başlamalı.",
-      "urlLabel": "URL",
-      "submit": "Link Paylaş",
-      "helper": "+2 XP"
+    "sharePrompt": {
+      "title": "Bağlantını Paylaş",
+      "subtitle": "Topluluğa katkı için kendi bağlantını ekle.",
+      "context": "İncelediğin bağlantı:",
+      "label": "URL",
+      "placeholder": "https://seninbaglantin.com",
+      "submit": "Link Gönder",
+      "cancel": "Vazgeç",
+      "close": "Paylaşımı kapat"
     },
     "governance": {
       "title": "Governance",
@@ -154,7 +156,8 @@
     },
     "feed": {
       "empty": "Henüz link paylaşılmadı.",
-      "new": "Yeni"
+      "new": "Yeni",
+      "remaining": "Kalan tıklama"
     },
     "deployments": {
       "empty": "Henüz deploy edilmiş kontrat yok."
@@ -185,10 +188,9 @@
       "gm": "GM",
       "deploy": "Deploy",
       "donate": "Donate",
-      "link": "Share",
       "governance": "Governance",
       "badge": "Badges",
-      "leaderboard": "Leaderboard"
+      "profile": "Profile"
     },
     "actions": {
       "languageToggle": "Switch language",
@@ -248,12 +250,15 @@
         "proposalSubmit": "Create Proposal"
       }
     },
-    "link": {
-      "title": "Share Link",
-      "subtitle": "Links must start with https://",
-      "urlLabel": "URL",
-      "submit": "Share Link",
-      "helper": "+2 XP"
+    "sharePrompt": {
+      "title": "Share Your Link",
+      "subtitle": "Keep the momentum going by adding your own link.",
+      "context": "You just opened:",
+      "label": "URL",
+      "placeholder": "https://yourlink.xyz",
+      "submit": "Submit Link",
+      "cancel": "Maybe Later",
+      "close": "Close share prompt"
     },
     "governance": {
       "title": "Governance",
@@ -330,7 +335,8 @@
     },
     "feed": {
       "empty": "No links shared yet.",
-      "new": "New"
+      "new": "New",
+      "remaining": "Clicks left"
     },
     "deployments": {
       "empty": "No contracts deployed yet."
