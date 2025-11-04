@@ -2,33 +2,111 @@
 
 // ========================= CELO ENGAGE HUB - CONSTANTS ========================= //
 
-// Ağ Seçimi: 'mainnet' veya 'sepolia' olarak ayarlayın
-// Eğer VITE_DEFAULT_NETWORK tanımlı değilse, 'mainnet' kullan
-export const DEFAULT_NETWORK = 'mainnet'; // Varsayılan olarak mainnet kullan
+export const APP_NAME = "Celo Engage Hub";
 
-// Ağ Yapılandırmaları
+export const DEFAULT_NETWORK = "mainnet";
+
 export const NETWORKS = {
   mainnet: {
     name: "Celo Mainnet",
-    chainId: "0xa4ec", // 42220
+    chainId: "0xa4ec",
+    chainIdDecimal: 42220,
     rpcUrl: "https://forno.celo.org",
-    blockExplorer: "https://celoscan.io",
-    iconUrls: ["future"]
+    wsUrl: "wss://forno.celo.org/ws",
+    explorer: "https://celoscan.io",
+    iconUrls: [],
   },
   sepolia: {
     name: "Celo Sepolia",
-    chainId: "0xAA044C", // 11144744
+    chainId: "0xAA044C",
+    chainIdDecimal: 11144744,
     rpcUrl: "https://forno.celo-sepolia.org",
-    blockExplorer: "https://celo-sepolia.blockscout.com",
-    iconUrls: ["future"]
-  }
+    wsUrl: "wss://forno.celo-sepolia.org/ws",
+    explorer: "https://celo-sepolia.blockscout.com",
+    iconUrls: [],
+  },
+  alfajores: {
+    name: "Celo Alfajores",
+    chainId: "0xaef3",
+    chainIdDecimal: 44787,
+    rpcUrl: "https://alfajores-forno.celo-testnet.org",
+    wsUrl: "wss://alfajores-forno.celo-testnet.org/ws",
+    explorer: "https://alfajores.celoscan.io",
+    iconUrls: [],
+  },
 };
 
-// Mevcut Ağ Yapılandırması
+export const NETWORK_KEYS = Object.keys(NETWORKS);
 export const CURRENT_NETWORK = NETWORKS[DEFAULT_NETWORK];
 
-// ✅ YENİ ANA KONTART
+export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
+
+export const WALLETCONNECT_PROJECT_ID = "8b020ffbb31e5aba14160c27ca26540b";
+
+export const MIN_DONATION = 0.1;
+export const MIN_DONATION_WEI = "100000000000000000";
+
+export const THE_GRAPH_ENDPOINT = "https://api.studio.thegraph.com/query/YOUR_SUBGRAPH_ID/YOUR_VERSION";
+export const DUNE_DASHBOARD_URL = "https://dune.com/YOUR_HANDLE/celo-engage-hub";
+
+export const MODULE_VERSIONS = {
+  HUB: "v1.0.0",
+  PROFILE: "v1.1.0",
+  GM: "v1.0.0",
+  DEPLOY: "v1.0.0",
+  DONATE: "v1.2.0",
+  LINK: "v1.0.1",
+  GOV: "v1.0.0",
+  BADGE: "v1.0.2",
+};
+
+export const UI_MESSAGES = {
+  walletNotConnected: "Cüzdan bağlanmadı. Lütfen önce bağlanın.",
+  wrongNetwork: "Yanlış ağdasınız. Lütfen Celo ağına geçin.",
+  invalidLink: "Geçersiz bağlantı. Sadece https:// ile başlayan linklere izin veriyoruz.",
+  minDonation: "Minimum bağış miktarı 0.1 olmalıdır.",
+  txRejected: "İşlem reddedildi.",
+  ownerOnly: "Bu işlem yalnızca sahip adresi tarafından yapılabilir.",
+  approveFirst: "Lütfen önce onay işlemini tamamlayın.",
+  success: "İşlem başarıyla tamamlandı!",
+  error: "Bir hata oluştu. Lütfen tekrar deneyin.",
+};
+
+// ✅ YENİ ANA KONTRAT
 export const CONTRACT_ADDRESS = "0x18351438b1bD20ee433Ea7D25589e913f14ca1A5";
+
+export const MODULE_ADDRESS_BOOK = {
+  mainnet: {
+    HUB: "0x18351438b1bD20ee433Ea7D25589e913f14ca1A5",
+    GM: "0x06E065AE4dDa7b669D6381D1F7ec523bfD83e2D7",
+    DEPLOY: "0xD567149Cf3a2bd97d905408c87Cc8194eb246785",
+    DONATE: "0x76CA7FCBCdB46881c2715EBf351BCc1aAC7d70FA",
+    PROFILE: "0xb7574975e18b64d18886D03CCC710d62cdD7E743",
+    LINK: "0x5ae32ab13f0458f4fb7a434120747e7e5944ce97",
+    GOVERNANCE: "0xe71c701d66f8c27fba15f3b4a607c741ffedeed1",
+    BADGE: "0xd11896d5ba8aa3ed906b37b941a27849e74fd300",
+  },
+  sepolia: {
+    HUB: null,
+    GM: null,
+    DEPLOY: null,
+    DONATE: null,
+    PROFILE: null,
+    LINK: null,
+    GOVERNANCE: null,
+    BADGE: null,
+  },
+  alfajores: {
+    HUB: null,
+    GM: null,
+    DEPLOY: null,
+    DONATE: null,
+    PROFILE: null,
+    LINK: null,
+    GOVERNANCE: null,
+    BADGE: null,
+  },
+};
 export const CONTRACT_ABI = [
 	{
 		"inputs": [],
@@ -3259,7 +3337,7 @@ export const CELO_PARAMS = {
     decimals: 18,
   },
   rpcUrls: [CURRENT_NETWORK.rpcUrl],
-  blockExplorerUrls: [CURRENT_NETWORK.blockExplorer],
+  blockExplorerUrls: [CURRENT_NETWORK.explorer],
   iconUrls: CURRENT_NETWORK.iconUrls,
 };
 
@@ -3298,6 +3376,23 @@ export const ACCEPTED_TOKENS = {
       symbol: "cEUR",
       decimals: 18
     }
+  },
+  alfajores: {
+    CELO: {
+      address: null,
+      symbol: "CELO",
+      decimals: 18
+    },
+    cUSD: {
+      address: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
+      symbol: "cUSD",
+      decimals: 18
+    },
+    cEUR: {
+      address: "0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F",
+      symbol: "cEUR",
+      decimals: 18
+    }
   }
 };
 
@@ -3307,14 +3402,12 @@ export const CURRENT_TOKENS = ACCEPTED_TOKENS[DEFAULT_NETWORK];
 // cUSD Token Adresi (geriye uyumluluk için)
 export const CUSD_TOKEN_ADDRESS = {
   mainnet: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
-  sepolia: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
+  sepolia: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1",
+  alfajores: "0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1"
 };
 
 // Diğer sabitler
 export const DONATION_ADDRESS = "0x90B265EB08d3ce4D364177FB3Af72B8e890c4238";
-
-// Owner Adresi
-export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
 
 // Divvi referral consumer kimliği (owner ile aynı)
 export const DIVVI_CONSUMER_ADDRESS = OWNER_ADDRESS;
@@ -3322,13 +3415,11 @@ export const DIVVI_CONSUMER_ADDRESS = OWNER_ADDRESS;
 // Varsayılan GM Mesajı
 export const DEFAULT_GM_MESSAGE = "Hello from Celo Engage Hub!";
 
-// Minimum Bağış Miktarı (wei cinsinden)
-export const MIN_DONATION = "100000000000000000"; // 0.1 CELO/cUSD
-
 // Zincir ID Kontrolü
 export const SUPPORTED_CHAIN_IDS = {
   MAINNET: "0xa4ec",
-  SEPOLIA: "0xAA044C"
+  SEPOLIA: "0xAA044C",
+  ALFAJORES: "0xaef3"
 };
 
 // 🌍 Support Community Links

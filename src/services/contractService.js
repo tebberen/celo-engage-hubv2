@@ -1,891 +1,472 @@
-// ========================= CONTRACT SERVICE ========================= //
-// src/services/contractService.js
-
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_ABI,
   MODULES,
-  OWNER_ADDRESS,
-  DEFAULT_GM_MESSAGE,
-  CURRENT_TOKENS,
-  MIN_DONATION,
+  MODULE_ADDRESS_BOOK,
+  DEFAULT_NETWORK,
   CURRENT_NETWORK,
-  BADGE_TIER_LABELS
+  OWNER_ADDRESS,
+  UI_MESSAGES,
+  MIN_DONATION,
+  THE_GRAPH_ENDPOINT,
+  DUNE_DASHBOARD_URL,
+  MODULE_VERSIONS,
+  NETWORK_KEYS,
+  NETWORKS,
+  CUSD_TOKEN_ADDRESS,
 } from "../utils/constants.js";
-import { sendWithReferral } from "./divviReferral.js";
+import { getWalletDetails } from "./walletService.js";
 
-let provider;
-let signer;
-let mainContract;
-let readOnlyProvider;
+const readProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
+const ERC20_ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function balanceOf(address account) external view returns (uint256)",
+  "event Approval(address indexed owner, address indexed spender, uint256 value)",
+];
 
-// ✅ YENİ: Tüm modül contract'larını cache'le
-const moduleCache = new Map();
-const readOnlyModuleCache = new Map();
+let toastHandler = () => {};
 
-// 🧩 Initialize Provider & Contract
-export async function initContract() {
-  if (typeof window.ethereum === "undefined") {
-    alert("🦊 MetaMask not detected!");
-    return;
-  }
-
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  signer = provider.getSigner();
-  mainContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-  readOnlyProvider = provider;
-  
-  // ✅ Tüm modül contract'larını önceden oluştur ve cache'le
-  initializeModuleContracts();
-  
-  console.log("✅ Contract initialized:", CONTRACT_ADDRESS);
-  return mainContract;
+export function registerToastHandler(callback) {
+  toastHandler = callback;
 }
 
-function getReadOnlyProvider() {
-  if (readOnlyProvider) {
-    return readOnlyProvider;
-  }
-
-  readOnlyProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
-  return readOnlyProvider;
-}
-
-// ✅ YENİ: Tüm modül contract'larını bir kere initialize et
-function initializeModuleContracts() {
-  Object.keys(MODULES).forEach(moduleName => {
-    const mod = MODULES[moduleName];
-    const contract = new ethers.Contract(mod.address, mod.abi, signer);
-    moduleCache.set(moduleName, contract);
-  });
-  console.log("✅ All module contracts cached");
-}
-
-// ========================= MODULE HELPERS ========================= //
-
-export function getModule(name) {
-  // ✅ Cache'lenmiş contract'ı döndür - YENİSİNİ OLUŞTURMA!
-  if (moduleCache.has(name)) {
-    return moduleCache.get(name);
-  }
-  
-  const mod = MODULES[name];
-  if (!mod) throw new Error(`❌ Module not found: ${name}`);
-  
-  console.warn(`⚠️ Module ${name} not in cache, creating new instance`);
-  const contract = new ethers.Contract(mod.address, mod.abi, signer);
-  moduleCache.set(name, contract);
-  return contract;
-}
-
-function getReadOnlyModule(name) {
-  if (readOnlyModuleCache.has(name)) {
-    return readOnlyModuleCache.get(name);
-  }
-
-  const mod = MODULES[name];
-  if (!mod) throw new Error(`❌ Module not found: ${name}`);
-
-  const provider = getReadOnlyProvider();
-  const contract = new ethers.Contract(mod.address, mod.abi, provider);
-  readOnlyModuleCache.set(name, contract);
-  return contract;
-}
-
-// ========================= PROFILE REGISTRATION ========================= //
-
-// ✅ YENİ: Profil oluşturma fonksiyonu
-export async function registerUserProfile() {
-  try {
-    const profile = getModule("PROFILE");
-    const userAddress = await signer.getAddress();
-    
-    console.log("🚀 Registering user profile:", userAddress);
-    
-    // Kullanıcının zaten kayıtlı olup olmadığını kontrol et
-    const userExists = await profile.userExists(userAddress);
-    if (userExists) {
-      console.log("✅ User already registered");
-      return { success: true, alreadyRegistered: true };
-    }
-    
-    // Profil oluşturma işlemi
-    const { sentTx } = await sendWithReferral(profile, "registerUser", [userAddress]);
-
-    console.log("✅ Profile created successfully");
-    return { success: true, txHash: sentTx.hash, alreadyRegistered: false };
-  } catch (error) {
-    console.error("❌ Profile registration failed:", error);
-    throw error;
+function emitToast(type, message, txHash) {
+  if (typeof toastHandler === "function") {
+    toastHandler({ type, message, hash: txHash, explorer: txHash ? `${CURRENT_NETWORK.explorer}/tx/${txHash}` : null });
   }
 }
 
-export async function updateUsername(username) {
-  try {
-    if (!username || !username.trim()) {
-      throw new Error("Username is required");
-    }
+function getActiveNetworkKey() {
+  return DEFAULT_NETWORK;
+}
 
-    const profile = getModule("PROFILE");
-    const sanitizedUsername = username.trim();
+function resolveModuleAddress(key) {
+  const networkKey = getActiveNetworkKey();
+  const book = MODULE_ADDRESS_BOOK[networkKey] || {};
+  return book[key] || MODULES[key]?.address || null;
+}
 
-    const { sentTx } = await sendWithReferral(profile, "updateUsername", [sanitizedUsername]);
-    console.log("✅ Username updated on-chain:", sanitizedUsername);
+function requireSigner() {
+  const details = getWalletDetails();
+  if (!details?.signer || !details?.address) {
+    throw new Error(UI_MESSAGES.walletNotConnected);
+  }
+  return details;
+}
 
-    return { success: true, txHash: sentTx.hash, username: sanitizedUsername };
-  } catch (error) {
-    console.error("❌ Username update failed:", error);
-    throw error;
+function withSigner(contract) {
+  const { signer } = requireSigner();
+  return contract.connect(signer);
+}
+
+function createContract(address, abi, withWrite = false) {
+  if (!address) {
+    throw new Error("Kontrat adresi bulunamadı.");
+  }
+  const base = new ethers.Contract(address, abi, readProvider);
+  return withWrite ? withSigner(base) : base;
+}
+
+export function getHub(withWrite = false) {
+  const address = resolveModuleAddress("HUB") || CONTRACT_ADDRESS;
+  return createContract(address, CONTRACT_ABI, withWrite);
+}
+
+export function getGM(withWrite = false) {
+  return createContract(resolveModuleAddress("GM"), MODULES.GM.abi, withWrite);
+}
+
+export function getDeploy(withWrite = false) {
+  return createContract(resolveModuleAddress("DEPLOY"), MODULES.DEPLOY.abi, withWrite);
+}
+
+export function getDonate(withWrite = false) {
+  return createContract(resolveModuleAddress("DONATE"), MODULES.DONATE.abi, withWrite);
+}
+
+export function getLink(withWrite = false) {
+  return createContract(resolveModuleAddress("LINK"), MODULES.LINK.abi, withWrite);
+}
+
+export function getGov(withWrite = false) {
+  return createContract(resolveModuleAddress("GOVERNANCE"), MODULES.GOVERNANCE.abi, withWrite);
+}
+
+export function getProfile(withWrite = false) {
+  return createContract(resolveModuleAddress("PROFILE"), MODULES.PROFILE.abi, withWrite);
+}
+
+export function getBadge(withWrite = false) {
+  return createContract(resolveModuleAddress("BADGE"), MODULES.BADGE.abi, withWrite);
+}
+
+export function getBadgeVersions() {
+  return MODULE_VERSIONS;
+}
+
+export function getAnalyticsConfig() {
+  return {
+    graph: THE_GRAPH_ENDPOINT,
+    dune: DUNE_DASHBOARD_URL,
+  };
+}
+
+function ensureMinDonation(amount) {
+  if (Number(amount) < MIN_DONATION) {
+    throw new Error(UI_MESSAGES.minDonation);
   }
 }
 
-export async function fetchUsername(address) {
-  try {
-    const profile = getModule("PROFILE");
-    const targetAddress = address || (await signer.getAddress());
-    const userProfile = await profile.getUserProfile(targetAddress);
+function parseAmount(amount) {
+  return ethers.utils.parseUnits(amount.toString(), 18);
+}
 
-    const username = userProfile.username || null;
-    return username && username.length > 0 ? username : null;
-  } catch (error) {
-    console.error("❌ Username fetch failed:", error);
-    return null;
+export async function doGM(message = "") {
+  const { address } = requireSigner();
+  const gm = getGM(true);
+  const tx = await gm.sendGM(address, message || "");
+  emitToast("pending", "GM gönderiliyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
+}
+
+export async function doDeploy(contractName) {
+  const { address } = requireSigner();
+  const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
+  const deployModule = getDeploy(true);
+  const tx = await deployModule.deployContract(address, deployName);
+  emitToast("pending", "Kontrat dağıtılıyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
+}
+
+export async function doDonateCELO(amount) {
+  ensureMinDonation(amount);
+  const { address } = requireSigner();
+  const donate = getDonate(true);
+  const value = ethers.utils.parseEther(amount.toString());
+  const tx = await donate.donateCELO(address, { value });
+  emitToast("pending", "CELO bağışı gönderiliyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
+}
+
+export async function doApproveCUSD(amount) {
+  ensureMinDonation(amount);
+  const { address } = requireSigner();
+  const spender = resolveModuleAddress("DONATE");
+  const tokenAddress = CUSD_TOKEN_ADDRESS[getActiveNetworkKey()];
+  if (!tokenAddress) {
+    throw new Error("cUSD adresi bulunamadı");
   }
+  const token = new ethers.Contract(tokenAddress, ERC20_ABI, readProvider).connect(requireSigner().signer);
+  const value = parseAmount(amount);
+  const tx = await token.approve(spender, value);
+  emitToast("pending", "cUSD onayı bekleniyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-// ⚠️ Deprecated: Local storage username helpers kept for backward compatibility
-export async function saveUsername(username) {
-  console.warn("⚠️ saveUsername is deprecated. Use updateUsername instead.");
-  return updateUsername(username);
+export async function doDonateCUSD(amount) {
+  ensureMinDonation(amount);
+  const { address } = requireSigner();
+  const donate = getDonate(true);
+  const value = parseAmount(amount);
+  const tx = await donate.donateCUSD(address, value);
+  emitToast("pending", "cUSD bağışı gönderiliyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-export async function getUsername(address) {
-  console.warn("⚠️ getUsername is deprecated. Use fetchUsername instead.");
-  return fetchUsername(address);
-}
-
-// ========================= GM MODULE ========================= //
-
-export async function sendGM(message = DEFAULT_GM_MESSAGE) {
-  try {
-    const gm = getModule("GM");
-    const userAddress = await signer.getAddress();
-    
-    console.log("👋 Sending GM from:", userAddress);
-    
-    // ✅ TEK İŞLEM - Sadece GM gönder (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gm, "sendGM", [userAddress, message]);
-
-    console.log("✅ GM sent:", message);
-    return { success: true, txHash: sentTx.hash };
-  } catch (error) {
-    console.error("❌ GM failed:", error);
-    throw error;
+export async function withdrawDonations(token, amount) {
+  const { address } = requireSigner();
+  if (address.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
+    throw new Error(UI_MESSAGES.ownerOnly);
   }
+  const donate = getDonate(true);
+  const tx = await donate.withdraw(address);
+  emitToast("pending", `Çekim işlemi başlatıldı (${token} ${amount || ""})`, tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-export async function getGMStats() {
-  try {
-    const gm = getModule("GM");
-    const userAddress = await signer.getAddress();
-    
-    const [total, userCount] = await Promise.all([
-      gm.totalGM(),
-      gm.getUserGMCount(userAddress)
-    ]);
-    
-    return { 
-      total: total.toString(), 
-      userCount: userCount.toString() 
-    };
-  } catch (error) {
-    console.error("❌ Get GM stats failed:", error);
-    return { total: "0", userCount: "0" };
+export async function doShareLink(url) {
+  const { address } = requireSigner();
+  const linkModule = getLink(true);
+  const tx = await linkModule.shareLink(address, url);
+  emitToast("pending", "Link paylaşımı gönderildi...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
+}
+
+export async function govCreateProposal(title, description, link) {
+  const { address } = requireSigner();
+  if (address.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
+    throw new Error(UI_MESSAGES.ownerOnly);
   }
+  const gov = getGov(true);
+  const tx = await gov.createProposal(title, description, link || "");
+  emitToast("pending", "Öneri oluşturuluyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-// ========================= DEPLOY MODULE ========================= //
-
-export async function deployContract(contractName = "MyContract") {
-  try {
-    const deploy = getModule("DEPLOY");
-    const userAddress = await signer.getAddress();
-    
-    console.log("🚀 Deploying contract for:", userAddress);
-    
-    // ✅ TEK İŞLEM - Sadece contract deploy et (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(deploy, "deployContract", [userAddress, contractName]);
-
-    console.log("✅ Contract deployed:", contractName);
-    return { success: true, txHash: sentTx.hash, contractName: contractName };
-  } catch (error) {
-    console.error("❌ Deploy failed:", error);
-    throw error;
-  }
+export async function govVote(proposalId, support) {
+  const { address } = requireSigner();
+  const gov = getGov(true);
+  const tx = await gov.vote(address, proposalId, support);
+  emitToast("pending", "Oy gönderiliyor...", tx.hash);
+  const receipt = await tx.wait();
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-export async function getDeployStats() {
-  try {
-    const deploy = getModule("DEPLOY");
-    const userAddress = await signer.getAddress();
-    
-    const [total, userDeploys] = await Promise.all([
-      deploy.totalDeploy(),
-      deploy.getUserDeployCount(userAddress)
-    ]);
-    
-    return { 
-      total: total.toString(), 
-      userDeploys: userDeploys.toString() 
-    };
-  } catch (error) {
-    console.error("❌ Get deploy stats failed:", error);
-    return { total: "0", userDeploys: "0" };
-  }
-}
-
-// ========================= DONATE MODULE ========================= //
-
-export async function donateCELO(amount = MIN_DONATION) {
-  try {
-    const donate = getModule("DONATE");
-    const userAddress = await signer.getAddress();
-    
-    console.log("💛 Donating CELO from:", userAddress, "Amount:", amount);
-    
-    // ✅ TEK İŞLEM - Sadece CELO bağışı yap (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(
-      donate,
-      "donateCELO",
-      [userAddress],
-      { value: amount }
-    );
-
-    console.log("💛 CELO donated:", amount);
-    return { success: true, txHash: sentTx.hash, amount: amount, token: "CELO" };
-  } catch (error) {
-    console.error("❌ CELO donation failed:", error);
-    throw error;
-  }
-}
-
-export async function donateCUSD(amount = MIN_DONATION) {
-  try {
-    const donate = getModule("DONATE");
-    const userAddress = await signer.getAddress();
-    
-    console.log("💵 Donating cUSD from:", userAddress, "Amount:", amount);
-    
-    // ✅ TEK İŞLEM - Sadece cUSD bağışı yap (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(donate, "donateCUSD", [userAddress, amount]);
-
-    console.log("💚 cUSD donated:", amount);
-    return { success: true, txHash: sentTx.hash, amount: amount, token: "cUSD" };
-  } catch (error) {
-    console.error("❌ cUSD donation failed:", error);
-    throw error;
-  }
-}
-
-export async function getDonateStats() {
-  try {
-    const donate = getModule("DONATE");
-    const userAddress = await signer.getAddress();
-
-    const [stats, userStats, topDonorsRaw] = await Promise.all([
-      donate.getDonateStats(),
-      donate.getUserDonationHistory(userAddress),
-      donate.getTopDonors().catch(() => [[], []])
-    ]);
-
-    const dailyLimit = ethers.BigNumber.from(stats.dailyLimit || 0);
-    const dailyWithdrawn = ethers.BigNumber.from(stats.dailyWithdrawn || 0);
-    const remainingLimit = dailyLimit.gt(dailyWithdrawn)
-      ? dailyLimit.sub(dailyWithdrawn)
-      : ethers.BigNumber.from(0);
-
-    const [topDonorAddresses = [], topDonorAmounts = []] = Array.isArray(topDonorsRaw)
-      ? topDonorsRaw
-      : [[], []];
-
-    const topDonors = topDonorAddresses.map((address, index) => ({
-      address,
-      amount: topDonorAmounts[index] ? topDonorAmounts[index].toString() : "0"
-    })).filter(donor => Boolean(donor.address));
-
-    return {
-      totalDonatedValue: stats.totalDonatedValue.toString(),
-      totalDonatorsCount: stats.totalDonatorsCount.toString(),
-      dailyWithdrawn: stats.dailyWithdrawn.toString(),
-      dailyLimit: stats.dailyLimit.toString(),
-      dailyRemaining: remainingLimit.toString(),
-      topDonors,
-      topDonorsCount: topDonors.length.toString(),
-      userDonationCount: userStats.count.toString(),
-      userTotalDonated: userStats.totalAmount.toString()
-    };
-  } catch (error) {
-    console.error("❌ Get donate stats failed:", error);
-    return {
-      totalDonatedValue: "0",
-      totalDonatorsCount: "0",
-      dailyWithdrawn: "0",
-      dailyLimit: "0",
-      dailyRemaining: "0",
-      topDonors: [],
-      topDonorsCount: "0",
-      userDonationCount: "0",
-      userTotalDonated: "0"
-    };
-  }
-}
-
-// ========================= LINK MODULE ========================= //
-
-export async function shareLink(link) {
-  try {
-    if (!link) throw new Error("⚠️ Link cannot be empty");
-    
-    const linkModule = getModule("LINK");
-    const userAddress = await signer.getAddress();
-    
-    console.log("🔗 Sharing link from:", userAddress, "Link:", link);
-    
-    // ✅ TEK İŞLEM - Sadece link paylaş (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(linkModule, "shareLink", [userAddress, link]);
-
-    console.log("🔗 Link shared:", link);
-    return { success: true, txHash: sentTx.hash, link: link };
-  } catch (error) {
-    console.error("❌ Share link failed:", error);
-    throw error;
-  }
-}
-
-export async function getLinkStats() {
-  try {
-    const linkModule = getModule("LINK");
-    const userAddress = await signer.getAddress();
-    
-    const [total, limit] = await linkModule.getLinkStats();
-    const userCount = await linkModule.getUserLinkCount(userAddress);
-    
-    return { 
-      total: total.toString(), 
-      hourlyLimit: limit.toString(),
-      userCount: userCount.toString()
-    };
-  } catch (error) {
-    console.error("❌ Get link stats failed:", error);
-    return { total: "0", hourlyLimit: "0", userCount: "0" };
-  }
-}
-
-// ✅ YENİ: Tüm paylaşılan linkleri getir
-export async function getAllSharedLinks() {
-  try {
-    const linkModule = getModule("LINK");
-    
-    // Toplam link sayısını al
-    const totalLinks = await linkModule.totalLinks();
-    console.log("📥 Total links on blockchain:", totalLinks.toString());
-    
-    // Link sayısı çok fazla olabileceğinden, şimdilik boş döndürüyoruz
-    // Gerçek uygulamada bu kısım events veya view fonksiyonları ile doldurulmalı
-    return {
-      success: true,
-      links: [],
-      total: totalLinks.toString()
-    };
-    
-  } catch (error) {
-    console.error("❌ Get all shared links failed:", error);
-    return { success: false, links: [], total: "0" };
-  }
-}
-
-// ✅ YENİ: Event'lardan linkleri oku
-export async function getLinksFromEvents(options = {}) {
-  try {
-    const { maxLinks = 24, fromBlock: explicitFromBlock } = options;
-    const activeProvider = provider || getReadOnlyProvider();
-    const linkModule = signer
-      ? getModule("LINK")
-      : new ethers.Contract(MODULES.LINK.address, MODULES.LINK.abi, activeProvider);
-
-    const filter = linkModule.filters.LinkShared();
-
-    const currentBlock = await activeProvider.getBlockNumber();
-    const defaultLookback = 25000;
-    const fromBlock = explicitFromBlock !== undefined
-      ? Math.max(0, explicitFromBlock)
-      : Math.max(0, currentBlock - defaultLookback);
-
-    const events = await linkModule.queryFilter(filter, fromBlock, currentBlock);
-
-    console.log(`📥 Found ${events.length} link events from block ${fromBlock} to ${currentBlock}`);
-
-    const timestamps = await Promise.all(events.map(async (event) => {
-      try {
-        const block = await activeProvider.getBlock(event.blockNumber);
-        return (block?.timestamp || Math.floor(Date.now() / 1000)) * 1000;
-      } catch {
-        return Date.now();
-      }
-    }));
-
-    const links = events.map((event, index) => ({
-      user: event.args.user,
-      link: event.args.link,
-      transactionHash: event.transactionHash,
-      blockNumber: event.blockNumber,
-      timestamp: timestamps[index]
-    })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-    const unique = [];
-    const seen = new Set();
-    for (const item of links) {
-      const key = `${(item.user || "").toLowerCase()}::${item.link}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      unique.push(item);
-    }
-
-    return {
-      success: true,
-      links: unique.slice(0, maxLinks),
-      total: events.length.toString()
-    };
-
-  } catch (error) {
-    console.error("❌ Get links from events failed:", error);
-    return { success: false, links: [], total: "0" };
-  }
-}
-
-// ✅ YENİ: Belirli bir kullanıcının linklerini getir
-export async function getUserSharedLinks(userAddress) {
-  try {
-    const linkModule = getModule("LINK");
-    
-    // Kullanıcının link sayısını al
-    const userLinkCount = await linkModule.getUserLinkCount(userAddress);
-    console.log(`📥 User ${userAddress} has ${userLinkCount} links`);
-    
-    // Kullanıcının linklerini al (bu fonksiyon kontratta yoksa events kullan)
-    let userLinks = [];
-    
+export async function registerProfile(username) {
+  const { address } = requireSigner();
+  const profile = getProfile(true);
+  const tx = await profile.registerUser(address);
+  emitToast("pending", "Profil kaydediliyor...", tx.hash);
+  const receipt = await tx.wait();
+  if (username) {
     try {
-      // Eğer kontratta getUserSharedLinks fonksiyonu varsa kullan
-      userLinks = await linkModule.getUserSharedLinks(userAddress);
-    } catch {
-      // Yoksa events'tan filtrele
-      const filter = linkModule.filters.LinkShared(userAddress);
-      const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 10000);
-      
-      const events = await linkModule.queryFilter(filter, fromBlock, 'latest');
-      userLinks = events.map(event => event.args.link);
+      const updateTx = await profile.updateUsername(username);
+      emitToast("pending", "Kullanıcı adı güncelleniyor...", updateTx.hash);
+      await updateTx.wait();
+    } catch (error) {
+      console.warn("Username update failed", error);
     }
-    
-    return {
-      success: true,
-      links: userLinks,
-      count: userLinkCount.toString()
-    };
-    
-  } catch (error) {
-    console.error("❌ Get user shared links failed:", error);
-    return { success: false, links: [], count: "0" };
   }
+  emitToast("success", UI_MESSAGES.success, tx.hash);
+  return receipt;
 }
 
-// ========================= GOVERNANCE MODULE ========================= //
-
-export async function createProposal(title, description, link) {
-  try {
-    const gov = getModule("GOVERNANCE");
-    const userAddress = await signer.getAddress();
-    
-    console.log("🗳️ Creating proposal from:", userAddress, "Title:", title);
-    
-    // ✅ TEK İŞLEM - Sadece proposal oluştur (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gov, "createProposal", [userAddress, title, description, link]);
-
-    console.log("🗳️ Proposal created:", title);
-    return { success: true, txHash: sentTx.hash, title: title };
-  } catch (error) {
-    console.error("❌ Create proposal failed:", error);
-    throw error;
-  }
+function mapProfile(result, address) {
+  if (!result) return null;
+  const [gmCount, deployCount, donateCount, linkCount, voteCount, totalXP, level, tier, totalDonated, username, exists] = result;
+  return {
+    address,
+    exists,
+    username,
+    gmCount: Number(gmCount || 0),
+    deployCount: Number(deployCount || 0),
+    donateCount: Number(donateCount || 0),
+    linkCount: Number(linkCount || 0),
+    voteCount: Number(voteCount || 0),
+    totalXP: Number(totalXP || 0),
+    level: Number(level || 0),
+    tier: Number(tier || 0),
+    badgeCount: Number(tier || 0),
+    totalDonated: totalDonated ? Number(ethers.utils.formatEther(totalDonated)) : 0,
+  };
 }
 
-export async function vote(proposalId, support) {
-  try {
-    const gov = getModule("GOVERNANCE");
-    const userAddress = await signer.getAddress();
-    
-    console.log("🗳️ Voting from:", userAddress, "Proposal:", proposalId, "Support:", support);
-    
-    // ✅ TEK İŞLEM - Sadece oy ver (ikinci işlem YOK)
-    const { sentTx } = await sendWithReferral(gov, "vote", [userAddress, proposalId, support]);
-
-    console.log("🗳️ Voted:", proposalId, support);
-    return { success: true, txHash: sentTx.hash, proposalId: proposalId, support: support };
-  } catch (error) {
-    console.error("❌ Vote failed:", error);
-    throw error;
-  }
+export async function loadProfile(address) {
+  const target = address || getWalletDetails().address;
+  if (!target) return null;
+  const profile = getProfile();
+  const data = await profile.getUserProfile(target);
+  return mapProfile(data, target);
 }
 
-export async function getGovernanceStats() {
-  try {
-    const gov = getModule("GOVERNANCE");
-    const userAddress = await signer.getAddress();
-
-    const [totalProposals, totalVotes] = await gov.getGovernanceStats();
-    const userVotes = await gov.getUserVoteCount(userAddress);
-
-    return {
-      totalProposals: totalProposals.toString(),
-      totalVotes: totalVotes.toString(),
-      userVotes: userVotes.toString()
-    };
-  } catch (error) {
-    console.error("❌ Get governance stats failed:", error);
-    return { totalProposals: "0", totalVotes: "0", userVotes: "0" };
-  }
+export async function loadUserDeployments(address) {
+  const target = address || getWalletDetails().address;
+  if (!target) return [];
+  const deploy = getDeploy();
+  return deploy.getUserDeployedContracts(target).catch(() => []);
 }
 
-export async function getActiveProposals() {
-  try {
-    const govReadOnly = getReadOnlyModule("GOVERNANCE");
-    const proposalIds = await govReadOnly.getActiveProposals();
-
-    let userAddress = null;
-    if (signer) {
-      try {
-        userAddress = await signer.getAddress();
-      } catch (error) {
-        console.warn("⚠️ Unable to get signer address for proposals:", error?.message || error);
-        userAddress = null;
-      }
-    }
-
-    const proposals = await Promise.all(
-      proposalIds.map(async (proposalIdBn) => {
-        const proposalData = await govReadOnly.getProposal(proposalIdBn);
-        const [proposalId, creator, title, description, link, startTime, endTime, forVotes, againstVotes, executed] = proposalData;
-
-        let userHasVoted = false;
-        if (userAddress) {
-          try {
-            userHasVoted = await govReadOnly.hasUserVoted(proposalIdBn, userAddress);
-          } catch (voteError) {
-            console.warn(`⚠️ hasUserVoted failed for proposal ${proposalIdBn.toString()}:`, voteError?.message || voteError);
-          }
-        }
-
-        return {
-          id: proposalId.toString(),
-          creator,
-          title,
-          description,
-          link,
-          startTime: startTime?.toString?.() || "0",
-          endTime: endTime?.toString?.() || "0",
-          forVotes: forVotes?.toString?.() || "0",
-          againstVotes: againstVotes?.toString?.() || "0",
-          executed,
-          userHasVoted: Boolean(userHasVoted)
-        };
-      })
-    );
-
-    const sorted = proposals.sort((a, b) => Number(b.startTime) - Number(a.startTime));
-
-    return {
-      success: true,
-      proposals: sorted
-    };
-  } catch (error) {
-    console.error("❌ Get active proposals failed:", error);
-    return { success: false, proposals: [] };
-  }
+export async function loadRecentLinks(limit = 20) {
+  const linkContract = getLink();
+  const currentBlock = await readProvider.getBlockNumber();
+  const fromBlock = Math.max(currentBlock - 15000, 0);
+  const events = await linkContract.queryFilter(linkContract.filters.LinkShared(), fromBlock, "latest");
+  const sorted = events
+    .map((event) => ({
+      user: event.args?.user,
+      link: event.args?.link,
+      blockNumber: event.blockNumber,
+      transactionHash: event.transactionHash,
+    }))
+    .sort((a, b) => b.blockNumber - a.blockNumber)
+    .slice(0, limit);
+  return sorted;
 }
 
-// ========================= BADGE MODULE ========================= //
+export async function loadGlobalStats() {
+  const hub = getHub();
+  const donate = getDonate();
+  const badge = getBadge();
+  const gov = getGov();
 
-export async function getUserBadge(address) {
-  try {
-    const badge = getModule("BADGE");
-    const data = await badge.getUserBadge(address);
+  const [global, donationStats, totalDonated, totalDonors, badgeStats, governanceStats] = await Promise.all([
+    hub.getGlobalStats(),
+    donate.getDonateStats().catch(() => [ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]),
+    donate.totalDonated().catch(() => ethers.constants.Zero),
+    donate.totalDonators().catch(() => ethers.constants.Zero),
+    badge.getBadgeStats().catch(() => [ethers.constants.Zero]),
+    gov.getGovernanceStats().catch(() => [ethers.constants.Zero, ethers.constants.Zero]),
+  ]);
 
-    return {
-      totalXP: data.totalXP.toString(),
-      level: data.level.toString(),
-      tier: data.tier.toString(),
-      lastUpdate: data.lastUpdate.toString()
-    };
-  } catch (error) {
-    console.error("❌ Get user badge failed:", error);
-    return {
-      totalXP: "0",
-      level: "1",
-      tier: "1",
-      lastUpdate: "0"
-    };
-  }
+  const [visitors, gm, deploy, links, votes, badges] = global;
+  const [totalDonatedValue, totalDonatorsCount, totalCeloDonated, totalCusdDonated] = donationStats;
+  const [totalProposals, totalVotes] = governanceStats;
+
+  return {
+    visitors: Number(visitors || 0),
+    gm: Number(gm || 0),
+    deploy: Number(deploy || 0),
+    links: Number(links || 0),
+    votes: Number(votes || 0),
+    badges: Number(badges || 0),
+    donors: Number(totalDonors || totalDonatorsCount || 0),
+    totalCelo: Number(ethers.utils.formatEther(totalCeloDonated || totalDonated || 0)),
+    totalCusd: Number(ethers.utils.formatEther(totalCusdDonated || 0)),
+    totalProposals: Number(totalProposals || 0),
+    totalVotesOnChain: Number(totalVotes || 0),
+  };
 }
 
-export async function getUserBadgeList(address) {
-  try {
-    const badge = getModule("BADGE");
-    const totalBadgesBN = await badge.totalBadges();
-    let totalBadges = Number(totalBadgesBN.toString());
+export async function loadGovernance() {
+  const gov = getGov();
+  const activeIds = await gov.getActiveProposals();
+  const completedIds = await gov.getCompletedProposals();
 
-    if (!Number.isFinite(totalBadges) || totalBadges <= 0) {
-      totalBadges = Object.keys(BADGE_TIER_LABELS).length;
-    }
-
-    const badges = [];
-    let nextTierInfo = null;
-
-    if (address) {
-      try {
-        const nextTierRaw = await badge.getNextTierRequirements(address);
-        nextTierInfo = {
-          currentTier: nextTierRaw.currentTier?.toString?.() || "0",
-          nextTier: nextTierRaw.nextTier?.toString?.() || "0",
-          requirements: {
-            level: nextTierRaw.levelRequired?.toString?.() || "0",
-            gm: nextTierRaw.gmRequired?.toString?.() || "0",
-            deploy: nextTierRaw.deployRequired?.toString?.() || "0",
-            donate: nextTierRaw.donateRequired?.toString?.() || "0",
-            link: nextTierRaw.linkRequired?.toString?.() || "0",
-            vote: nextTierRaw.voteRequired?.toString?.() || "0"
-          }
-        };
-      } catch (nextTierError) {
-        console.warn("⚠️ Failed to load next tier requirements:", nextTierError);
-      }
-    }
-
-    for (let tier = 1; tier <= totalBadges; tier++) {
-      let requirements;
-      try {
-        requirements = await badge.getRequirementsForTier(tier);
-      } catch (innerError) {
-        console.warn(`⚠️ Failed to load requirements for tier ${tier}:`, innerError);
-        requirements = [0, 0, 0, 0, 0, 0];
-      }
-
-      const [
-        levelRequired,
-        gmRequired,
-        deployRequired,
-        donateRequired,
-        linkRequired,
-        voteRequired
-      ] = requirements;
-
-      badges.push({
-        id: tier.toString(),
-        tier: tier.toString(),
-        name: BADGE_TIER_LABELS[tier] || `Tier ${tier}`,
-        requirements: {
-          level: levelRequired?.toString?.() || "0",
-          gm: gmRequired?.toString?.() || "0",
-          deploy: deployRequired?.toString?.() || "0",
-          donate: donateRequired?.toString?.() || "0",
-          link: linkRequired?.toString?.() || "0",
-          vote: voteRequired?.toString?.() || "0"
-        }
-      });
-    }
-
+  const fetchProposal = async (id) => {
+    const data = await gov.getProposal(id);
+    const [title, description, link, creator, startTime, endTime, yesVotes, noVotes, executed] = data;
     return {
-      success: true,
-      badges,
-      nextTier: nextTierInfo
+      id: Number(id),
+      title,
+      description,
+      link,
+      creator,
+      startTime: Number(startTime || 0),
+      endTime: Number(endTime || 0),
+      yesVotes: Number(yesVotes || 0),
+      noVotes: Number(noVotes || 0),
+      executed,
     };
-  } catch (error) {
-    console.error("❌ Get user badge list failed:", error);
-    return {
-      success: false,
-      badges: [],
-      nextTier: null
-    };
-  }
+  };
+
+  const active = await Promise.all(activeIds.map(fetchProposal));
+  const completed = await Promise.all(completedIds.map(fetchProposal));
+  return { active, completed };
 }
 
-export async function getBadgeStats() {
-  try {
-    const badge = getModule("BADGE");
-    const total = await badge.totalBadges();
-    return total.toString();
-  } catch (error) {
-    console.error("❌ Get badge stats failed:", error);
-    return "0";
-  }
+export async function loadLeaderboard() {
+  const donate = getDonate();
+  const gm = getGM();
+  const deploy = getDeploy();
+  const link = getLink();
+  const gov = getGov();
+  const profile = getProfile();
+
+  const [topDonorsRaw, recentLinks] = await Promise.all([
+    donate.getTopDonors().catch(() => [[], []]),
+    loadRecentLinks(40).catch(() => []),
+  ]);
+
+  const donors = (topDonorsRaw[0] || []).map((addr, index) => ({
+    address: addr,
+    value: Number(ethers.utils.formatEther(topDonorsRaw[1]?.[index] || 0)),
+  }));
+
+  const candidateSet = new Set(donors.map((item) => item.address));
+  recentLinks.forEach((item) => candidateSet.add(item.user));
+
+  const candidates = Array.from(candidateSet).slice(0, 25);
+
+  const stats = await Promise.all(
+    candidates.map(async (addr) => {
+      const [profileData, gmCount, deployCount, linkCount, voteCount, donationHistory] = await Promise.all([
+        profile.getUserProfile(addr).catch(() => null),
+        gm.getUserGMCount(addr).catch(() => ethers.constants.Zero),
+        deploy.getUserDeployCount(addr).catch(() => ethers.constants.Zero),
+        link.userLinkCount(addr).catch(() => ethers.constants.Zero),
+        gov.userVoteCount(addr).catch(() => ethers.constants.Zero),
+        donate.getUserDonationHistory(addr).catch(() => [ethers.constants.Zero, ethers.constants.Zero, false]),
+      ]);
+
+      const mappedProfile = profileData ? mapProfile(profileData, addr) : null;
+      const [, totalDonationAmount] = donationHistory;
+
+      return {
+        address: addr,
+        gm: Number(gmCount || 0),
+        deploy: Number(deployCount || 0),
+        links: Number(linkCount || 0),
+        votes: Number(voteCount || 0),
+        level: mappedProfile?.level || 0,
+        tier: mappedProfile?.tier || 0,
+        badges: mappedProfile?.badgeCount || mappedProfile?.tier || 0,
+        xp: mappedProfile?.totalXP || 0,
+        cusd: Number(ethers.utils.formatEther(totalDonationAmount || 0)),
+        profile: mappedProfile,
+      };
+    })
+  );
+
+  const sortDesc = (list, key) =>
+    [...list]
+      .sort((a, b) => (b[key] || 0) - (a[key] || 0))
+      .filter((item) => item[key] > 0)
+      .slice(0, 10)
+      .map((item) => ({ address: item.address, value: item[key], tier: item.tier, level: item.level, xp: item.xp }));
+
+  return {
+    donors: donors.sort((a, b) => (b.value || 0) - (a.value || 0)).slice(0, 10),
+    gm: sortDesc(stats, "gm"),
+    deploy: sortDesc(stats, "deploy"),
+    links: sortDesc(stats, "links"),
+    votes: sortDesc(stats, "votes"),
+    badges: sortDesc(stats, "level"),
+    cusdDonors: sortDesc(stats, "cusd"),
+  };
 }
 
-// ========================= PROFILE MODULE ========================= //
-
-export async function loadUserProfile(address) {
-  try {
-    const profile = getModule("PROFILE");
-    const data = await profile.getUserProfile(address);
-    
-    return {
-      gmCount: data.gmCount.toString(),
-      deployCount: data.deployCount.toString(),
-      donateCount: data.donateCount.toString(),
-      linkCount: data.linkCount.toString(),
-      voteCount: data.voteCount.toString(),
-      totalXP: data.totalXP.toString(),
-      level: data.level.toString(),
-      tier: data.tier.toString(),
-      totalDonated: data.totalDonated.toString(),
-      username: data.username || null,
-      exists: data.exists
-    };
-  } catch (error) {
-    console.error("❌ Load user profile failed:", error);
-    return {
-      gmCount: "0",
-      deployCount: "0",
-      donateCount: "0",
-      linkCount: "0",
-      voteCount: "0",
-      totalXP: "0",
-      level: "1",
-      tier: "1",
-      totalDonated: "0",
-      username: null,
-      exists: false
-    };
-  }
-}
-
-// ========================= OWNER FUNCTIONS ========================= //
-
-export async function withdrawDonations() {
-  try {
-    const donate = getModule("DONATE");
-    const { sentTx } = await sendWithReferral(donate, "withdraw", [OWNER_ADDRESS]);
-
-    console.log("💸 Withdraw successful!");
-    return { success: true, txHash: sentTx.hash };
-  } catch (error) {
-    console.error("❌ Withdraw failed:", error);
-    throw error;
-  }
-}
-
-// ========================= UTILITY FUNCTIONS ========================= //
-
-// ✅ YENİ: Kullanıcı profil durumunu kontrol et
-export async function checkUserProfileStatus() {
-  try {
-    const userAddress = await signer.getAddress();
-    const profile = await loadUserProfile(userAddress);
-    const username = profile.username || null;
-
-    return {
-      hasProfile: profile.exists,
-      username: username,
-      profileData: profile
-    };
-  } catch (error) {
-    console.error("❌ Check user profile status failed:", error);
-    return {
-      hasProfile: false,
-      username: null,
-      profileData: null
-    };
-  }
-}
-
-// ✅ YENİ: Tüm kullanıcı istatistiklerini getir
-export async function getUserFullStats() {
-  try {
-    const userAddress = await signer.getAddress();
-    
-    const [
-      profile,
-      gmStats,
-      deployStats,
-      donateStats,
-      linkStats,
-      govStats,
-      badge
-    ] = await Promise.all([
-      loadUserProfile(userAddress),
-      getGMStats(),
-      getDeployStats(),
-      getDonateStats(),
-      getLinkStats(),
-      getGovernanceStats(),
-      getUserBadge(userAddress)
-    ]);
-
-    const username = profile.username || null;
-    
-    return {
-      username: username,
-      profile: profile,
-      gmStats: gmStats,
-      deployStats: deployStats,
-      donateStats: donateStats,
-      linkStats: linkStats,
-      governanceStats: govStats,
-      badge: badge
-    };
-  } catch (error) {
-    console.error("❌ Get user full stats failed:", error);
+export async function fetchGraph(query, variables = {}) {
+  if (!THE_GRAPH_ENDPOINT || THE_GRAPH_ENDPOINT.includes("YOUR_SUBGRAPH_ID")) {
     return null;
   }
+
+  const response = await fetch(THE_GRAPH_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    throw new Error("The Graph isteği başarısız oldu");
+  }
+
+  return response.json();
 }
 
-// ========================= EXPORTS ========================= //
+export async function loadUserLinks(address) {
+  const linkContract = getLink();
+  const links = await linkContract.getUserLinks?.(address).catch(() => []);
+  if (!links?.length) return [];
+  return links.map((link) => ({ address, link }));
+}
 
-export default {
-  // Core
-  initContract,
-  getModule,
-  
-  // Profile Management
-  registerUserProfile,
-  updateUsername,
-  fetchUsername,
-  saveUsername,
-  getUsername,
-  loadUserProfile,
-  checkUserProfileStatus,
-  getUserFullStats,
-  
-  // Modules
-  sendGM,
-  getGMStats,
-  deployContract,
-  getDeployStats,
-  donateCELO,
-  donateCUSD,
-  getDonateStats,
-  shareLink,
-  getLinkStats,
-  getAllSharedLinks,
-  getLinksFromEvents,
-  getUserSharedLinks,
-  createProposal,
-  vote,
-  getGovernanceStats,
-  getUserBadge,
-  getUserBadgeList,
-  getBadgeStats,
-  withdrawDonations
-};
+export function getNetworkOptions() {
+  return NETWORK_KEYS.map((key) => ({
+    key,
+    name: NETWORKS[key].name,
+    chainId: NETWORKS[key].chainId,
+  }));
+}
 
-console.log("✅ contractService.js FULLY UPDATED with user links support! 🚀");
+export function explorerLink(hash) {
+  return `${CURRENT_NETWORK.explorer}/tx/${hash}`;
+}
