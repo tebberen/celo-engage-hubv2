@@ -43,7 +43,9 @@ const state = {
   governance: { active: [], completed: [] },
   leaderboard: null,
   isOwner: false,
-  theme: localStorage.getItem("celo-engage-theme") || "light",
+  theme: localStorage.getItem("celo-engage-theme") || "dark",
+  language: localStorage.getItem("celo-engage-lang") || "tr",
+  translations: {},
 };
 
 const elements = {
@@ -54,13 +56,13 @@ const elements = {
   connectWalletConnect: document.getElementById("connectWalletConnect"),
   disconnectWallet: document.getElementById("disconnectWallet"),
   walletControls: document.querySelector(".wallet-controls"),
-  profilePanel: document.getElementById("profilePanel"),
   profileStats: document.getElementById("profileStats"),
   badgeStack: document.getElementById("badgeStack"),
   xpProgress: document.getElementById("xpProgress"),
   profileUsername: document.getElementById("profileUsername"),
   profileAddress: document.getElementById("profileAddress"),
   publicProfileLink: document.getElementById("publicProfileLink"),
+  profileMetrics: document.getElementById("profileMetrics"),
   linkFeed: document.getElementById("linkFeed"),
   gmForm: document.getElementById("gmForm"),
   deployForm: document.getElementById("deployForm"),
@@ -94,6 +96,9 @@ const elements = {
   usernameForm: document.getElementById("usernameForm"),
   usernameInput: document.getElementById("usernameInput"),
   themeToggle: document.getElementById("themeToggle"),
+  languageToggle: document.getElementById("languageToggle"),
+  profileButton: document.getElementById("profileButton"),
+  profileModal: document.getElementById("profileModal"),
   networkName: document.getElementById("networkName"),
   networkStatus: document.getElementById("networkStatus"),
   duneLink: document.getElementById("duneLink"),
@@ -106,12 +111,18 @@ let wsBackoff = 2000;
 
 function init() {
   applyTheme(state.theme);
+  setupLanguage();
   setupNavigation();
+  const initialSection = document.querySelector(".section.active");
+  if (initialSection) {
+    requestAnimationFrame(() => initialSection.classList.add("fade-in"));
+  }
   setupTabs();
   setupLeaderboardTabs();
   setupForms();
   setupWalletButtons();
   setupThemeToggle();
+  setupProfileModal();
   setupToastBridge();
   updateAnalyticsLinks();
   renderNetworkInfo(false);
@@ -121,6 +132,129 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+function t(key, fallback = "") {
+  if (!key) return fallback;
+  const segments = key.split(".");
+  let result = state.translations?.[state.language];
+  for (const segment of segments) {
+    if (result && Object.prototype.hasOwnProperty.call(result, segment)) {
+      result = result[segment];
+    } else {
+      return fallback;
+    }
+  }
+  return typeof result === "string" ? result : fallback;
+}
+
+async function setupLanguage() {
+  try {
+    const response = await fetch("./src/lang.json");
+    if (response.ok) {
+      state.translations = await response.json();
+    }
+  } catch (error) {
+    console.error("language load error", error);
+  } finally {
+    applyLanguage(state.language);
+  }
+
+  if (elements.languageToggle) {
+    elements.languageToggle.addEventListener("click", () => {
+      const nextLang = state.language === "tr" ? "en" : "tr";
+      applyLanguage(nextLang);
+    });
+  }
+}
+
+function applyLanguage(lang) {
+  if (!state.translations?.[lang]) {
+    lang = "tr";
+  }
+  state.language = lang;
+  document.documentElement.lang = lang;
+  localStorage.setItem("celo-engage-lang", lang);
+
+  if (elements.languageToggle) {
+    elements.languageToggle.setAttribute("data-current-lang", lang.toUpperCase());
+    elements.languageToggle.title = lang.toUpperCase();
+  }
+
+  translateDocument();
+  renderProfile(state.profile);
+  renderBadgeDetails(state.profile);
+  renderGlobalCounters(state.global);
+  renderNavigationAria();
+}
+
+function translateDocument() {
+  const allElements = document.querySelectorAll("[data-i18n]");
+  allElements.forEach((el) => {
+    const text = t(el.dataset.i18n, el.textContent?.trim() || "");
+    if (text) {
+      el.textContent = text;
+    }
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const value = t(el.dataset.i18nPlaceholder, el.getAttribute("placeholder") || "");
+    if (value) {
+      el.setAttribute("placeholder", value);
+    }
+  });
+
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+    const value = t(el.dataset.i18nAriaLabel, el.getAttribute("aria-label") || "");
+    if (value) {
+      el.setAttribute("aria-label", value);
+    }
+  });
+}
+
+function renderNavigationAria() {
+  elements.navButtons.forEach((btn) => {
+    const label = btn.dataset.i18n ? t(btn.dataset.i18n, btn.textContent) : btn.textContent;
+    btn.setAttribute("aria-label", label);
+  });
+}
+
+function setupProfileModal() {
+  if (!elements.profileModal) return;
+
+  const dismissElements = elements.profileModal.querySelectorAll('[data-dismiss="profileModal"]');
+  dismissElements.forEach((closeBtn) => {
+    closeBtn.addEventListener("click", closeProfileModal);
+  });
+
+  if (elements.profileButton) {
+    elements.profileButton.addEventListener("click", () => {
+      if (!state.profile) {
+        refreshProfile();
+      }
+      openProfileModal();
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && elements.profileModal.classList.contains("is-open")) {
+      closeProfileModal();
+    }
+  });
+}
+
+function openProfileModal() {
+  if (!elements.profileModal) return;
+  elements.profileModal.classList.add("is-open");
+  elements.profileModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+
+function closeProfileModal() {
+  if (!elements.profileModal) return;
+  elements.profileModal.classList.remove("is-open");
+  elements.profileModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
 
 function applyTheme(theme) {
   state.theme = theme;
@@ -139,7 +273,16 @@ function setupNavigation() {
     btn.addEventListener("click", () => {
       const target = btn.dataset.target;
       elements.navButtons.forEach((b) => b.classList.toggle("active", b === btn));
-      elements.sections.forEach((section) => section.classList.toggle("active", section.id === target));
+      elements.sections.forEach((section) => {
+        const isTarget = section.id === target;
+        section.classList.toggle("active", isTarget);
+        if (isTarget) {
+          section.classList.remove("fade-in");
+          // force reflow for animation restart
+          void section.offsetWidth;
+          section.classList.add("fade-in");
+        }
+      });
     });
   });
   if (elements.navButtons.length) {
@@ -274,7 +417,12 @@ function initWalletListeners() {
 
 function renderNetworkInfo(valid) {
   elements.networkName.textContent = CURRENT_NETWORK.name;
-  elements.networkStatus.classList.toggle("online", Boolean(valid && state.address));
+  const online = Boolean(valid && state.address);
+  elements.networkStatus.classList.toggle("online", online);
+  elements.networkStatus.setAttribute(
+    "aria-label",
+    online ? t("network.online", "Online") : t("network.offline", "Offline")
+  );
 }
 
 function showToast(type, message, hash, explorer) {
@@ -513,7 +661,10 @@ function renderProfile(profile) {
   if (!profile) {
     elements.profileUsername.textContent = "—";
     elements.profileAddress.textContent = "—";
-    elements.profileStats.innerHTML = "<p>Profil bilgisi bulunamadı.</p>";
+    elements.profileStats.innerHTML = `<p>${t("profile.empty", "Profil bilgisi bulunamadı.")}</p>`;
+    if (elements.profileMetrics) {
+      elements.profileMetrics.innerHTML = "";
+    }
     elements.badgeStack.innerHTML = "";
     elements.xpProgress.innerHTML = "";
     elements.publicProfileLink.removeAttribute("href");
@@ -521,24 +672,32 @@ function renderProfile(profile) {
     return;
   }
 
-  elements.profileUsername.textContent = profile.username || "Yeni Kullanıcı";
+  elements.profileUsername.textContent = profile.username || t("profile.newUser", "Yeni Kullanıcı");
   elements.profileAddress.textContent = shorten(profile.address);
   elements.publicProfileLink.href = `/profile?addr=${profile.address}`;
 
-  const stats = [
-    { label: "GM", value: profile.gmCount },
-    { label: "Deploy", value: profile.deployCount },
-    { label: "Link", value: profile.linkCount },
-    { label: "Vote", value: profile.voteCount },
-    { label: "Donate", value: profile.donateCount },
-    { label: "XP", value: profile.totalXP },
-    { label: "Level", value: profile.level },
-    { label: "Tier", value: profile.tier },
+  const summaryStats = [
+    { label: t("profile.stats.xp", "XP"), value: profile.totalXP },
+    { label: t("profile.stats.level", "Level"), value: profile.level },
+    { label: t("profile.stats.tier", "Tier"), value: profile.tier },
   ];
 
-  elements.profileStats.innerHTML = stats
+  elements.profileStats.innerHTML = summaryStats
     .map((stat) => `<dt>${stat.label}</dt><dd>${formatNumber(stat.value)}</dd>`)
     .join("");
+
+  if (elements.profileMetrics) {
+    const metrics = [
+      { label: t("profile.metrics.link", "Link"), value: profile.linkCount },
+      { label: t("profile.metrics.deploy", "Deploy"), value: profile.deployCount },
+      { label: t("profile.metrics.gm", "GM"), value: profile.gmCount },
+      { label: t("profile.metrics.vote", "Vote"), value: profile.voteCount },
+      { label: t("profile.metrics.donate", "Donate"), value: profile.donateCount },
+    ];
+    elements.profileMetrics.innerHTML = metrics
+      .map((metric) => `<li><span>${metric.label}</span><strong>${formatNumber(metric.value)}</strong></li>`)
+      .join("");
+  }
 
   elements.badgeStack.innerHTML = renderTierBadges(profile);
   elements.xpProgress.innerHTML = renderXpProgress(profile);
@@ -550,53 +709,55 @@ function renderTierBadges(profile) {
   return tiers
     .map((tier) => {
       const active = profile.tier >= tier ? "active" : "";
-      return `<span class="badge-chip ${active}">Tier ${tier}</span>`;
+      return `<span class="badge-chip ${active}">${t("profile.badge", "Tier")} ${tier}</span>`;
     })
     .join("");
 }
 
 function renderXpProgress(profile) {
-  const nextLevel = profile.level >= 5 ? "Maks" : profile.level + 1;
+  const nextLevel = profile.level >= 5 ? t("profile.nextLevelMax", "Maks") : profile.level + 1;
   const progressPercent = Math.min(100, Math.floor((profile.totalXP % 20) * 5));
   return `
-    <div><strong>Seviye:</strong> ${profile.level}</div>
-    <div><strong>Tier:</strong> ${profile.tier}</div>
+    <div class="progress-head">
+      <div><span>${t("profile.stats.level", "Level")}</span><strong>${profile.level}</strong></div>
+      <div><span>${t("profile.stats.tier", "Tier")}</span><strong>${profile.tier}</strong></div>
+    </div>
     <div class="bar"><span style="width:${progressPercent}%"></span></div>
-    <small>Sonraki seviye: ${nextLevel}</small>
+    <small>${t("profile.nextLevel", "Sonraki seviye")}: ${nextLevel}</small>
   `;
 }
 
-function renderBadgeDetails(profile) {
+function renderBadgeDetails(profile = state.profile) {
   if (!elements.badgeDetails) return;
   const xp = profile?.totalXP || 0;
   const level = profile?.level || 0;
   const tier = profile?.tier || 0;
   elements.badgeDetails.innerHTML = `
-    <h3>Rozet Durumu</h3>
-    <p>Toplam XP: <strong>${formatNumber(xp)}</strong></p>
-    <p>Seviye: <strong>${level}</strong> · Tier: <strong>${tier}</strong></p>
+    <h3>${t("badge.detailTitle", "Rozet Durumu")}</h3>
+    <p>${t("badge.detailTotalXp", "Toplam XP")}: <strong>${formatNumber(xp)}</strong></p>
+    <p>${t("badge.detailLevel", "Seviye")}: <strong>${level}</strong> · ${t("badge.detailTier", "Tier")}: <strong>${tier}</strong></p>
     <ul>
-      <li>GM: +1 XP</li>
-      <li>Deploy: +1 XP</li>
-      <li>Donate: +3 XP</li>
-      <li>Link: +2 XP</li>
-      <li>Vote: +1 XP</li>
+      <li>${t("badge.detailGm", "GM: +1 XP")}</li>
+      <li>${t("badge.detailDeploy", "Deploy: +1 XP")}</li>
+      <li>${t("badge.detailDonate", "Donate: +3 XP")}</li>
+      <li>${t("badge.detailLink", "Link: +2 XP")}</li>
+      <li>${t("badge.detailVote", "Vote: +1 XP")}</li>
     </ul>
   `;
 }
 
 function renderGlobalCounters(stats) {
-  if (!stats) return;
+  if (!stats || !elements.globalCounters) return;
   const counters = [
-    { label: "Ziyaretçi", value: stats.visitors },
-    { label: "GM", value: stats.gm },
-    { label: "Deploy", value: stats.deploy },
-    { label: "Link", value: stats.links },
-    { label: "Vote", value: stats.votes },
-    { label: "Badge", value: stats.badges },
-    { label: "Donor", value: stats.donors },
-    { label: "Toplam CELO", value: formatCurrency(stats.totalCelo) },
-    { label: "Toplam cUSD", value: formatCurrency(stats.totalCusd) },
+    { label: t("global.visitors", "Ziyaretçi"), value: stats.visitors },
+    { label: t("global.gm", "GM"), value: stats.gm },
+    { label: t("global.deploy", "Deploy"), value: stats.deploy },
+    { label: t("global.link", "Link"), value: stats.links },
+    { label: t("global.vote", "Vote"), value: stats.votes },
+    { label: t("global.badge", "Badge"), value: stats.badges },
+    { label: t("global.donor", "Donor"), value: stats.donors },
+    { label: t("global.totalCelo", "Toplam CELO"), value: formatCurrency(stats.totalCelo) },
+    { label: t("global.totalCusd", "Toplam cUSD"), value: formatCurrency(stats.totalCusd) },
   ];
   elements.globalCounters.innerHTML = counters
     .map(
@@ -612,7 +773,7 @@ function renderGlobalCounters(stats) {
 
 function renderLinkFeed(entries) {
   if (!entries?.length) {
-    elements.linkFeed.innerHTML = "<p>Henüz link paylaşılmadı.</p>";
+    elements.linkFeed.innerHTML = `<p>${t("feed.empty", "Henüz link paylaşılmadı.")}</p>`;
     return;
   }
   elements.linkFeed.innerHTML = entries
@@ -620,7 +781,7 @@ function renderLinkFeed(entries) {
       <article class="feed-item">
         <div class="meta">
           <span>${shorten(item.user || "0x0")}</span>
-          <time>${item.blockNumber ? `#${item.blockNumber}` : "Yeni"}</time>
+          <time>${item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni")}</time>
         </div>
         <a class="link" href="${item.link}" target="_blank" rel="noopener">${item.link}</a>
       </article>
@@ -631,7 +792,7 @@ function renderLinkFeed(entries) {
 function renderDeployments(contracts) {
   if (!elements.deployedContracts) return;
   if (!contracts?.length) {
-    elements.deployedContracts.innerHTML = "<li>Henüz deploy edilmiş kontrat yok.</li>";
+    elements.deployedContracts.innerHTML = `<li>${t("deployments.empty", "Henüz deploy edilmiş kontrat yok.")}</li>`;
     return;
   }
   elements.deployedContracts.innerHTML = contracts
@@ -642,21 +803,21 @@ function renderDeployments(contracts) {
 function renderGovernance({ active, completed }) {
   elements.activeProposals.innerHTML = active.length
     ? active.map(renderProposalCard).join("")
-    : "<li>Aktif öneri yok.</li>";
+    : `<li>${t("governance.noneActive", "Aktif öneri yok.")}</li>`;
   elements.pastProposals.innerHTML = completed.length
     ? completed.map((proposal) => renderProposalCard(proposal, true)).join("")
-    : "<li>Tamamlanan öneri yok.</li>";
+    : `<li>${t("governance.noneCompleted", "Tamamlanan öneri yok.")}</li>`;
 }
 
 function renderProposalCard(proposal, readonly = false) {
   const now = Math.floor(Date.now() / 1000);
-  const remaining = proposal.endTime > now ? formatDuration(proposal.endTime - now) : "Tamamlandı";
-  const votes = `✅ ${proposal.yesVotes} / ❌ ${proposal.noVotes}`;
+  const remaining = proposal.endTime > now ? formatDuration(proposal.endTime - now) : t("governance.completedLabel", "Tamamlandı");
+  const votes = `${t("governance.voteYes", "✅ Evet")}: ${proposal.yesVotes} / ${t("governance.voteNo", "❌ Hayır")}: ${proposal.noVotes}`;
   const actions = readonly
     ? ""
     : `<div class="vote-actions">
-        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="true">Evet</button>
-        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="false">Hayır</button>
+        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="true">${t("governance.voteYesShort", "Evet")}</button>
+        <button class="secondary-btn" data-proposal="${proposal.id}" data-vote="false">${t("governance.voteNoShort", "Hayır")}</button>
       </div>`;
 
   return `
@@ -666,7 +827,7 @@ function renderProposalCard(proposal, readonly = false) {
         <small>${remaining}</small>
       </header>
       <p>${proposal.description}</p>
-      ${proposal.link ? `<a href="${proposal.link}" target="_blank" rel="noopener">Detay</a>` : ""}
+      ${proposal.link ? `<a href="${proposal.link}" target="_blank" rel="noopener">${t("governance.detail", "Detay")}</a>` : ""}
       <footer>
         <span>${votes}</span>
         ${actions}
@@ -703,7 +864,7 @@ function renderLeaderboard(data) {
 function renderLeaderboardList(container, list) {
   if (!container) return;
   if (!list?.length) {
-    container.innerHTML = "<li class=\"leaderboard-item\">Veri bulunamadı.</li>";
+    container.innerHTML = `<li class="leaderboard-item">${t("leaderboard.empty", "Veri bulunamadı.")}</li>`;
     return;
   }
   container.innerHTML = list
@@ -726,23 +887,34 @@ function renderOwnerPanel() {
 function formatNumber(value) {
   if (value === undefined || value === null) return "0";
   if (typeof value === "number") {
-    return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+    return value.toLocaleString(getLocale(), { maximumFractionDigits: 2 });
   }
   const num = Number(value);
   if (Number.isNaN(num)) return "0";
-  return num.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  return num.toLocaleString(getLocale(), { maximumFractionDigits: 2 });
 }
 
 function formatCurrency(value) {
-  return Number(value || 0).toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  return Number(value || 0).toLocaleString(getLocale(), { maximumFractionDigits: 2 });
+}
+
+function getLocale() {
+  return state.language === "en" ? "en-US" : "tr-TR";
 }
 
 function formatDuration(seconds) {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours} saat ${minutes} dk`;
-  if (minutes > 0) return `${minutes} dk`;
-  return `${Math.max(0, Math.floor(seconds))} sn`;
+  const secs = Math.max(0, Math.floor(seconds));
+  if (hours > 0) {
+    return state.language === "en"
+      ? `${hours}h ${minutes}m`
+      : `${hours} saat ${minutes} dk`;
+  }
+  if (minutes > 0) {
+    return state.language === "en" ? `${minutes}m` : `${minutes} dk`;
+  }
+  return state.language === "en" ? `${secs}s` : `${secs} sn`;
 }
 
 function parseError(error) {

@@ -8,31 +8,33 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>" />
   </head>
   <body>
-    <div id="app" class="app-shell" data-theme="light">
+    <div id="app" class="app-shell" data-theme="dark">
       <header class="app-header">
         <div class="brand-area">
           <div class="brand-logo">⚡</div>
           <div class="brand-copy">
-            <h1>Celo Engage Hub</h1>
-            <p>Support others first, then leave your link.</p>
+            <h1 data-i18n="brand.title">Celo Engage Hub</h1>
+            <p data-i18n="brand.subtitle">Support others first, then leave your link.</p>
           </div>
         </div>
         <nav class="app-nav" aria-label="Ana gezinme">
-          <button class="nav-btn" data-target="homeSection">Akış</button>
-          <button class="nav-btn" data-target="gmSection">GM</button>
-          <button class="nav-btn" data-target="deploySection">Deploy</button>
-          <button class="nav-btn" data-target="donateSection">Donate</button>
-          <button class="nav-btn" data-target="linkSection">Link</button>
-          <button class="nav-btn" data-target="governanceSection">Governance</button>
-          <button class="nav-btn" data-target="badgeSection">Badge</button>
-          <button class="nav-btn" data-target="leaderboardSection">Leaderboard</button>
+          <button class="nav-btn" data-target="homeSection" data-i18n="nav.home">Home</button>
+          <button class="nav-btn" data-target="gmSection" data-i18n="nav.gm">GM</button>
+          <button class="nav-btn" data-target="deploySection" data-i18n="nav.deploy">Deploy</button>
+          <button class="nav-btn" data-target="donateSection" data-i18n="nav.donate">Donate</button>
+          <button class="nav-btn" data-target="linkSection" data-i18n="nav.link">Link</button>
+          <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
+          <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badge</button>
+          <button class="nav-btn" data-target="leaderboardSection" data-i18n="nav.leaderboard">Leaderboard</button>
         </nav>
         <div class="header-actions">
+          <button id="languageToggle" class="icon-btn" aria-label="Dil değiştir" data-i18n-aria-label="actions.languageToggle">🌐</button>
           <div class="network-indicator">
             <span id="networkName">—</span>
             <span class="status-dot" id="networkStatus"></span>
           </div>
-          <button id="themeToggle" aria-label="Tema değiştir">🌗</button>
+          <button id="themeToggle" class="icon-btn" aria-label="Tema değiştir" data-i18n-aria-label="actions.themeToggle">🌗</button>
+          <button id="profileButton" class="primary-btn ghost" data-i18n="actions.profile">Profile</button>
           <div class="wallet-controls">
             <button id="connectMetaMask" class="wallet-btn">MetaMask</button>
             <button id="connectWalletConnect" class="wallet-btn">WalletConnect</button>
@@ -42,113 +44,111 @@
       </header>
 
       <main class="app-main">
-        <aside class="profile-summary" id="profilePanel">
+        <aside class="ecosystem-panel">
           <div class="panel-header">
-            <h2>Profil</h2>
-            <span id="profileUsername">—</span>
+            <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
           </div>
-          <div class="profile-address" id="profileAddress">—</div>
-          <div class="badge-stack" id="badgeStack"></div>
-          <dl class="profile-stats" id="profileStats"></dl>
-          <div class="xp-progress" id="xpProgress"></div>
-          <div class="profile-links">
-            <a id="publicProfileLink" target="_blank" rel="noopener">Profilini görüntüle</a>
+          <div class="ecosystem-grid">
+            <a class="ecosystem-card" href="https://celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.foundation">Celo Foundation</a>
+            <a class="ecosystem-card" href="https://docs.celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.docs">Celo Docs</a>
+            <a class="ecosystem-card" href="https://explorer.celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.explorer">Celo Explorer</a>
+            <a class="ecosystem-card" href="https://github.com/tebberen/celo-engage-hubv2" target="_blank" rel="noopener" data-i18n="ecosystem.github">Engage Hub GitHub</a>
           </div>
         </aside>
 
         <section id="homeSection" class="section active">
           <div class="section-header">
-            <h2>Topluluk Akışı</h2>
-            <p>Son paylaşılan bağlantılar ve etkinlikler</p>
+            <h2 data-i18n="home.title">Topluluk Akışı</h2>
+            <p data-i18n="home.subtitle">Son paylaşılan bağlantılar ve etkinlikler</p>
           </div>
           <div id="linkFeed" class="feed-list"></div>
         </section>
 
         <section id="gmSection" class="section">
           <div class="section-header">
-            <h2>GM Gönder</h2>
-            <p>Kısa bir selam bırak, XP kazan.</p>
+            <h2 data-i18n="gm.title">GM Gönder</h2>
+            <p data-i18n="gm.subtitle">Kısa bir selam bırak, XP kazan.</p>
           </div>
           <form id="gmForm" class="card">
-            <label for="gmMessage">Mesaj (opsiyonel)</label>
-            <textarea id="gmMessage" maxlength="140" placeholder="GM Celo dünyası!"></textarea>
-            <button type="submit" class="primary-btn">GM Gönder</button>
-            <p class="helper">+1 XP</p>
+            <label for="gmMessage" data-i18n="gm.messageLabel">Mesaj (opsiyonel)</label>
+            <textarea id="gmMessage" maxlength="140" placeholder="GM Celo dünyası!" data-i18n-placeholder="gm.placeholder"></textarea>
+            <button type="submit" class="primary-btn" data-i18n="gm.submit">GM Gönder</button>
+            <p class="helper" data-i18n="gm.helper">+1 XP</p>
           </form>
         </section>
 
         <section id="deploySection" class="section">
           <div class="section-header">
-            <h2>Deploy Et</h2>
-            <p>Düşük gas ile basit kontrat dağıt.</p>
+            <h2 data-i18n="deploy.title">Deploy Et</h2>
+            <p data-i18n="deploy.subtitle">Düşük gas ile basit kontrat dağıt.</p>
           </div>
           <form id="deployForm" class="card">
-            <label for="deployName">Kontrat adı (opsiyonel)</label>
-            <input id="deployName" type="text" maxlength="32" placeholder="AutoName-..." />
-            <button type="submit" class="primary-btn">Kontratı Dağıt</button>
-            <p class="helper">+1 XP</p>
+            <label for="deployName" data-i18n="deploy.nameLabel">Kontrat adı (opsiyonel)</label>
+            <input id="deployName" type="text" maxlength="32" placeholder="AutoName-..." data-i18n-placeholder="deploy.namePlaceholder" />
+            <button type="submit" class="primary-btn" data-i18n="deploy.submit">Kontratı Dağıt</button>
+            <p class="helper" data-i18n="deploy.helper">+1 XP</p>
           </form>
           <div class="card" id="deployHistory">
-            <h3>Dağıtılan Kontratlar</h3>
+            <h3 data-i18n="deploy.history">Dağıtılan Kontratlar</h3>
             <ul id="deployedContracts"></ul>
           </div>
         </section>
 
         <section id="donateSection" class="section">
           <div class="section-header">
-            <h2>Donate</h2>
-            <p>0.1 CELO / cUSD altı bağışlar reddedilir.</p>
+            <h2 data-i18n="donate.title">Donate</h2>
+            <p data-i18n="donate.subtitle">0.1 CELO / cUSD altı bağışlar reddedilir.</p>
           </div>
           <div class="card donate-card">
             <div class="tab-list" role="tablist">
-              <button type="button" class="tab-btn active" data-tab="celo">CELO</button>
-              <button type="button" class="tab-btn" data-tab="cusd">cUSD</button>
+              <button type="button" class="tab-btn active" data-tab="celo" data-i18n="donate.celo">CELO</button>
+              <button type="button" class="tab-btn" data-tab="cusd" data-i18n="donate.cusd">cUSD</button>
             </div>
             <div class="tab-panel active" data-content="celo">
               <form id="donateCeloForm">
-                <label for="celoAmount">Miktar (CELO)</label>
+                <label for="celoAmount" data-i18n="donate.celoAmount">Miktar (CELO)</label>
                 <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn">CELO Bağışla</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">CELO Bağışla</button>
               </form>
             </div>
             <div class="tab-panel" data-content="cusd">
               <form id="approveCusdForm">
-                <label for="cusdApproveAmount">Onay Miktarı (cUSD)</label>
+                <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Onay Miktarı (cUSD)</label>
                 <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
-                <button type="submit" class="secondary-btn">cUSD Onayla</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">cUSD Onayla</button>
               </form>
               <form id="donateCusdForm">
-                <label for="cusdAmount">Bağış Miktarı (cUSD)</label>
+                <label for="cusdAmount" data-i18n="donate.cusdAmount">Bağış Miktarı (cUSD)</label>
                 <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn">cUSD Bağışla</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">cUSD Bağışla</button>
               </form>
             </div>
           </div>
           <div id="ownerPanel" class="card owner-only" hidden>
-            <h3>Sahip Paneli</h3>
+            <h3 data-i18n="donate.owner.title">Sahip Paneli</h3>
             <div class="owner-section">
-              <h4>Bağış Çekimi</h4>
+              <h4 data-i18n="donate.owner.withdrawTitle">Bağış Çekimi</h4>
               <form id="withdrawCeloForm">
-                <label for="withdrawCeloAmount">CELO Miktarı</label>
+                <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Miktarı</label>
                 <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn">CELO Çek</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">CELO Çek</button>
               </form>
               <form id="withdrawCusdForm">
-                <label for="withdrawCusdAmount">cUSD Miktarı</label>
+                <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Miktarı</label>
                 <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn">cUSD Çek</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">cUSD Çek</button>
               </form>
             </div>
             <div class="owner-section">
-              <h4>Yeni Öneri</h4>
+              <h4 data-i18n="donate.owner.proposalTitle">Yeni Öneri</h4>
               <form id="proposalForm">
-                <label for="proposalTitle">Başlık</label>
+                <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Başlık</label>
                 <input id="proposalTitle" type="text" required maxlength="80" />
-                <label for="proposalDescription">Açıklama</label>
+                <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Açıklama</label>
                 <textarea id="proposalDescription" required maxlength="280"></textarea>
-                <label for="proposalLink">Bağlantı</label>
+                <label for="proposalLink" data-i18n="donate.owner.proposalLink">Bağlantı</label>
                 <input id="proposalLink" type="url" placeholder="https://" />
-                <button type="submit" class="primary-btn">Öneri Oluştur</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Öneri Oluştur</button>
               </form>
             </div>
           </div>
@@ -156,29 +156,29 @@
 
         <section id="linkSection" class="section">
           <div class="section-header">
-            <h2>Link Paylaş</h2>
-            <p>Linkler yalnızca https:// ile başlamalı.</p>
+            <h2 data-i18n="link.title">Link Paylaş</h2>
+            <p data-i18n="link.subtitle">Linkler yalnızca https:// ile başlamalı.</p>
           </div>
           <form id="linkForm" class="card">
-            <label for="linkUrl">URL</label>
+            <label for="linkUrl" data-i18n="link.urlLabel">URL</label>
             <input id="linkUrl" type="url" placeholder="https://" required />
-            <button type="submit" class="primary-btn">Link Paylaş</button>
-            <p class="helper">+2 XP</p>
+            <button type="submit" class="primary-btn" data-i18n="link.submit">Link Paylaş</button>
+            <p class="helper" data-i18n="link.helper">+2 XP</p>
           </form>
         </section>
 
         <section id="governanceSection" class="section">
           <div class="section-header">
-            <h2>Governance</h2>
-            <p>Aktif ve tamamlanan önerilere katıl.</p>
+            <h2 data-i18n="governance.title">Governance</h2>
+            <p data-i18n="governance.subtitle">Aktif ve tamamlanan önerilere katıl.</p>
           </div>
           <div class="governance-columns">
             <div class="card">
-              <h3>Aktif Öneriler</h3>
+              <h3 data-i18n="governance.active">Aktif Öneriler</h3>
               <ul id="activeProposals" class="proposal-list"></ul>
             </div>
             <div class="card">
-              <h3>Tamamlanan Öneriler</h3>
+              <h3 data-i18n="governance.completed">Tamamlanan Öneriler</h3>
               <ul id="pastProposals" class="proposal-list"></ul>
             </div>
           </div>
@@ -186,31 +186,31 @@
 
         <section id="badgeSection" class="section">
           <div class="section-header">
-            <h2>Rozetler & Tier</h2>
-            <p>XP → Level → Tier yolculuğunu takip et.</p>
+            <h2 data-i18n="badge.title">Rozetler & Tier</h2>
+            <p data-i18n="badge.subtitle">XP → Level → Tier yolculuğunu takip et.</p>
           </div>
           <div class="card" id="badgeDetails"></div>
           <div class="card">
-            <h3>Gelecek NFT Basımı</h3>
-            <p>Rozetlerini NFT olarak basmak için yakında burada olacağız.</p>
-            <button type="button" class="secondary-btn" disabled>Yakında</button>
+            <h3 data-i18n="badge.mintTitle">Gelecek NFT Basımı</h3>
+            <p data-i18n="badge.mintSubtitle">Rozetlerini NFT olarak basmak için yakında burada olacağız.</p>
+            <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Yakında</button>
           </div>
         </section>
 
         <section id="leaderboardSection" class="section">
           <div class="section-header">
-            <h2>Liderlik Tablosu</h2>
-            <p>Topluluk kahramanları burada.</p>
+            <h2 data-i18n="leaderboard.title">Liderlik Tablosu</h2>
+            <p data-i18n="leaderboard.subtitle">Topluluk kahramanları burada.</p>
           </div>
-          <div class="card">
+          <div class="card leaderboard-card">
             <div class="tab-list leaderboard-tabs" role="tablist">
-              <button class="tab-btn active" data-tab="topLinks">Link</button>
-              <button class="tab-btn" data-tab="topGM">GM</button>
-              <button class="tab-btn" data-tab="topDeploy">Deploy</button>
-              <button class="tab-btn" data-tab="topCelo">CELO Donor</button>
-              <button class="tab-btn" data-tab="topCusd">cUSD Donor</button>
-              <button class="tab-btn" data-tab="topVotes">Vote</button>
-              <button class="tab-btn" data-tab="topBadges">Level</button>
+              <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Link</button>
+              <button class="tab-btn" data-tab="topGM" data-i18n="leaderboard.tabs.gm">GM</button>
+              <button class="tab-btn" data-tab="topDeploy" data-i18n="leaderboard.tabs.deploy">Deploy</button>
+              <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donor</button>
+              <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donor</button>
+              <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Vote</button>
+              <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Level</button>
             </div>
             <div class="leaderboard-panels">
               <div class="tab-panel active" data-content="topLinks">
@@ -241,24 +241,48 @@
 
       <footer class="app-footer">
         <div class="global-counters" id="globalCounters"></div>
-        <div class="analytics-links">
+        <div class="footer-links">
           <a id="graphLink" target="_blank" rel="noopener">The Graph</a>
           <a id="duneLink" target="_blank" rel="noopener">Dune Dashboard</a>
         </div>
       </footer>
     </div>
 
-    <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+    <div id="profileModal" class="profile-modal" aria-hidden="true">
+      <div class="profile-modal__backdrop" data-dismiss="profileModal"></div>
+      <div class="profile-modal__dialog" role="dialog" aria-modal="true">
+        <button class="modal-close icon-btn" data-dismiss="profileModal" aria-label="Close profile" data-i18n-aria-label="profile.close">✕</button>
+        <div class="modal-header">
+          <h2 data-i18n="profile.title">Profil</h2>
+          <span id="profileUsername" class="modal-username">—</span>
+        </div>
+        <div class="modal-body">
+          <div class="profile-address" id="profileAddress">—</div>
+          <div class="badge-stack" id="badgeStack"></div>
+          <dl class="profile-stats" id="profileStats"></dl>
+          <div class="xp-progress" id="xpProgress"></div>
+          <div class="profile-links">
+            <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">Profilini görüntüle</a>
+          </div>
+          <div class="profile-metrics">
+            <h3 data-i18n="profile.metricsTitle">Etkinlik İstatistikleri</h3>
+            <ul id="profileMetrics"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" role="status" aria-live="assertive"></div>
 
     <div id="usernameModal" class="modal" aria-hidden="true">
       <div class="modal-dialog" role="dialog" aria-modal="true">
-        <h2>Profil Oluştur</h2>
-        <p>Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.</p>
+        <h2 data-i18n="username.title">Profil Oluştur</h2>
+        <p data-i18n="username.subtitle">Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.</p>
         <form id="usernameForm">
-          <label for="usernameInput">Kullanıcı adı</label>
+          <label for="usernameInput" data-i18n="username.label">Kullanıcı adı</label>
           <input id="usernameInput" type="text" maxlength="32" required />
           <div class="modal-actions">
-            <button type="submit" class="primary-btn">Kaydol</button>
+            <button type="submit" class="primary-btn" data-i18n="username.submit">Kaydol</button>
           </div>
         </form>
       </div>
