@@ -245,6 +245,7 @@
             <h2 data-i18n="badge.title">Badges & Tiers</h2>
             <p data-i18n="badge.subtitle">Track your XP → Level → Tier journey.</p>
           </div>
+          <div id="badgeShowcase" class="badge-section"></div>
           <div class="card" id="badgeDetails"></div>
           <div class="card">
             <h3 data-i18n="badge.mintTitle">Upcoming NFT Mint</h3>
@@ -336,18 +337,38 @@
     <div id="profileModal" class="profile-modal" aria-hidden="true">
       <div class="profile-modal__backdrop" data-dismiss="profileModal"></div>
       <div class="profile-modal__dialog" role="dialog" aria-modal="true">
-        <button class="modal-close icon-btn" data-dismiss="profileModal" aria-label="Close profile" data-i18n-aria-label="profile.close">
-          ✕
-        </button>
-        <div class="modal-header">
-          <h2 data-i18n="profile.title">Profile</h2>
-          <span id="profileUsername" class="modal-username">—</span>
-        </div>
-        <div class="modal-body">
-          <div class="profile-address" id="profileAddress">—</div>
+        <div class="modal-profile">
+          <button
+            class="modal-close icon-btn"
+            data-dismiss="profileModal"
+            aria-label="Close profile"
+            data-i18n-aria-label="profile.close"
+          >
+            ✕
+          </button>
+          <div class="modal-profile__header">
+            <h2 data-i18n="profile.title">Profile</h2>
+            <p id="profileUsername" class="modal-profile__username">—</p>
+          </div>
+          <div class="modal-profile__address">
+            <span id="profileAddress" class="profile-address">—</span>
+            <button
+              id="profileCopyButton"
+              type="button"
+              class="copy-address-btn"
+              aria-label="Copy wallet address"
+              data-i18n-aria-label="profile.copyAddress"
+            >
+              📋
+            </button>
+          </div>
+          <div id="profileStats" class="stats-grid"></div>
+          <div class="level-tier" id="profileLevelTier">
+            <span id="profileLevelLabel">Level —</span>
+            <span id="profileTierLabel">Tier —</span>
+          </div>
           <div class="badge-stack" id="badgeStack"></div>
-          <dl class="profile-stats" id="profileStats"></dl>
-          <div class="xp-progress" id="xpProgress"></div>
+          <div id="xpProgress" class="xp-progress-wrap"></div>
           <div class="profile-links">
             <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">View profile</a>
           </div>
