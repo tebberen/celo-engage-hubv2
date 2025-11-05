@@ -44,6 +44,12 @@ if (!deviceId) {
 
 const storedClickerMap = safeParseStorage(localStorage.getItem("celo-engage-link-clickers"), {});
 
+const DEFAULT_FEED = [
+  { user: "0xCommunity", link: "https://celo.org", blockNumber: null, transactionHash: null },
+  { user: "0xBuilders", link: "https://developers.celo.org", blockNumber: null, transactionHash: null },
+  { user: "0xForum", link: "https://forum.celo.org", blockNumber: null, transactionHash: null },
+];
+
 const state = {
   address: null,
   profile: null,
@@ -64,10 +70,17 @@ const elements = {
   app: document.getElementById("app"),
   navButtons: document.querySelectorAll(".nav-btn"),
   sections: document.querySelectorAll(".section"),
-  connectMetaMask: document.getElementById("connectMetaMask"),
-  connectWalletConnect: document.getElementById("connectWalletConnect"),
+  navLanguageButton: document.getElementById("navLanguageButton"),
+  connectTrigger: document.getElementById("connectTrigger"),
+  connectModal: document.getElementById("connectModal"),
+  connectOptions: document.querySelectorAll("[data-connect-option]"),
   disconnectWallet: document.getElementById("disconnectWallet"),
-  walletControls: document.querySelector(".wallet-controls"),
+  walletPill: document.getElementById("walletPill"),
+  walletPillButton: document.getElementById("walletPillButton"),
+  walletDropdown: document.getElementById("walletDropdown"),
+  walletStatusIcon: document.querySelector(".wallet-pill__status"),
+  walletAddressLabel: document.getElementById("walletAddressLabel"),
+  walletNetworkName: document.getElementById("walletNetworkName"),
   profileStats: document.getElementById("profileStats"),
   badgeStack: document.getElementById("badgeStack"),
   xpProgress: document.getElementById("xpProgress"),
@@ -76,6 +89,8 @@ const elements = {
   publicProfileLink: document.getElementById("publicProfileLink"),
   profileMetrics: document.getElementById("profileMetrics"),
   linkFeed: document.getElementById("linkFeed"),
+  completedFeed: document.getElementById("completedFeed"),
+  completedCounter: document.getElementById("completedCounter"),
   gmForm: document.getElementById("gmForm"),
   deployForm: document.getElementById("deployForm"),
   donateTabs: document.querySelectorAll("#donateSection .tab-btn"),
@@ -109,12 +124,13 @@ const elements = {
   languageToggle: document.getElementById("languageToggle"),
   profileButton: document.getElementById("profileButton"),
   profileModal: document.getElementById("profileModal"),
+  ecosystemModal: document.getElementById("ecosystemModal"),
+  ecosystemMore: document.getElementById("ecosystemMore"),
   shareModal: document.getElementById("shareModal"),
   shareLinkForm: document.getElementById("shareLinkForm"),
   shareLinkInput: document.getElementById("shareLinkInput"),
   sharePromptLink: document.getElementById("sharePromptLink"),
-  networkName: document.getElementById("networkName"),
-  networkStatus: document.getElementById("networkStatus"),
+  donateQuickButtons: document.querySelectorAll("[data-donate-amount]"),
   duneLink: document.getElementById("duneLink"),
   graphLink: document.getElementById("graphLink"),
   deployedContracts: document.getElementById("deployedContracts"),
@@ -134,13 +150,19 @@ function init() {
   setupTabs();
   setupLeaderboardTabs();
   setupForms();
+  setupDonateShortcuts();
+  setupConnectModal();
   setupWalletButtons();
+  setupWalletDropdown();
   setupProfileModal();
   setupShareModal();
+  setupUsernameModal();
+  setupEcosystemModal();
   setupFeedInteractions();
   setupToastBridge();
   updateAnalyticsLinks();
   renderNetworkInfo(false);
+  updateWalletUI();
   loadInitialData();
   initWalletListeners();
   initWebsocket();
@@ -174,11 +196,17 @@ async function setupLanguage() {
     applyLanguage(state.language);
   }
 
+  const handleToggle = () => {
+    const nextLang = state.language === "tr" ? "en" : "tr";
+    applyLanguage(nextLang);
+  };
+
   if (elements.languageToggle) {
-    elements.languageToggle.addEventListener("click", () => {
-      const nextLang = state.language === "tr" ? "en" : "tr";
-      applyLanguage(nextLang);
-    });
+    elements.languageToggle.addEventListener("click", handleToggle);
+  }
+
+  if (elements.navLanguageButton) {
+    elements.navLanguageButton.addEventListener("click", handleToggle);
   }
 }
 
@@ -193,6 +221,10 @@ function applyLanguage(lang) {
   if (elements.languageToggle) {
     elements.languageToggle.setAttribute("data-current-lang", lang.toUpperCase());
     elements.languageToggle.title = lang.toUpperCase();
+  }
+
+  if (elements.navLanguageButton) {
+    elements.navLanguageButton.title = lang.toUpperCase();
   }
 
   translateDocument();
@@ -259,6 +291,18 @@ function setupProfileModal() {
     if (elements.shareModal?.classList.contains("is-open")) {
       closeShareModal();
     }
+    if (elements.connectModal?.classList.contains("is-open")) {
+      closeConnectModal();
+    }
+    if (elements.ecosystemModal?.classList.contains("is-open")) {
+      closeEcosystemModal();
+    }
+    if (elements.usernameModal?.classList.contains("is-open")) {
+      closeUsernameModal();
+    }
+    if (elements.walletDropdown?.classList.contains("open")) {
+      closeWalletDropdown();
+    }
   });
 }
 
@@ -285,6 +329,12 @@ function setupShareModal() {
   if (elements.shareLinkInput && !elements.shareLinkInput.value) {
     elements.shareLinkInput.value = "https://";
   }
+}
+
+function setupUsernameModal() {
+  if (!elements.usernameModal) return;
+  const dismissButtons = elements.usernameModal.querySelectorAll('[data-dismiss="usernameModal"]');
+  dismissButtons.forEach((btn) => btn.addEventListener("click", closeUsernameModal));
 }
 
 function openShareModal(link) {
@@ -317,8 +367,12 @@ function closeShareModal() {
 }
 
 function setupFeedInteractions() {
-  if (!elements.linkFeed) return;
-  elements.linkFeed.addEventListener("click", handleFeedClick);
+  if (elements.linkFeed) {
+    elements.linkFeed.addEventListener("click", handleFeedClick);
+  }
+  if (elements.completedFeed) {
+    elements.completedFeed.addEventListener("click", handleFeedClick);
+  }
 }
 
 function handleFeedClick(event) {
@@ -338,10 +392,30 @@ function registerLinkInteraction(url) {
   if (!key) return;
   const userId = getCurrentUserId();
   const existing = new Set(state.linkClickers[key] || []);
+  if (existing.size >= 3 && !existing.has(userId)) {
+    return;
+  }
+  const previous = existing.size;
   if (!existing.has(userId)) {
     existing.add(userId);
     state.linkClickers[key] = Array.from(existing);
     persistLinkClickers();
+  }
+  const newCount = existing.size;
+  if (newCount >= 3 && previous < 3) {
+    const card = document.querySelector(`[data-feed-key="${key}"]`);
+    if (card) {
+      card.classList.add("feed-card--completing");
+      card.addEventListener(
+        "animationend",
+        () => {
+          card.classList.remove("feed-card--completing");
+          updateLinkFeedView();
+        },
+        { once: true }
+      );
+      return;
+    }
   }
   updateLinkFeedView();
 }
@@ -352,17 +426,35 @@ function persistLinkClickers() {
 
 function updateLinkFeedView() {
   if (!elements.linkFeed) return;
-  const visibleEntries = filterFeedEntries(state.feedEntries);
-  if (!visibleEntries.length) {
-    elements.linkFeed.innerHTML = `<p class="feed-empty">${t("feed.empty", "Henüz link paylaşılmadı.")}</p>`;
-    return;
+  const sourceEntries = Array.isArray(state.feedEntries) && state.feedEntries.length ? state.feedEntries : DEFAULT_FEED;
+  const activeEntries = filterFeedEntries(sourceEntries);
+  const completedEntries = getCompletedEntries(sourceEntries);
+
+  if (!activeEntries.length) {
+    elements.linkFeed.innerHTML = `<p class="feed-empty">${t("feed.empty", "Henüz bağlantı paylaşılmadı.")}</p>`;
+  } else {
+    elements.linkFeed.innerHTML = activeEntries.map(renderFeedCard).join("");
   }
-  elements.linkFeed.innerHTML = visibleEntries.map(renderFeedCard).join("");
+
+  if (elements.completedFeed) {
+    elements.completedFeed.innerHTML = completedEntries.length
+      ? completedEntries.map(renderCompletedCard).join("")
+      : `<p class="feed-empty">${t("feed.completedEmpty", "Tamamlanan bağlantı yok.")}</p>`;
+  }
+
+  if (elements.completedCounter) {
+    elements.completedCounter.textContent = `✅ ${completedEntries.length} ${t("feed.counter", "Bağlantı tamamlandı")}`;
+  }
 }
 
 function filterFeedEntries(entries) {
   if (!Array.isArray(entries)) return [];
   return entries.filter((item) => getLinkClickCount(item.link) < 3);
+}
+
+function getCompletedEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.filter((item) => getLinkClickCount(item.link) >= 3);
 }
 
 function renderFeedCard(item) {
@@ -374,6 +466,7 @@ function renderFeedCard(item) {
   const remaining = Math.max(0, 3 - clicks);
   const userLabel = escapeHtml(shorten(item.user || "0x0"));
   const blockLabel = item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni");
+  const progressPercent = Math.min(100, Math.round((Math.min(clicks, 3) / 3) * 100));
   return `
     <article class="feed-card" data-feed-key="${key}">
       <div class="feed-card__meta">
@@ -382,7 +475,34 @@ function renderFeedCard(item) {
       </div>
       <a class="feed-card__link" data-feed-link="${encodedLink}" href="${safeLink}" target="_blank" rel="noopener">${safeLink}</a>
       <div class="feed-card__footer">
+        <div class="feed-card__progress">
+          <span>${t("feed.progress", "Destek")}: ${Math.min(clicks, 3)}/3</span>
+          <div class="progress-bar"><span style="width:${progressPercent}%"></span></div>
+        </div>
         <span>${t("feed.remaining", "Kalan tıklama")}: ${remaining}</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderCompletedCard(item) {
+  const rawLink = item.link || "";
+  const safeLink = escapeHtml(rawLink);
+  const encodedLink = encodeURIComponent(rawLink);
+  const key = getLinkKey(rawLink);
+  const userLabel = escapeHtml(shorten(item.user || "0x0"));
+  const blockLabel = item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni");
+  const clicks = Math.min(3, Math.max(0, getLinkClickCount(item.link)));
+  return `
+    <article class="feed-card feed-card--completed" data-feed-key="${key}">
+      <div class="feed-card__meta">
+        <span>${userLabel}</span>
+        <time>${blockLabel}</time>
+      </div>
+      <a class="feed-card__link" data-feed-link="${encodedLink}" href="${safeLink}" target="_blank" rel="noopener">${safeLink}</a>
+      <div class="feed-card__footer">
+        <span class="feed-card__badge">✅ ${t("feed.completedBadge", "Tamamlandı")}</span>
+        <span>${t("feed.progress", "Destek")}: ${clicks}/3</span>
       </div>
     </article>
   `;
@@ -430,8 +550,13 @@ function escapeHtml(value) {
 function updateBodyModalState() {
   const profileOpen = elements.profileModal?.classList.contains("is-open");
   const shareOpen = elements.shareModal?.classList.contains("is-open");
-  const usernameOpen = elements.usernameModal?.getAttribute("aria-hidden") === "false";
-  document.body.classList.toggle("modal-open", Boolean(profileOpen || shareOpen || usernameOpen));
+  const connectOpen = elements.connectModal?.classList.contains("is-open");
+  const ecosystemOpen = elements.ecosystemModal?.classList.contains("is-open");
+  const usernameOpen = elements.usernameModal?.classList.contains("is-open");
+  document.body.classList.toggle(
+    "modal-open",
+    Boolean(profileOpen || shareOpen || connectOpen || ecosystemOpen || usernameOpen)
+  );
 }
 
 function safeParseStorage(value, fallback = {}) {
@@ -510,20 +635,143 @@ function setupForms() {
   elements.usernameForm.addEventListener("submit", handleRegisterSubmit);
 }
 
-function setupWalletButtons() {
-  elements.connectMetaMask.addEventListener("click", () => connectWallet(connectWalletMetaMask));
-  elements.connectWalletConnect.addEventListener("click", () => connectWallet(connectWalletConnect));
-  elements.disconnectWallet.addEventListener("click", async () => {
-    await disconnectWallet();
-    state.address = null;
-    state.profile = null;
-    state.isOwner = false;
-    renderProfile(null);
-    renderOwnerPanel();
-    elements.disconnectWallet.hidden = true;
-    renderNetworkInfo(false);
-    showToast("success", "Cüzdan bağlantısı kesildi.");
+function setupDonateShortcuts() {
+  if (!elements.donateQuickButtons?.length) return;
+  elements.donateQuickButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const amount = Number(button.dataset.donateAmount || 0);
+      if (!amount) return;
+      if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+      if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+      const originalHtml = button.innerHTML;
+      button.disabled = true;
+      button.classList.add("is-loading");
+      button.setAttribute("aria-busy", "true");
+      try {
+        await doDonateCELO(amount);
+      } catch (error) {
+        console.error("quick donate error", error);
+        showToast("error", parseError(error));
+      } finally {
+        button.innerHTML = originalHtml;
+        button.disabled = false;
+        button.classList.remove("is-loading");
+        button.removeAttribute("aria-busy");
+      }
+    });
   });
+}
+
+function setupConnectModal() {
+  if (!elements.connectModal) return;
+  const dismissButtons = elements.connectModal.querySelectorAll('[data-dismiss="connectModal"]');
+  dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
+}
+
+function setupWalletButtons() {
+  if (elements.connectTrigger) {
+    elements.connectTrigger.addEventListener("click", () => {
+      if (state.address) {
+        toggleWalletDropdown(true);
+      } else {
+        openConnectModal();
+      }
+    });
+  }
+
+  elements.connectOptions.forEach((option) => {
+    option.addEventListener("click", async () => {
+      const type = option.dataset.connectOption;
+      const connector = type === "walletconnect" ? connectWalletConnect : connectWalletMetaMask;
+      await connectWallet(connector);
+    });
+  });
+
+  if (elements.disconnectWallet) {
+    elements.disconnectWallet.addEventListener("click", async () => {
+      try {
+        await disconnectWallet();
+        state.address = null;
+        state.profile = null;
+        state.isOwner = false;
+        renderProfile(null);
+        renderOwnerPanel();
+        closeWalletDropdown();
+        updateWalletUI();
+        renderNetworkInfo(false);
+        showToast("success", "Cüzdan bağlantısı kesildi.");
+      } catch (error) {
+        console.error("disconnect error", error);
+        showToast("error", parseError(error));
+      }
+    });
+  }
+}
+
+function setupWalletDropdown() {
+  if (!elements.walletPillButton || !elements.walletDropdown) return;
+  elements.walletPillButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleWalletDropdown();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!elements.walletDropdown?.classList.contains("open")) return;
+    if (event.target.closest("#walletPill")) return;
+    closeWalletDropdown();
+  });
+}
+
+function toggleWalletDropdown(forceOpen = null) {
+  if (!elements.walletDropdown || !elements.walletPillButton) return;
+  const shouldOpen = forceOpen ?? !elements.walletDropdown.classList.contains("open");
+  elements.walletDropdown.classList.toggle("open", shouldOpen);
+  elements.walletPillButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+}
+
+function closeWalletDropdown() {
+  if (!elements.walletDropdown) return;
+  elements.walletDropdown.classList.remove("open");
+  if (elements.walletPillButton) {
+    elements.walletPillButton.setAttribute("aria-expanded", "false");
+  }
+}
+
+function setupEcosystemModal() {
+  if (elements.ecosystemMore) {
+    elements.ecosystemMore.addEventListener("click", openEcosystemModal);
+  }
+  if (!elements.ecosystemModal) return;
+  const dismissButtons = elements.ecosystemModal.querySelectorAll('[data-dismiss="ecosystemModal"]');
+  dismissButtons.forEach((btn) => btn.addEventListener("click", closeEcosystemModal));
+}
+
+function openConnectModal() {
+  if (!elements.connectModal) return;
+  elements.connectModal.classList.add("is-open");
+  elements.connectModal.setAttribute("aria-hidden", "false");
+  updateBodyModalState();
+}
+
+function closeConnectModal() {
+  if (!elements.connectModal) return;
+  elements.connectModal.classList.remove("is-open");
+  elements.connectModal.setAttribute("aria-hidden", "true");
+  updateBodyModalState();
+}
+
+function openEcosystemModal() {
+  if (!elements.ecosystemModal) return;
+  elements.ecosystemModal.classList.add("is-open");
+  elements.ecosystemModal.setAttribute("aria-hidden", "false");
+  updateBodyModalState();
+}
+
+function closeEcosystemModal() {
+  if (!elements.ecosystemModal) return;
+  elements.ecosystemModal.classList.remove("is-open");
+  elements.ecosystemModal.setAttribute("aria-hidden", "true");
+  updateBodyModalState();
 }
 
 function setupToastBridge() {
@@ -546,8 +794,9 @@ async function connectWallet(connector) {
     const details = await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-    elements.disconnectWallet.hidden = false;
+    updateWalletUI();
     renderNetworkInfo(true);
+    closeConnectModal();
     showToast("success", "Cüzdan bağlandı.");
     await afterWalletConnected();
   } catch (error) {
@@ -570,13 +819,15 @@ function initWalletListeners() {
       case "connected":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-        elements.disconnectWallet.hidden = false;
+        updateWalletUI();
         renderNetworkInfo(true);
+        closeConnectModal();
         await afterWalletConnected();
         break;
       case "accountsChanged":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        updateWalletUI();
         await afterWalletConnected();
         break;
       case "disconnected":
@@ -585,7 +836,8 @@ function initWalletListeners() {
         state.isOwner = false;
         renderProfile(null);
         renderOwnerPanel();
-        elements.disconnectWallet.hidden = true;
+        closeWalletDropdown();
+        updateWalletUI();
         renderNetworkInfo(false);
         break;
       case "networkChanged":
@@ -603,13 +855,37 @@ function initWalletListeners() {
 }
 
 function renderNetworkInfo(valid) {
-  elements.networkName.textContent = CURRENT_NETWORK.name;
-  const online = Boolean(valid && state.address);
-  elements.networkStatus.classList.toggle("online", online);
-  elements.networkStatus.setAttribute(
-    "aria-label",
-    online ? t("network.online", "Online") : t("network.offline", "Offline")
-  );
+  if (elements.walletNetworkName) {
+    elements.walletNetworkName.textContent = CURRENT_NETWORK.name;
+  }
+  if (elements.walletStatusIcon) {
+    const online = Boolean(valid && state.address);
+    elements.walletStatusIcon.textContent = online ? "🟢" : "🟡";
+    elements.walletStatusIcon.setAttribute(
+      "aria-label",
+      online ? t("network.online", "Online") : t("network.offline", "Offline")
+    );
+  }
+}
+
+function updateWalletUI() {
+  const connected = Boolean(state.address);
+  if (elements.connectTrigger) {
+    elements.connectTrigger.hidden = connected;
+  }
+  if (elements.walletPill) {
+    elements.walletPill.hidden = !connected;
+  }
+  if (elements.walletAddressLabel) {
+    elements.walletAddressLabel.textContent = connected ? shorten(state.address) : "—";
+  }
+  if (elements.walletPillButton) {
+    const expanded = elements.walletDropdown?.classList.contains("open") ? "true" : "false";
+    elements.walletPillButton.setAttribute("aria-expanded", expanded);
+  }
+  if (!connected) {
+    closeWalletDropdown();
+  }
 }
 
 function showToast(type, message, hash, explorer) {
@@ -821,7 +1097,7 @@ async function refreshFeed() {
         });
       }
     });
-    state.feedEntries = combined;
+    state.feedEntries = combined.length ? combined : [...DEFAULT_FEED];
     updateLinkFeedView();
   } catch (error) {
     console.error("feed error", error);
@@ -963,7 +1239,11 @@ function renderGlobalCounters(stats) {
 }
 
 function renderLinkFeed(entries) {
-  state.feedEntries = Array.isArray(entries) ? entries : [];
+  if (Array.isArray(entries) && entries.length) {
+    state.feedEntries = entries;
+  } else {
+    state.feedEntries = [...DEFAULT_FEED];
+  }
   updateLinkFeedView();
 }
 
@@ -1104,11 +1384,13 @@ function parseError(error) {
 }
 
 function openUsernameModal() {
+  elements.usernameModal.classList.add("is-open");
   elements.usernameModal.setAttribute("aria-hidden", "false");
   updateBodyModalState();
 }
 
 function closeUsernameModal() {
+  elements.usernameModal.classList.remove("is-open");
   elements.usernameModal.setAttribute("aria-hidden", "true");
   updateBodyModalState();
 }

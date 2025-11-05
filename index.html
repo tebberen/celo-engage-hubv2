@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Celo Engage Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="src/styles/main.css" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>"
+    />
   </head>
   <body>
     <div id="app" class="app-shell" data-theme="golden">
@@ -25,68 +34,131 @@
           <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
           <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badges</button>
           <button class="nav-btn" id="profileButton" data-i18n="nav.profile">Profile</button>
+          <button
+            class="nav-btn nav-btn--icon"
+            id="navLanguageButton"
+            type="button"
+            aria-label="Dil değiştir"
+            data-i18n-aria-label="actions.languageToggle"
+          >🌐</button>
         </nav>
         <div class="header-actions">
-          <button id="languageToggle" class="icon-btn" aria-label="Dil değiştir" data-i18n-aria-label="actions.languageToggle">🌐</button>
-          <div class="network-indicator">
-            <span id="networkName">—</span>
-            <span class="status-dot" id="networkStatus"></span>
-          </div>
-          <div class="wallet-controls">
-            <button id="connectMetaMask" class="wallet-btn">MetaMask</button>
-            <button id="connectWalletConnect" class="wallet-btn">WalletConnect</button>
-            <button id="disconnectWallet" class="wallet-btn ghost" hidden>✕</button>
+          <button
+            id="languageToggle"
+            class="icon-btn"
+            aria-label="Dil değiştir"
+            data-i18n-aria-label="actions.languageToggle"
+          >🌐</button>
+          <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
+          <div id="walletPill" class="wallet-pill" hidden>
+            <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
+              <span class="wallet-pill__status">🟢</span>
+              <span class="wallet-pill__label" data-i18n="wallet.connectedLabel">Connected:</span>
+              <span id="walletAddressLabel">—</span>
+              <span class="wallet-pill__chevron">▾</span>
+            </button>
+            <div id="walletDropdown" class="wallet-dropdown" role="menu">
+              <div class="wallet-dropdown__network">
+                <span data-i18n="wallet.networkLabel">Network</span>
+                <strong id="walletNetworkName">—</strong>
+              </div>
+              <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
+                Disconnect
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       <main class="app-main">
-        <aside class="ecosystem-panel">
-          <div class="panel-header">
-            <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
-          </div>
-          <div class="ecosystem-grid">
-            <a class="ecosystem-card" href="https://celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.foundation">Celo Foundation</a>
-            <a class="ecosystem-card" href="https://docs.celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.docs">Celo Docs</a>
-            <a class="ecosystem-card" href="https://explorer.celo.org/" target="_blank" rel="noopener" data-i18n="ecosystem.explorer">Celo Explorer</a>
-            <a class="ecosystem-card" href="https://github.com/tebberen/celo-engage-hubv2" target="_blank" rel="noopener" data-i18n="ecosystem.github">Engage Hub GitHub</a>
-          </div>
+        <aside class="left-sidebar">
+          <section class="card donate-highlight">
+            <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
+            <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
+            <div class="donate-quick-actions">
+              <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
+              <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
+              <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
+              <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
+            </div>
+          </section>
+
+          <section class="card ecosystem-panel">
+            <div class="panel-header">
+              <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
+            </div>
+            <ul class="ecosystem-links">
+              <li><a href="https://celo.org" target="_blank" rel="noopener">Celo Foundation</a></li>
+              <li><a href="https://docs.celo.org" target="_blank" rel="noopener">Celo Docs</a></li>
+              <li><a href="https://explorer.celo.org" target="_blank" rel="noopener">Celo Explorer</a></li>
+              <li><a href="https://forum.celo.org" target="_blank" rel="noopener">Celo Forum</a></li>
+              <li><a href="https://x.com/Celo" target="_blank" rel="noopener">Celo Twitter (X)</a></li>
+              <li><a href="https://discord.gg/celo" target="_blank" rel="noopener">Celo Discord</a></li>
+              <li><a href="https://celo.stake.id/#/proposal" target="_blank" rel="noopener">Celo Governance</a></li>
+              <li><a href="https://developers.celo.org" target="_blank" rel="noopener">Celo Developer Portal</a></li>
+              <li><a href="https://medium.com/celoorg" target="_blank" rel="noopener">Celo Blog</a></li>
+              <li><a href="https://www.youtube.com/@CeloOrg" target="_blank" rel="noopener">Celo YouTube</a></li>
+            </ul>
+            <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
+              More Ecosystem Tools →
+            </button>
+          </section>
         </aside>
 
         <section id="homeSection" class="section active">
           <div class="section-header">
-            <h2 data-i18n="home.title">Topluluk Akışı</h2>
-            <p data-i18n="home.subtitle">Son paylaşılan bağlantılar ve etkinlikler</p>
+            <h2 data-i18n="home.title">Community Feed</h2>
+            <p data-i18n="home.subtitle">Latest shared links from fellow builders</p>
           </div>
-          <div id="linkFeed" class="feed-list"></div>
+          <div class="feed-stack">
+            <div id="linkFeed" class="feed-list"></div>
+            <div class="completed-block">
+              <div class="completed-header">
+                <h3 data-i18n="feed.completedTitle">✅ Completed Links</h3>
+              </div>
+              <div id="completedFeed" class="feed-list feed-list--completed"></div>
+              <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
+            </div>
+          </div>
         </section>
 
         <section id="gmSection" class="section">
           <div class="section-header">
-            <h2 data-i18n="gm.title">GM Gönder</h2>
-            <p data-i18n="gm.subtitle">Kısa bir selam bırak, XP kazan.</p>
+            <h2 data-i18n="gm.title">Send a GM</h2>
+            <p data-i18n="gm.subtitle">Drop a cheerful message to earn XP.</p>
           </div>
           <form id="gmForm" class="card">
-            <label for="gmMessage" data-i18n="gm.messageLabel">Mesaj (opsiyonel)</label>
-            <textarea id="gmMessage" maxlength="140" placeholder="GM Celo dünyası!" data-i18n-placeholder="gm.placeholder"></textarea>
-            <button type="submit" class="primary-btn" data-i18n="gm.submit">GM Gönder</button>
+            <label for="gmMessage" data-i18n="gm.messageLabel">Message (optional)</label>
+            <textarea
+              id="gmMessage"
+              maxlength="140"
+              placeholder="GM Celo world!"
+              data-i18n-placeholder="gm.placeholder"
+            ></textarea>
+            <button type="submit" class="primary-btn" data-i18n="gm.submit">Send GM</button>
             <p class="helper" data-i18n="gm.helper">+1 XP</p>
           </form>
         </section>
 
         <section id="deploySection" class="section">
           <div class="section-header">
-            <h2 data-i18n="deploy.title">Deploy Et</h2>
-            <p data-i18n="deploy.subtitle">Düşük gas ile basit kontrat dağıt.</p>
+            <h2 data-i18n="deploy.title">Deploy</h2>
+            <p data-i18n="deploy.subtitle">Spin up a smart contract with low gas.</p>
           </div>
           <form id="deployForm" class="card">
-            <label for="deployName" data-i18n="deploy.nameLabel">Kontrat adı (opsiyonel)</label>
-            <input id="deployName" type="text" maxlength="32" placeholder="AutoName-..." data-i18n-placeholder="deploy.namePlaceholder" />
-            <button type="submit" class="primary-btn" data-i18n="deploy.submit">Kontratı Dağıt</button>
+            <label for="deployName" data-i18n="deploy.nameLabel">Contract name (optional)</label>
+            <input
+              id="deployName"
+              type="text"
+              maxlength="32"
+              placeholder="AutoName-..."
+              data-i18n-placeholder="deploy.namePlaceholder"
+            />
+            <button type="submit" class="primary-btn" data-i18n="deploy.submit">Deploy Contract</button>
             <p class="helper" data-i18n="deploy.helper">+1 XP</p>
           </form>
           <div class="card" id="deployHistory">
-            <h3 data-i18n="deploy.history">Dağıtılan Kontratlar</h3>
+            <h3 data-i18n="deploy.history">Deployed Contracts</h3>
             <ul id="deployedContracts"></ul>
           </div>
         </section>
@@ -94,7 +166,7 @@
         <section id="donateSection" class="section">
           <div class="section-header">
             <h2 data-i18n="donate.title">Donate</h2>
-            <p data-i18n="donate.subtitle">0.1 CELO / cUSD altı bağışlar reddedilir.</p>
+            <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD are declined.</p>
           </div>
           <div class="card donate-card">
             <div class="tab-list" role="tablist">
@@ -103,49 +175,49 @@
             </div>
             <div class="tab-panel active" data-content="celo">
               <form id="donateCeloForm">
-                <label for="celoAmount" data-i18n="donate.celoAmount">Miktar (CELO)</label>
+                <label for="celoAmount" data-i18n="donate.celoAmount">Amount (CELO)</label>
                 <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">CELO Bağışla</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">Donate CELO</button>
               </form>
             </div>
             <div class="tab-panel" data-content="cusd">
               <form id="approveCusdForm">
-                <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Onay Miktarı (cUSD)</label>
+                <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Approval Amount (cUSD)</label>
                 <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">cUSD Onayla</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">Approve cUSD</button>
               </form>
               <form id="donateCusdForm">
-                <label for="cusdAmount" data-i18n="donate.cusdAmount">Bağış Miktarı (cUSD)</label>
+                <label for="cusdAmount" data-i18n="donate.cusdAmount">Donation Amount (cUSD)</label>
                 <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">cUSD Bağışla</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">Donate cUSD</button>
               </form>
             </div>
           </div>
           <div id="ownerPanel" class="card owner-only" hidden>
-            <h3 data-i18n="donate.owner.title">Sahip Paneli</h3>
+            <h3 data-i18n="donate.owner.title">Owner Panel</h3>
             <div class="owner-section">
-              <h4 data-i18n="donate.owner.withdrawTitle">Bağış Çekimi</h4>
+              <h4 data-i18n="donate.owner.withdrawTitle">Donation Withdrawals</h4>
               <form id="withdrawCeloForm">
-                <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Miktarı</label>
+                <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Amount</label>
                 <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">CELO Çek</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">Withdraw CELO</button>
               </form>
               <form id="withdrawCusdForm">
-                <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Miktarı</label>
+                <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Amount</label>
                 <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">cUSD Çek</button>
+                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">Withdraw cUSD</button>
               </form>
             </div>
             <div class="owner-section">
-              <h4 data-i18n="donate.owner.proposalTitle">Yeni Öneri</h4>
+              <h4 data-i18n="donate.owner.proposalTitle">Create Proposal</h4>
               <form id="proposalForm">
-                <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Başlık</label>
+                <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Title</label>
                 <input id="proposalTitle" type="text" required maxlength="80" />
-                <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Açıklama</label>
+                <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Description</label>
                 <textarea id="proposalDescription" required maxlength="280"></textarea>
-                <label for="proposalLink" data-i18n="donate.owner.proposalLink">Bağlantı</label>
+                <label for="proposalLink" data-i18n="donate.owner.proposalLink">Link</label>
                 <input id="proposalLink" type="url" placeholder="https://" />
-                <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Öneri Oluştur</button>
+                <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Create Proposal</button>
               </form>
             </div>
           </div>
@@ -154,15 +226,15 @@
         <section id="governanceSection" class="section">
           <div class="section-header">
             <h2 data-i18n="governance.title">Governance</h2>
-            <p data-i18n="governance.subtitle">Aktif ve tamamlanan önerilere katıl.</p>
+            <p data-i18n="governance.subtitle">Join the active and completed proposals.</p>
           </div>
           <div class="governance-columns">
             <div class="card">
-              <h3 data-i18n="governance.active">Aktif Öneriler</h3>
+              <h3 data-i18n="governance.active">Active Proposals</h3>
               <ul id="activeProposals" class="proposal-list"></ul>
             </div>
             <div class="card">
-              <h3 data-i18n="governance.completed">Tamamlanan Öneriler</h3>
+              <h3 data-i18n="governance.completed">Completed Proposals</h3>
               <ul id="pastProposals" class="proposal-list"></ul>
             </div>
           </div>
@@ -170,31 +242,31 @@
 
         <section id="badgeSection" class="section">
           <div class="section-header">
-            <h2 data-i18n="badge.title">Rozetler & Tier</h2>
-            <p data-i18n="badge.subtitle">XP → Level → Tier yolculuğunu takip et.</p>
+            <h2 data-i18n="badge.title">Badges & Tiers</h2>
+            <p data-i18n="badge.subtitle">Track your XP → Level → Tier journey.</p>
           </div>
           <div class="card" id="badgeDetails"></div>
           <div class="card">
-            <h3 data-i18n="badge.mintTitle">Gelecek NFT Basımı</h3>
-            <p data-i18n="badge.mintSubtitle">Rozetlerini NFT olarak basmak için yakında burada olacağız.</p>
-            <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Yakında</button>
+            <h3 data-i18n="badge.mintTitle">Upcoming NFT Mint</h3>
+            <p data-i18n="badge.mintSubtitle">You'll be able to mint your badges as NFTs soon.</p>
+            <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Coming Soon</button>
           </div>
         </section>
 
         <section id="leaderboardSection" class="section">
           <div class="section-header">
-            <h2 data-i18n="leaderboard.title">Liderlik Tablosu</h2>
-            <p data-i18n="leaderboard.subtitle">Topluluk kahramanları burada.</p>
+            <h2 data-i18n="leaderboard.title">Leaderboard</h2>
+            <p data-i18n="leaderboard.subtitle">Community champions live here.</p>
           </div>
           <div class="card leaderboard-card">
             <div class="tab-list leaderboard-tabs" role="tablist">
-              <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Link</button>
+              <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Links</button>
               <button class="tab-btn" data-tab="topGM" data-i18n="leaderboard.tabs.gm">GM</button>
               <button class="tab-btn" data-tab="topDeploy" data-i18n="leaderboard.tabs.deploy">Deploy</button>
-              <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donor</button>
-              <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donor</button>
-              <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Vote</button>
-              <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Level</button>
+              <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donors</button>
+              <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donors</button>
+              <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Votes</button>
+              <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Levels</button>
             </div>
             <div class="leaderboard-panels">
               <div class="tab-panel active" data-content="topLinks">
@@ -232,12 +304,43 @@
       </footer>
     </div>
 
+    <div id="connectModal" class="modal-layer connect-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="connectModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="connectModal" aria-label="Close connect" data-i18n-aria-label="wallet.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="wallet.title">Connect Wallet</h2>
+          <p data-i18n="wallet.subtitle">Choose a wallet provider to continue.</p>
+          <div class="wallet-options">
+            <button class="wallet-option" data-connect-option="metamask">
+              <span class="wallet-option__icon">🦊</span>
+              <div>
+                <strong data-i18n="wallet.metamask">MetaMask</strong>
+                <small data-i18n="wallet.metamaskHint">Browser extension</small>
+              </div>
+            </button>
+            <button class="wallet-option" data-connect-option="walletconnect">
+              <span class="wallet-option__icon">🔗</span>
+              <div>
+                <strong data-i18n="wallet.walletconnect">WalletConnect</strong>
+                <small data-i18n="wallet.walletconnectHint">QR Code</small>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="profileModal" class="profile-modal" aria-hidden="true">
       <div class="profile-modal__backdrop" data-dismiss="profileModal"></div>
       <div class="profile-modal__dialog" role="dialog" aria-modal="true">
-        <button class="modal-close icon-btn" data-dismiss="profileModal" aria-label="Close profile" data-i18n-aria-label="profile.close">✕</button>
+        <button class="modal-close icon-btn" data-dismiss="profileModal" aria-label="Close profile" data-i18n-aria-label="profile.close">
+          ✕
+        </button>
         <div class="modal-header">
-          <h2 data-i18n="profile.title">Profil</h2>
+          <h2 data-i18n="profile.title">Profile</h2>
           <span id="profileUsername" class="modal-username">—</span>
         </div>
         <div class="modal-body">
@@ -246,10 +349,10 @@
           <dl class="profile-stats" id="profileStats"></dl>
           <div class="xp-progress" id="xpProgress"></div>
           <div class="profile-links">
-            <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">Profilini görüntüle</a>
+            <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">View profile</a>
           </div>
           <div class="profile-metrics">
-            <h3 data-i18n="profile.metricsTitle">Etkinlik İstatistikleri</h3>
+            <h3 data-i18n="profile.metricsTitle">Activity Stats</h3>
             <ul id="profileMetrics"></ul>
           </div>
         </div>
@@ -261,37 +364,64 @@
     <div id="shareModal" class="share-modal" aria-hidden="true">
       <div class="share-modal__backdrop" data-dismiss="shareModal"></div>
       <div class="share-modal__dialog" role="dialog" aria-modal="true">
-        <button class="modal-close icon-btn" data-dismiss="shareModal" aria-label="Close share" data-i18n-aria-label="sharePrompt.close">✕</button>
+        <button class="modal-close icon-btn" data-dismiss="shareModal" aria-label="Close share" data-i18n-aria-label="sharePrompt.close">
+          ✕
+        </button>
         <div class="share-modal__content">
-          <h2 data-i18n="sharePrompt.title">Bağlantını Paylaş</h2>
+          <h2 data-i18n="sharePrompt.title">Share Your Link</h2>
           <p class="share-modal__context">
-            <span data-i18n="sharePrompt.context">İncelediğin bağlantı:</span>
+            <span data-i18n="sharePrompt.context">You just opened:</span>
             <strong id="sharePromptLink">—</strong>
           </p>
-          <p data-i18n="sharePrompt.subtitle">Topluluğa katkı için kendi bağlantını ekle.</p>
+          <p data-i18n="sharePrompt.subtitle">Keep the momentum going by adding your own link.</p>
           <form id="shareLinkForm" class="share-modal__form">
             <label for="shareLinkInput" data-i18n="sharePrompt.label">URL</label>
             <input id="shareLinkInput" type="url" placeholder="https://" required data-i18n-placeholder="sharePrompt.placeholder" />
             <div class="share-modal__actions">
-              <button type="button" class="secondary-btn" data-dismiss="shareModal" data-i18n="sharePrompt.cancel">Vazgeç</button>
-              <button type="submit" class="primary-btn" data-i18n="sharePrompt.submit">Link Gönder</button>
+              <button type="button" class="secondary-btn" data-dismiss="shareModal" data-i18n="sharePrompt.cancel">Maybe Later</button>
+              <button type="submit" class="primary-btn" data-i18n="sharePrompt.submit">Submit Link</button>
             </div>
           </form>
         </div>
       </div>
     </div>
 
-    <div id="usernameModal" class="modal" aria-hidden="true">
+    <div id="ecosystemModal" class="modal-layer ecosystem-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="ecosystemModal"></div>
       <div class="modal-dialog" role="dialog" aria-modal="true">
-        <h2 data-i18n="username.title">Profil Oluştur</h2>
-        <p data-i18n="username.subtitle">Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.</p>
-        <form id="usernameForm">
-          <label for="usernameInput" data-i18n="username.label">Kullanıcı adı</label>
-          <input id="usernameInput" type="text" maxlength="32" required />
-          <div class="modal-actions">
-            <button type="submit" class="primary-btn" data-i18n="username.submit">Kaydol</button>
+        <button class="modal-close" data-dismiss="ecosystemModal" aria-label="Close ecosystem" data-i18n-aria-label="ecosystem.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="ecosystem.moreTitle">More Ecosystem Tools</h2>
+          <div class="ecosystem-modal__grid">
+            <a href="https://valoraapp.com" target="_blank" rel="noopener">Valora</a>
+            <a href="https://refidao.com" target="_blank" rel="noopener">ReFi</a>
+            <a href="https://celovote.com" target="_blank" rel="noopener">CeloVote</a>
+            <a href="https://www.celocamp.com" target="_blank" rel="noopener">Celo Camp</a>
+            <a href="https://impactmarket.com" target="_blank" rel="noopener">Impact Market</a>
           </div>
-        </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="usernameModal" class="modal-layer username-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="usernameModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="usernameModal" aria-label="Close username" data-i18n-aria-label="username.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="username.title">Create Profile</h2>
+          <p data-i18n="username.subtitle">Choose a username to join the Celo Engage Hub community.</p>
+          <form id="usernameForm">
+            <label for="usernameInput" data-i18n="username.label">Username</label>
+            <input id="usernameInput" type="text" maxlength="32" required />
+            <div class="modal-actions">
+              <button type="submit" class="primary-btn" data-i18n="username.submit">Join</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 

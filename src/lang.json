@@ -5,29 +5,49 @@
       "subtitle": "Önce topluluğu destekle, sonra bağlantını bırak."
     },
     "nav": {
-      "home": "Home",
-      "gm": "GM",
+      "home": "Ana Sayfa",
+      "gm": "Günaydın",
       "deploy": "Deploy",
-      "donate": "Donate",
-      "governance": "Governance",
+      "donate": "Bağış",
+      "governance": "Yönetim",
       "badge": "Rozetler",
       "profile": "Profil"
     },
     "actions": {
-      "languageToggle": "Dili değiştir",
-      "themeToggle": "Temayı değiştir",
-      "profile": "Profil"
+      "languageToggle": "Dili değiştir"
+    },
+    "wallet": {
+      "connect": "Bağlan",
+      "connectedLabel": "Bağlı:",
+      "networkLabel": "Ağ",
+      "disconnect": "Bağlantıyı Kes",
+      "title": "Cüzdan Bağla",
+      "subtitle": "Devam etmek için bir cüzdan sağlayıcı seç.",
+      "metamask": "MetaMask",
+      "metamaskHint": "Tarayıcı eklentisi",
+      "walletconnect": "WalletConnect",
+      "walletconnectHint": "QR Kod",
+      "close": "Cüzdan penceresini kapat"
     },
     "ecosystem": {
       "title": "Celo Ekosistemi",
-      "foundation": "Celo Foundation",
-      "docs": "Celo Docs",
-      "explorer": "Celo Explorer",
-      "github": "Engage Hub GitHub"
+      "more": "Daha Fazla Ekosistem Aracı →",
+      "moreTitle": "Diğer Ekosistem Araçları",
+      "close": "Ekosistem penceresini kapat"
     },
     "home": {
       "title": "Topluluk Akışı",
-      "subtitle": "Son paylaşılan bağlantılar ve etkinlikler"
+      "subtitle": "Toplulukta paylaşılan en yeni bağlantılar"
+    },
+    "feed": {
+      "empty": "Henüz bağlantı paylaşılmadı.",
+      "completedTitle": "✅ Tamamlanan Bağlantılar",
+      "completedBadge": "Tamamlandı",
+      "completedEmpty": "Tamamlanan bağlantı yok.",
+      "counter": "Bağlantı tamamlandı",
+      "progress": "Destek",
+      "remaining": "Kalan tıklama",
+      "new": "Yeni"
     },
     "gm": {
       "title": "GM Gönder",
@@ -47,8 +67,10 @@
       "history": "Dağıtılan Kontratlar"
     },
     "donate": {
-      "title": "Donate",
+      "title": "Bağış",
       "subtitle": "0.1 CELO / cUSD altı bağışlar reddedilir.",
+      "highlightTitle": "🟡 Hub'a Destek İçin Bağış Yap",
+      "highlightSubtitle": "Topluluğu desteklemek için bir miktar seç",
       "celo": "CELO",
       "cusd": "cUSD",
       "celoAmount": "Miktar (CELO)",
@@ -74,15 +96,15 @@
     "sharePrompt": {
       "title": "Bağlantını Paylaş",
       "subtitle": "Topluluğa katkı için kendi bağlantını ekle.",
-      "context": "İncelediğin bağlantı:",
+      "context": "Az önce açtığın bağlantı:",
       "label": "URL",
       "placeholder": "https://seninbaglantin.com",
       "submit": "Link Gönder",
-      "cancel": "Vazgeç",
-      "close": "Paylaşımı kapat"
+      "cancel": "Belki Sonra",
+      "close": "Paylaşım penceresini kapat"
     },
     "governance": {
-      "title": "Governance",
+      "title": "Yönetim",
       "subtitle": "Aktif ve tamamlanan önerilere katıl.",
       "active": "Aktif Öneriler",
       "completed": "Tamamlanan Öneriler",
@@ -98,7 +120,7 @@
     "badge": {
       "title": "Rozetler & Tier",
       "subtitle": "XP → Level → Tier yolculuğunu takip et.",
-      "mintTitle": "Gelecek NFT Basımı",
+      "mintTitle": "Yakında NFT Basımı",
       "mintSubtitle": "Rozetlerini NFT olarak basmak için yakında burada olacağız.",
       "mintCta": "Yakında",
       "detailTitle": "Rozet Durumu",
@@ -107,9 +129,9 @@
       "detailTier": "Tier",
       "detailGm": "GM: +1 XP",
       "detailDeploy": "Deploy: +1 XP",
-      "detailDonate": "Donate: +3 XP",
+      "detailDonate": "Bağış: +3 XP",
       "detailLink": "Link: +2 XP",
-      "detailVote": "Vote: +1 XP"
+      "detailVote": "Oy: +1 XP"
     },
     "leaderboard": {
       "title": "Liderlik Tablosu",
@@ -118,31 +140,31 @@
         "links": "Link",
         "gm": "GM",
         "deploy": "Deploy",
-        "celo": "CELO Donor",
-        "cusd": "cUSD Donor",
-        "votes": "Vote",
-        "badges": "Level"
+        "celo": "CELO Bağışçıları",
+        "cusd": "cUSD Bağışçıları",
+        "votes": "Oy",
+        "badges": "Seviye"
       },
-      "empty": "Veri bulunamadı."
+      "empty": "Henüz veri yok."
     },
     "profile": {
       "title": "Profil",
-      "close": "Profili kapat",
-      "viewProfile": "Profilini görüntüle",
+      "close": "Profil penceresini kapat",
+      "viewProfile": "Profili görüntüle",
       "metricsTitle": "Etkinlik İstatistikleri",
       "empty": "Profil bilgisi bulunamadı.",
-      "newUser": "Yeni Kullanıcı",
+      "newUser": "Yeni Kaşif",
       "stats": {
         "xp": "XP",
-        "level": "Level",
+        "level": "Seviye",
         "tier": "Tier"
       },
       "metrics": {
         "link": "Link",
         "deploy": "Deploy",
         "gm": "GM",
-        "vote": "Vote",
-        "donate": "Donate"
+        "vote": "Oy",
+        "donate": "Bağış"
       },
       "badge": "Tier",
       "nextLevel": "Sonraki seviye",
@@ -152,12 +174,8 @@
       "title": "Profil Oluştur",
       "subtitle": "Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.",
       "label": "Kullanıcı adı",
-      "submit": "Kaydol"
-    },
-    "feed": {
-      "empty": "Henüz link paylaşılmadı.",
-      "new": "Yeni",
-      "remaining": "Kalan tıklama"
+      "submit": "Katıl",
+      "close": "Kullanıcı adı penceresini kapat"
     },
     "deployments": {
       "empty": "Henüz deploy edilmiş kontrat yok."
@@ -167,9 +185,9 @@
       "gm": "GM",
       "deploy": "Deploy",
       "link": "Link",
-      "vote": "Vote",
-      "badge": "Badge",
-      "donor": "Donor",
+      "vote": "Oy",
+      "badge": "Rozet",
+      "donor": "Bağışçı",
       "totalCelo": "Toplam CELO",
       "totalCusd": "Toplam cUSD"
     },
@@ -193,24 +211,44 @@
       "profile": "Profile"
     },
     "actions": {
-      "languageToggle": "Switch language",
-      "themeToggle": "Toggle theme",
-      "profile": "Profile"
+      "languageToggle": "Toggle language"
+    },
+    "wallet": {
+      "connect": "Connect",
+      "connectedLabel": "Connected:",
+      "networkLabel": "Network",
+      "disconnect": "Disconnect",
+      "title": "Connect Wallet",
+      "subtitle": "Choose a wallet provider to continue.",
+      "metamask": "MetaMask",
+      "metamaskHint": "Browser extension",
+      "walletconnect": "WalletConnect",
+      "walletconnectHint": "QR Code",
+      "close": "Close connect modal"
     },
     "ecosystem": {
       "title": "Celo Ecosystem",
-      "foundation": "Celo Foundation",
-      "docs": "Celo Docs",
-      "explorer": "Celo Explorer",
-      "github": "Engage Hub GitHub"
+      "more": "More Ecosystem Tools →",
+      "moreTitle": "More Ecosystem Tools",
+      "close": "Close ecosystem modal"
     },
     "home": {
       "title": "Community Feed",
-      "subtitle": "Latest shared links and activity"
+      "subtitle": "Latest shared links from fellow builders"
+    },
+    "feed": {
+      "empty": "No links shared yet.",
+      "completedTitle": "✅ Completed Links",
+      "completedBadge": "Completed",
+      "completedEmpty": "No completed links yet.",
+      "counter": "Links Completed",
+      "progress": "Support",
+      "remaining": "Clicks left",
+      "new": "New"
     },
     "gm": {
-      "title": "Send GM",
-      "subtitle": "Drop a quick greeting, earn XP.",
+      "title": "Send a GM",
+      "subtitle": "Drop a cheerful message to earn XP.",
       "messageLabel": "Message (optional)",
       "placeholder": "GM Celo world!",
       "submit": "Send GM",
@@ -218,7 +256,7 @@
     },
     "deploy": {
       "title": "Deploy",
-      "subtitle": "Ship simple contracts with low gas.",
+      "subtitle": "Spin up a smart contract with low gas.",
       "nameLabel": "Contract name (optional)",
       "namePlaceholder": "AutoName-...",
       "submit": "Deploy Contract",
@@ -227,7 +265,9 @@
     },
     "donate": {
       "title": "Donate",
-      "subtitle": "Donations below 0.1 CELO / cUSD are rejected.",
+      "subtitle": "Donations below 0.1 CELO / cUSD are declined.",
+      "highlightTitle": "🟡 Donate to Support Hub",
+      "highlightSubtitle": "Choose an amount to support the community",
       "celo": "CELO",
       "cusd": "cUSD",
       "celoAmount": "Amount (CELO)",
@@ -243,7 +283,7 @@
         "withdrawCeloBtn": "Withdraw CELO",
         "withdrawCusd": "cUSD Amount",
         "withdrawCusdBtn": "Withdraw cUSD",
-        "proposalTitle": "New Proposal",
+        "proposalTitle": "Create Proposal",
         "proposalLabel": "Title",
         "proposalDescription": "Description",
         "proposalLink": "Link",
@@ -279,7 +319,7 @@
       "subtitle": "Track your XP → Level → Tier journey.",
       "mintTitle": "Upcoming NFT Mint",
       "mintSubtitle": "You'll be able to mint your badges as NFTs soon.",
-      "mintCta": "Soon",
+      "mintCta": "Coming Soon",
       "detailTitle": "Badge Progress",
       "detailTotalXp": "Total XP",
       "detailLevel": "Level",
@@ -307,7 +347,7 @@
     "profile": {
       "title": "Profile",
       "close": "Close profile",
-      "viewProfile": "View public profile",
+      "viewProfile": "View profile",
       "metricsTitle": "Activity Stats",
       "empty": "Profile information not found.",
       "newUser": "New Explorer",
@@ -331,12 +371,8 @@
       "title": "Create Profile",
       "subtitle": "Choose a username to join the Celo Engage Hub community.",
       "label": "Username",
-      "submit": "Join"
-    },
-    "feed": {
-      "empty": "No links shared yet.",
-      "new": "New",
-      "remaining": "Clicks left"
+      "submit": "Join",
+      "close": "Close username modal"
     },
     "deployments": {
       "empty": "No contracts deployed yet."
