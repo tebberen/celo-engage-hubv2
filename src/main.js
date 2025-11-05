@@ -84,6 +84,9 @@ const elements = {
   profileStats: document.getElementById("profileStats"),
   badgeStack: document.getElementById("badgeStack"),
   xpProgress: document.getElementById("xpProgress"),
+  profileCopyButton: document.getElementById("profileCopyButton"),
+  profileLevelLabel: document.getElementById("profileLevelLabel"),
+  profileTierLabel: document.getElementById("profileTierLabel"),
   profileUsername: document.getElementById("profileUsername"),
   profileAddress: document.getElementById("profileAddress"),
   publicProfileLink: document.getElementById("publicProfileLink"),
@@ -102,6 +105,7 @@ const elements = {
   activeProposals: document.getElementById("activeProposals"),
   pastProposals: document.getElementById("pastProposals"),
   badgeDetails: document.getElementById("badgeDetails"),
+  badgeShowcase: document.getElementById("badgeShowcase"),
   leaderboardTabs: document.querySelectorAll("#leaderboardSection .tab-btn"),
   leaderboardPanels: document.querySelectorAll("#leaderboardSection .tab-panel"),
   leaderboardLists: {
@@ -273,6 +277,10 @@ function setupProfileModal() {
   dismissElements.forEach((closeBtn) => {
     closeBtn.addEventListener("click", closeProfileModal);
   });
+
+  if (elements.profileCopyButton) {
+    elements.profileCopyButton.addEventListener("click", handleProfileAddressCopy);
+  }
 
   if (elements.profileButton) {
     elements.profileButton.addEventListener("click", () => {
@@ -1124,16 +1132,53 @@ async function refreshLeaderboard() {
   }
 }
 
+async function handleProfileAddressCopy() {
+  const address = state.profile?.address;
+  if (!address) return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(address);
+    } else {
+      const temp = document.createElement("textarea");
+      temp.value = address;
+      temp.setAttribute("readonly", "true");
+      temp.style.position = "absolute";
+      temp.style.left = "-9999px";
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      temp.remove();
+    }
+    const successMessage = t("profile.copySuccess", "Address copied!");
+    showToast("success", successMessage);
+  } catch (error) {
+    console.error("copy error", error);
+    showToast("error", UI_MESSAGES.error);
+  }
+}
+
 function renderProfile(profile) {
   if (!profile) {
     elements.profileUsername.textContent = "—";
     elements.profileAddress.textContent = "—";
-    elements.profileStats.innerHTML = `<p>${t("profile.empty", "Profil bilgisi bulunamadı.")}</p>`;
+    elements.profileAddress.removeAttribute("title");
+    elements.profileStats.innerHTML = "";
     if (elements.profileMetrics) {
       elements.profileMetrics.innerHTML = "";
     }
     elements.badgeStack.innerHTML = "";
     elements.xpProgress.innerHTML = "";
+    if (elements.profileCopyButton) {
+      elements.profileCopyButton.disabled = true;
+      elements.profileCopyButton.removeAttribute("data-tooltip");
+      elements.profileCopyButton.removeAttribute("title");
+    }
+    if (elements.profileLevelLabel) {
+      elements.profileLevelLabel.textContent = `${t("profile.stats.level", "Level")} —`;
+    }
+    if (elements.profileTierLabel) {
+      elements.profileTierLabel.textContent = `${t("profile.stats.tier", "Tier")} —`;
+    }
     elements.publicProfileLink.removeAttribute("href");
     renderBadgeDetails(null);
     return;
@@ -1141,17 +1186,43 @@ function renderProfile(profile) {
 
   elements.profileUsername.textContent = profile.username || t("profile.newUser", "Yeni Kullanıcı");
   elements.profileAddress.textContent = shorten(profile.address);
+  elements.profileAddress.title = profile.address;
+  if (elements.profileCopyButton) {
+    elements.profileCopyButton.disabled = false;
+    const copyTooltip = t("profile.copyAddress", "Copy wallet address");
+    elements.profileCopyButton.setAttribute("data-tooltip", copyTooltip);
+    elements.profileCopyButton.setAttribute("title", copyTooltip);
+  }
   elements.publicProfileLink.href = `/profile?addr=${profile.address}`;
 
   const summaryStats = [
+    { label: t("profile.metrics.gm", "GM"), value: profile.gmCount },
+    { label: t("profile.metrics.deploy", "Deploy"), value: profile.deployCount },
+    { label: t("profile.metrics.donate", "Donate"), value: profile.donateCount },
+    { label: t("profile.metrics.link", "Link"), value: profile.linkCount },
+    { label: t("profile.metrics.vote", "Vote"), value: profile.voteCount },
     { label: t("profile.stats.xp", "XP"), value: profile.totalXP },
-    { label: t("profile.stats.level", "Level"), value: profile.level },
-    { label: t("profile.stats.tier", "Tier"), value: profile.tier },
   ];
 
   elements.profileStats.innerHTML = summaryStats
-    .map((stat) => `<dt>${stat.label}</dt><dd>${formatNumber(stat.value)}</dd>`)
+    .map(
+      (stat) => `
+        <div class="stat-card">
+          <span>${stat.label}</span>
+          <strong>${formatNumber(stat.value)}</strong>
+        </div>
+      `
+    )
     .join("");
+
+  if (elements.profileLevelLabel) {
+    elements.profileLevelLabel.textContent = `${t("profile.stats.level", "Level")} ${formatNumber(profile.level)}`;
+  }
+
+  if (elements.profileTierLabel) {
+    const tierLabel = t("profile.tierBadgeLabel", "Tier {value} Badge").replace("{value}", formatNumber(profile.tier));
+    elements.profileTierLabel.textContent = tierLabel;
+  }
 
   if (elements.profileMetrics) {
     const metrics = [
@@ -1181,29 +1252,84 @@ function renderTierBadges(profile) {
     .join("");
 }
 
+function calculateLevelProgress(profile) {
+  if (!profile) return { percent: 0, isMaxLevel: false };
+  const maxLevel = Number(profile.maxLevel || 5);
+  const isMaxLevel = Number.isFinite(maxLevel) && maxLevel > 0 ? profile.level >= maxLevel : false;
+  const normalized =
+    typeof profile.progressToNextLevel === "number"
+      ? profile.progressToNextLevel
+      : typeof profile.levelProgress === "number"
+      ? profile.levelProgress
+      : null;
+  if (normalized !== null) {
+    const normalizedValue = Number(normalized);
+    if (Number.isFinite(normalizedValue)) {
+      const clamped = Math.max(0, Math.min(1, normalizedValue));
+      const percent = Math.round(clamped * 100);
+      return { percent, isMaxLevel: isMaxLevel || percent >= 100 };
+    }
+  }
+
+  const xpPerLevel = Number(
+    profile.xpForNextLevel || profile.nextLevelXP || profile.nextLevelXp || profile.xpPerLevel || 20
+  );
+  if (!Number.isFinite(xpPerLevel) || xpPerLevel <= 0) {
+    return { percent: isMaxLevel ? 100 : 0, isMaxLevel };
+  }
+  const totalXp = Number(profile.totalXP || 0);
+  if (!Number.isFinite(totalXp)) {
+    return { percent: isMaxLevel ? 100 : 0, isMaxLevel };
+  }
+  const remainder = totalXp % xpPerLevel;
+  const percent = isMaxLevel ? 100 : Math.round((remainder / xpPerLevel) * 100);
+  return { percent: Math.max(0, Math.min(100, percent)), isMaxLevel };
+}
+
 function renderXpProgress(profile) {
-  const nextLevel = profile.level >= 5 ? t("profile.nextLevelMax", "Maks") : profile.level + 1;
-  const progressPercent = Math.min(100, Math.floor((profile.totalXP % 20) * 5));
+  const { percent, isMaxLevel } = calculateLevelProgress(profile);
+  const tooltipRaw = isMaxLevel
+    ? t("profile.xpTooltipMax", "Max level reached")
+    : t("profile.xpTooltip", "XP {value}% to next level").replace("{value}", percent);
+  const tooltip = escapeHtml(tooltipRaw);
+  const width = isMaxLevel ? 100 : percent;
+  const ariaValue = Math.max(0, Math.min(100, width));
   return `
-    <div class="progress-head">
-      <div><span>${t("profile.stats.level", "Level")}</span><strong>${profile.level}</strong></div>
-      <div><span>${t("profile.stats.tier", "Tier")}</span><strong>${profile.tier}</strong></div>
+    <div class="xp-progress-visual" data-tooltip="${tooltip}">
+      <div class="xp-progress-container" role="progressbar" aria-valuenow="${ariaValue}" aria-valuemin="0" aria-valuemax="100" aria-valuetext="${tooltip}">
+        <div class="xp-progress-fill" style="width:${width}%"></div>
+      </div>
     </div>
-    <div class="bar"><span style="width:${progressPercent}%"></span></div>
-    <small>${t("profile.nextLevel", "Sonraki seviye")}: ${nextLevel}</small>
+    <div class="xp-label">${tooltip}</div>
   `;
 }
 
 function renderBadgeDetails(profile = state.profile) {
   if (!elements.badgeDetails) return;
+  if (elements.badgeShowcase) {
+    elements.badgeShowcase.innerHTML = renderBadgeShowcase(profile);
+  }
+
   const xp = profile?.totalXP || 0;
   const level = profile?.level || 0;
   const tier = profile?.tier || 0;
+  if (!profile) {
+    elements.badgeDetails.innerHTML = `
+      <div class="badge-detail__header">
+        <h3>${t("badge.detailTitle", "Rozet Durumu")}</h3>
+        <p>${t("profile.empty", "Profil bilgisi bulunamadı.")}</p>
+      </div>
+    `;
+    return;
+  }
+
   elements.badgeDetails.innerHTML = `
-    <h3>${t("badge.detailTitle", "Rozet Durumu")}</h3>
-    <p>${t("badge.detailTotalXp", "Toplam XP")}: <strong>${formatNumber(xp)}</strong></p>
-    <p>${t("badge.detailLevel", "Seviye")}: <strong>${level}</strong> · ${t("badge.detailTier", "Tier")}: <strong>${tier}</strong></p>
-    <ul>
+    <div class="badge-detail__header">
+      <h3>${t("badge.detailTitle", "Rozet Durumu")}</h3>
+      <p class="badge-detail__stats">${t("profile.stats.xp", "XP")}: <strong>${formatNumber(xp)}</strong></p>
+      <p class="badge-detail__stats">${t("profile.stats.level", "Seviye")}: <strong>${formatNumber(level)}</strong> · ${t("profile.stats.tier", "Tier")}: <strong>${formatNumber(tier)}</strong></p>
+    </div>
+    <ul class="badge-detail__list">
       <li>${t("badge.detailGm", "GM: +1 XP")}</li>
       <li>${t("badge.detailDeploy", "Deploy: +1 XP")}</li>
       <li>${t("badge.detailDonate", "Donate: +3 XP")}</li>
@@ -1211,6 +1337,31 @@ function renderBadgeDetails(profile = state.profile) {
       <li>${t("badge.detailVote", "Vote: +1 XP")}</li>
     </ul>
   `;
+}
+
+function renderBadgeShowcase(profile = state.profile) {
+  const badges = [
+    { tier: 1, icon: "🥇" },
+    { tier: 2, icon: "🥈" },
+    { tier: 3, icon: "🥉" },
+    { tier: 4, icon: "💎" },
+    { tier: 5, icon: "🌟" },
+  ];
+  const tooltipTemplate = t("badge.tooltip", "Tier {tier} – Achieved after 3 uses of each feature.");
+  return badges
+    .map(({ tier, icon }) => {
+      const active = profile?.tier >= tier ? "active" : "";
+      const tooltip = tooltipTemplate.replace("{tier}", tier);
+      const badgeLabel = t("profile.tierBadgeLabel", "Tier {value} Badge").replace("{value}", tier);
+      const safeTooltip = escapeHtml(tooltip);
+      return `
+        <div class="badge-card ${active}" data-tooltip="${safeTooltip}" aria-label="${safeTooltip}">
+          <span>${icon}</span>
+          <p>${escapeHtml(badgeLabel)}</p>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function renderGlobalCounters(stats) {

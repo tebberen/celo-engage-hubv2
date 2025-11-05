@@ -120,6 +120,7 @@
     "badge": {
       "title": "Rozetler & Tier",
       "subtitle": "XP → Level → Tier yolculuğunu takip et.",
+      "tooltip": "Tier {tier} – Her özelliği 3 kez kullanınca kazanılır.",
       "mintTitle": "Yakında NFT Basımı",
       "mintSubtitle": "Rozetlerini NFT olarak basmak için yakında burada olacağız.",
       "mintCta": "Yakında",
@@ -154,6 +155,11 @@
       "metricsTitle": "Etkinlik İstatistikleri",
       "empty": "Profil bilgisi bulunamadı.",
       "newUser": "Yeni Kaşif",
+      "copyAddress": "Cüzdan adresini kopyala",
+      "copySuccess": "Adres kopyalandı!",
+      "xpTooltip": "XP {value}% sonraki seviyeye",
+      "xpTooltipMax": "Maksimum seviyeye ulaşıldı",
+      "tierBadgeLabel": "Tier {value} Rozeti",
       "stats": {
         "xp": "XP",
         "level": "Seviye",
@@ -317,6 +323,7 @@
     "badge": {
       "title": "Badges & Tiers",
       "subtitle": "Track your XP → Level → Tier journey.",
+      "tooltip": "Tier {tier} – Achieved after 3 uses of each feature.",
       "mintTitle": "Upcoming NFT Mint",
       "mintSubtitle": "You'll be able to mint your badges as NFTs soon.",
       "mintCta": "Coming Soon",
@@ -351,6 +358,11 @@
       "metricsTitle": "Activity Stats",
       "empty": "Profile information not found.",
       "newUser": "New Explorer",
+      "copyAddress": "Copy wallet address",
+      "copySuccess": "Address copied!",
+      "xpTooltip": "XP {value}% to next level",
+      "xpTooltipMax": "Max level reached",
+      "tierBadgeLabel": "Tier {value} Badge",
       "stats": {
         "xp": "XP",
         "level": "Level",
