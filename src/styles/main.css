@@ -68,6 +68,11 @@ textarea {
 button {
   cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition), background var(--transition), border var(--transition);
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 button:focus-visible,
@@ -274,8 +279,8 @@ textarea:focus-visible {
 }
 
 .icon-btn.header-globe {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
 }
 
@@ -303,7 +308,8 @@ textarea:focus-visible {
 
 .wallet-actions .connect-btn,
 .wallet-pill__button {
-  min-width: 0;
+  min-width: 44px;
+  flex: 1 1 auto;
 }
 
 .wallet-pill {
@@ -402,7 +408,7 @@ textarea:focus-visible {
 
 .app-main {
   width: 100%;
-  padding: calc(var(--header-height) + clamp(24px, 4vw, 48px)) clamp(16px, 3vw, 32px) clamp(64px, 8vw, 96px);
+  padding: calc(var(--header-height) + clamp(18px, 4vw, 48px)) clamp(16px, 4vw, 40px) clamp(80px, 10vw, 120px);
   background-color: #fff8e1;
 }
 
@@ -412,6 +418,8 @@ textarea:focus-visible {
   gap: clamp(24px, 3vw, 40px);
   width: 100%;
   align-items: start;
+  margin: 0 auto;
+  max-width: 1240px;
 }
 
 main,
@@ -624,6 +632,7 @@ section {
   padding: 12px 20px;
   font-weight: 600;
   border: 1px solid transparent;
+  min-height: 48px;
 }
 
 .primary-btn {
@@ -684,6 +693,15 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.donate-card form {
+  display: grid;
+  gap: 12px;
+}
+
+.donate-card form button {
+  width: 100%;
 }
 
 .tab-list {
@@ -1109,6 +1127,21 @@ textarea {
   font-size: 13px;
 }
 
+.miniapp-floating-label {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(251, 204, 92, 0.9);
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-glow);
+  z-index: 70;
+  pointer-events: none;
+}
+
 .modal-layer,
 .profile-modal,
 .share-modal {
@@ -1143,6 +1176,8 @@ textarea {
   border: 2px solid var(--border-strong);
   box-shadow: 0 40px 60px -30px rgba(251, 204, 92, 0.55);
   padding: clamp(24px, 4vw, 32px);
+  max-height: min(90vh, 640px);
+  overflow-y: auto;
   animation: modalScale 0.32s ease;
 }
 
@@ -1164,6 +1199,8 @@ textarea {
   text-align: center;
   animation: scaleIn 0.3s ease;
   position: relative;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
 @keyframes scaleIn {
@@ -1209,8 +1246,8 @@ textarea {
 .copy-address-btn {
   border: none;
   background: #fbcc5c;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1237,8 +1274,8 @@ textarea {
   right: 16px;
   border: 1px solid var(--border);
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   background: var(--surface);
   display: grid;
   place-items: center;
@@ -1263,6 +1300,7 @@ textarea {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
+  min-height: 72px;
 }
 
 .wallet-option:hover,
@@ -1638,11 +1676,14 @@ textarea {
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
+    gap: 16px;
   }
 
   .header-actions {
     width: 100%;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .page-wrapper {
@@ -1672,5 +1713,97 @@ textarea {
   .toast-container {
     right: 16px;
     left: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --header-height: 80px;
+  }
+
+  .app-header {
+    padding: 16px 18px;
+  }
+
+  .brand-area {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-nav {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    padding: 8px 12px;
+  }
+
+  .app-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-btn {
+    flex: 0 0 auto;
+  }
+
+  .wallet-actions {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .wallet-pill {
+    width: 100%;
+  }
+
+  .wallet-pill__button {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .left-sidebar {
+    max-width: 100%;
+  }
+
+  .donate-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-dialog,
+  .profile-modal__dialog,
+  .share-modal__dialog {
+    margin: 64px 12px;
+    max-width: 100%;
+  }
+
+  .miniapp-floating-label {
+    right: 12px;
+    bottom: 12px;
+    font-size: 12px;
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .donate-quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-list {
+    width: 100%;
+    overflow-x: auto;
+    padding: 6px 4px;
+    justify-content: flex-start;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+  }
+
+  .modal-dialog,
+  .share-modal__dialog {
+    margin: 56px 10px;
   }
 }

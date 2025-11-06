@@ -21,6 +21,8 @@ import {
   doDonateCELO,
   doApproveCUSD,
   doDonateCUSD,
+  doApproveCEUR,
+  doDonateCEUR,
   doShareLink,
   govCreateProposal,
   govVote,
@@ -115,6 +117,8 @@ const elements = {
   donateCeloForm: document.getElementById("donateCeloForm"),
   approveCusdForm: document.getElementById("approveCusdForm"),
   donateCusdForm: document.getElementById("donateCusdForm"),
+  approveCeurForm: document.getElementById("approveCeurForm"),
+  donateCeurForm: document.getElementById("donateCeurForm"),
   proposalForm: document.getElementById("proposalForm"),
   activeProposals: document.getElementById("activeProposals"),
   pastProposals: document.getElementById("pastProposals"),
@@ -134,6 +138,7 @@ const elements = {
   ownerPanel: document.getElementById("ownerPanel"),
   withdrawCeloForm: document.getElementById("withdrawCeloForm"),
   withdrawCusdForm: document.getElementById("withdrawCusdForm"),
+  withdrawCeurForm: document.getElementById("withdrawCeurForm"),
   globalCounters: document.getElementById("globalCounters"),
   toastContainer: document.getElementById("toastContainer"),
   usernameModal: document.getElementById("usernameModal"),
@@ -761,12 +766,21 @@ function setupForms() {
   elements.donateCeloForm.addEventListener("submit", handleDonateCeloSubmit);
   elements.approveCusdForm.addEventListener("submit", handleApproveCusdSubmit);
   elements.donateCusdForm.addEventListener("submit", handleDonateCusdSubmit);
+  if (elements.approveCeurForm) {
+    elements.approveCeurForm.addEventListener("submit", handleApproveCeurSubmit);
+  }
+  if (elements.donateCeurForm) {
+    elements.donateCeurForm.addEventListener("submit", handleDonateCeurSubmit);
+  }
   if (elements.shareLinkForm) {
     elements.shareLinkForm.addEventListener("submit", handleShareLinkSubmit);
   }
   elements.proposalForm.addEventListener("submit", handleProposalSubmit);
   elements.withdrawCeloForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "CELO"));
   elements.withdrawCusdForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "cUSD"));
+  if (elements.withdrawCeurForm) {
+    elements.withdrawCeurForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "cEUR"));
+  }
   elements.usernameForm.addEventListener("submit", handleRegisterSubmit);
 }
 
@@ -1202,6 +1216,33 @@ async function handleDonateCusdSubmit(event) {
     document.getElementById("cusdAmount").value = "";
   } catch (error) {
     console.error("Donate cUSD error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleApproveCeurSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const amount = Number(document.getElementById("ceurApproveAmount").value || 0);
+  if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  try {
+    await doApproveCEUR(amount);
+  } catch (error) {
+    console.error("Approve cEUR error", error);
+    showToast("error", parseError(error));
+  }
+}
+
+async function handleDonateCeurSubmit(event) {
+  event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const amount = Number(document.getElementById("ceurAmount").value || 0);
+  if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  try {
+    await doDonateCEUR(amount);
+    document.getElementById("ceurAmount").value = "";
+  } catch (error) {
+    console.error("Donate cEUR error", error);
     showToast("error", parseError(error));
   }
 }

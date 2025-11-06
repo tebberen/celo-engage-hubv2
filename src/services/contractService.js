@@ -15,6 +15,7 @@ import {
   NETWORK_KEYS,
   NETWORKS,
   CUSD_TOKEN_ADDRESS,
+  CEUR_TOKEN_ADDRESS,
 } from "../utils/constants.js";
 import { getWalletDetails } from "./walletService.js";
 
@@ -25,6 +26,8 @@ const ERC20_ABI = [
   "function balanceOf(address account) external view returns (uint256)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)",
 ];
+
+const DONATE_TOKEN_ABI = ["function donateToken(address token, address user, uint256 amount)"];
 
 let toastHandler = () => {};
 
@@ -46,6 +49,19 @@ function resolveModuleAddress(key) {
   const networkKey = getActiveNetworkKey();
   const book = MODULE_ADDRESS_BOOK[networkKey] || {};
   return book[key] || MODULES[key]?.address || null;
+}
+
+function getTokenAddressBySymbol(symbol) {
+  const networkKey = getActiveNetworkKey();
+  const map = {
+    cUSD: CUSD_TOKEN_ADDRESS[networkKey],
+    cEUR: CEUR_TOKEN_ADDRESS[networkKey],
+  };
+  const address = map[symbol];
+  if (!address) {
+    throw new Error(`${symbol} adresi bulunamadı`);
+  }
+  return address;
 }
 
 function requireSigner() {
@@ -156,33 +172,64 @@ export async function doDonateCELO(amount) {
   return receipt;
 }
 
-export async function doApproveCUSD(amount) {
+async function approveToken(symbol, amount) {
   ensureMinDonation(amount);
-  const { address } = requireSigner();
+  const { signer } = requireSigner();
   const spender = resolveModuleAddress("DONATE");
-  const tokenAddress = CUSD_TOKEN_ADDRESS[getActiveNetworkKey()];
-  if (!tokenAddress) {
-    throw new Error("cUSD adresi bulunamadı");
-  }
-  const token = new ethers.Contract(tokenAddress, ERC20_ABI, readProvider).connect(requireSigner().signer);
+  const tokenAddress = getTokenAddressBySymbol(symbol);
+  const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
   const value = parseAmount(amount);
   const tx = await token.approve(spender, value);
-  emitToast("pending", "cUSD onayı bekleniyor...", tx.hash);
+  emitToast("pending", `${symbol} onayı bekleniyor...`, tx.hash);
   const receipt = await tx.wait();
   emitToast("success", UI_MESSAGES.success, tx.hash);
   return receipt;
 }
 
-export async function doDonateCUSD(amount) {
+async function donateToken(symbol, amount) {
   ensureMinDonation(amount);
-  const { address } = requireSigner();
-  const donate = getDonate(true);
+  const { address, signer } = requireSigner();
+  const donateAddress = resolveModuleAddress("DONATE");
+  const tokenAddress = getTokenAddressBySymbol(symbol);
   const value = parseAmount(amount);
-  const tx = await donate.donateCUSD(address, value);
-  emitToast("pending", "cUSD bağışı gönderiliyor...", tx.hash);
+  const donateInterface = new ethers.Contract(donateAddress, DONATE_TOKEN_ABI, signer);
+
+  try {
+    await donateInterface.callStatic.donateToken(tokenAddress, address, value);
+  } catch (staticError) {
+    const missingMethod = !staticError?.data || staticError?.data === "0x";
+    if (symbol === "cUSD" && missingMethod) {
+      const donate = getDonate(true);
+      const legacyTx = await donate.donateCUSD(address, value);
+      emitToast("pending", "cUSD bağışı gönderiliyor...", legacyTx.hash);
+      const legacyReceipt = await legacyTx.wait();
+      emitToast("success", UI_MESSAGES.success, legacyTx.hash);
+      return legacyReceipt;
+    }
+    throw staticError;
+  }
+
+  const tx = await donateInterface.donateToken(tokenAddress, address, value);
+  emitToast("pending", `${symbol} bağışı gönderiliyor...`, tx.hash);
   const receipt = await tx.wait();
   emitToast("success", UI_MESSAGES.success, tx.hash);
   return receipt;
+}
+
+export async function doApproveCUSD(amount) {
+  return approveToken("cUSD", amount);
+}
+
+export async function doDonateCUSD(amount) {
+  return donateToken("cUSD", amount);
+}
+
+export async function doApproveCEUR(amount) {
+  return approveToken("cEUR", amount);
+}
+
+export async function doDonateCEUR(amount) {
+  return donateToken("cEUR", amount);
 }
 
 export async function withdrawDonations(token, amount) {

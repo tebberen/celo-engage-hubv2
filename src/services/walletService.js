@@ -19,6 +19,12 @@ let walletConnectProvider = null;
 
 const walletSubscribers = new Set();
 
+function isMiniPayEnvironment() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /MiniPay/i.test(ua) || /CeloMiniPay/i.test(ua);
+}
+
 function notify(event, payload = {}) {
   walletSubscribers.forEach((cb) => {
     try {
@@ -159,10 +165,11 @@ export async function connectWalletMetaMask() {
 
 export async function connectWalletConnect() {
   const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
+  const isMiniPay = isMiniPayEnvironment();
 
   walletConnectProvider = await EthereumProvider.init({
     projectId: WALLETCONNECT_PROJECT_ID,
-    showQrModal: true,
+    showQrModal: !isMiniPay,
     chains: [chainIdDecimal],
     optionalChains: NETWORK_KEYS.filter((key) => key !== DEFAULT_NETWORK).map((key) => parseInt(NETWORKS[key].chainId, 16)),
     rpcMap: {
@@ -174,7 +181,23 @@ export async function connectWalletConnect() {
       url: "https://celoscan.io/address/0x18351438b1bD20ee433Ea7D25589e913f14ca1A5",
       icons: ["https://storage.googleapis.com/ceibalancer/celo-icon.png"],
     },
+    qrModalOptions: {
+      themeVariables: {
+        "--w3m-z-index": "80",
+      },
+    },
   });
+
+  if (isMiniPay) {
+    walletConnectProvider.on("display_uri", (uri) => {
+      try {
+        const deepLink = `celo://wallet/wc?uri=${encodeURIComponent(uri)}`;
+        window.location.href = deepLink;
+      } catch (err) {
+        console.warn("MiniPay deep link error", err);
+      }
+    });
+  }
 
   await walletConnectProvider.connect();
   provider = new ethers.providers.Web3Provider(walletConnectProvider, "any");

@@ -3,6 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Celo Engage Hub brings builders together with GM, Deploy, Donate, and Governance tools optimized for MiniPay and Farcaster MiniApps." />
+    <meta name="application-name" content="Celo Engage Hub" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Celo Engage Hub" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#fbcc5c" />
+    <meta name="minipay:compatible" content="true" />
+    <meta name="minipay:walletconnect" content="v2" />
+    <meta name="farcaster:miniapp" content="true" />
+    <meta name="miniapp:platforms" content="minipay,farcaster" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Celo Engage Hub" />
+    <meta property="og:description" content="Support the Celo community with GM, Deploy, Donate, and Governance modules." />
+    <meta property="og:image" content="https://storage.googleapis.com/ceibalancer/celo-icon.png" />
+    <meta name="twitter:card" content="summary" />
     <title>Celo Engage Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -10,6 +27,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="miniapp-config" href="./miniapp.config.json" />
     <link rel="stylesheet" href="src/styles/main.css" />
     <link
       rel="icon"
@@ -173,12 +192,13 @@
             <section id="donateSection" class="section" data-section-label="Donate">
               <div class="section-header">
                 <h2 data-i18n="donate.title">Donate</h2>
-                <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD are declined.</p>
+                <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD / cEUR are declined.</p>
               </div>
               <div class="card donate-card">
                 <div class="tab-list" role="tablist">
                   <button type="button" class="tab-btn active" data-tab="celo" data-i18n="donate.celo">CELO</button>
                   <button type="button" class="tab-btn" data-tab="cusd" data-i18n="donate.cusd">cUSD</button>
+                  <button type="button" class="tab-btn" data-tab="ceur" data-i18n="donate.ceur">cEUR</button>
                 </div>
                 <div class="tab-panel active" data-content="celo">
                   <form id="donateCeloForm">
@@ -199,6 +219,18 @@
                     <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">Donate cUSD</button>
                   </form>
                 </div>
+                <div class="tab-panel" data-content="ceur">
+                  <form id="approveCeurForm">
+                    <label for="ceurApproveAmount" data-i18n="donate.ceurApproveLabel">Approval Amount (cEUR)</label>
+                    <input id="ceurApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.ceurApprove">Approve cEUR</button>
+                  </form>
+                  <form id="donateCeurForm">
+                    <label for="ceurAmount" data-i18n="donate.ceurAmount">Donation Amount (cEUR)</label>
+                    <input id="ceurAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.ceurSubmit">Donate cEUR</button>
+                  </form>
+                </div>
               </div>
               <div id="ownerPanel" class="card owner-only" hidden>
                 <h3 data-i18n="donate.owner.title">Owner Panel</h3>
@@ -213,6 +245,11 @@
                     <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Amount</label>
                     <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
                     <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">Withdraw cUSD</button>
+                  </form>
+                  <form id="withdrawCeurForm">
+                    <label for="withdrawCeurAmount" data-i18n="donate.owner.withdrawCeur">cEUR Amount</label>
+                    <input id="withdrawCeurAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeurBtn">Withdraw cEUR</button>
                   </form>
                 </div>
                 <div class="owner-section">
@@ -335,7 +372,7 @@
               <span class="wallet-option__icon">🔗</span>
               <div>
                 <strong data-i18n="wallet.walletconnect">WalletConnect</strong>
-                <small data-i18n="wallet.walletconnectHint">QR Code</small>
+                <small data-i18n="wallet.walletconnectHint">Mobile wallets &amp; MiniPay</small>
               </div>
             </button>
           </div>
@@ -457,6 +494,8 @@
         </div>
       </div>
     </div>
+
+    <div class="miniapp-floating-label" role="note" aria-live="polite">Optimized for MiniPay / Farcaster MiniApp.</div>
 
     <script type="module" src="src/main.js"></script>
   </body>
