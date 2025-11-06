@@ -70,6 +70,7 @@ const elements = {
   app: document.getElementById("app"),
   navButtons: document.querySelectorAll(".nav-btn"),
   sections: document.querySelectorAll(".section"),
+  breadcrumb: document.getElementById("breadcrumb"),
   navLanguageButton: document.getElementById("navLanguageButton"),
   connectTrigger: document.getElementById("connectTrigger"),
   connectModal: document.getElementById("connectModal"),
@@ -140,6 +141,10 @@ const elements = {
   deployedContracts: document.getElementById("deployedContracts"),
 };
 
+let activeSectionId = null;
+let isAutoScrolling = false;
+let autoScrollTimeout = null;
+
 let wsProvider = null;
 let wsBackoff = 2000;
 
@@ -147,7 +152,7 @@ function init() {
   applyTheme();
   setupLanguage();
   setupNavigation();
-  const initialSection = document.querySelector(".section.active");
+  const initialSection = document.querySelector(".section.active") || (elements.sections && elements.sections[0]);
   if (initialSection) {
     requestAnimationFrame(() => initialSection.classList.add("fade-in"));
   }
@@ -237,6 +242,7 @@ function applyLanguage(lang) {
   renderGlobalCounters(state.global);
   renderNavigationAria();
   updateLinkFeedView();
+  refreshBreadcrumb();
 }
 
 function translateDocument() {
@@ -586,26 +592,131 @@ function applyTheme() {
   localStorage.setItem("celo-engage-theme", "golden");
 }
 
+function getSectionLabel(section) {
+  if (!section) return "";
+  const heading = section.querySelector(".section-header h2");
+  if (heading?.textContent?.trim()) {
+    return heading.textContent.trim();
+  }
+  if (section.dataset?.sectionLabel) {
+    return section.dataset.sectionLabel;
+  }
+  return section.id || "";
+}
+
+function updateBreadcrumb(sectionName) {
+  if (!elements.breadcrumb) return;
+  const navButtons = Array.from(elements.navButtons || []);
+  const homeButton = navButtons.find((btn) => btn.dataset?.target === "homeSection");
+  const homeLabel = homeButton?.textContent?.trim() || homeButton?.dataset?.sectionLabel || "Home";
+  const currentLabel = sectionName?.trim() || homeLabel;
+  elements.breadcrumb.innerHTML = `<span>🏠 ${homeLabel}</span><span class="separator">/</span><span>${currentLabel}</span>`;
+}
+
+function refreshBreadcrumb() {
+  const activeSection = document.getElementById(activeSectionId) || (elements.sections && elements.sections[0]);
+  updateBreadcrumb(getSectionLabel(activeSection));
+}
+
+function setActiveSection(sectionId, options = {}) {
+  if (!sectionId) return;
+  const { labelOverride, suppressBreadcrumb } = options;
+  const sections = Array.from(elements.sections || []);
+  sections.forEach((section) => {
+    const isTarget = section.id === sectionId;
+    section.classList.toggle("active", isTarget);
+    if (isTarget) {
+      section.classList.remove("fade-in");
+      void section.offsetWidth;
+      section.classList.add("fade-in");
+    }
+  });
+
+  Array.from(elements.navButtons || []).forEach((btn) => {
+    const isTarget = btn.dataset?.target === sectionId;
+    btn.classList.toggle("active", isTarget);
+  });
+
+  activeSectionId = sectionId;
+
+  if (!suppressBreadcrumb) {
+    const section = document.getElementById(sectionId);
+    const label = labelOverride || getSectionLabel(section);
+    updateBreadcrumb(label);
+  }
+}
+
+function scrollToSection(sectionId, sectionName) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+
+  if (autoScrollTimeout) {
+    clearTimeout(autoScrollTimeout);
+  }
+
+  isAutoScrolling = true;
+  setActiveSection(sectionId, { labelOverride: sectionName });
+
+  const targetTop = section.getBoundingClientRect().top + window.scrollY - 120;
+  window.scrollTo({
+    top: targetTop > 0 ? targetTop : 0,
+    behavior: "smooth",
+  });
+
+  autoScrollTimeout = setTimeout(() => {
+    isAutoScrolling = false;
+  }, 700);
+}
+
 function setupNavigation() {
-  const sectionButtons = Array.from(elements.navButtons).filter((btn) => btn.dataset.target);
+  const sections = Array.from(elements.sections || []);
+  if (!sections.length) return;
+
+  const sectionButtons = Array.from(elements.navButtons || []).filter((btn) => btn.dataset?.target);
+
   sectionButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.target;
-      sectionButtons.forEach((b) => b.classList.toggle("active", b === btn));
-      elements.sections.forEach((section) => {
-        const isTarget = section.id === target;
-        section.classList.toggle("active", isTarget);
-        if (isTarget) {
-          section.classList.remove("fade-in");
-          void section.offsetWidth;
-          section.classList.add("fade-in");
-        }
-      });
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      const target = btn.dataset?.target;
+      if (!target) return;
+      const section = document.getElementById(target);
+      const label = getSectionLabel(section) || btn.textContent?.trim();
+      scrollToSection(target, label);
     });
   });
-  if (sectionButtons.length) {
-    sectionButtons[0].classList.add("active");
+
+  if (!activeSectionId) {
+    activeSectionId = sections[0].id;
   }
+
+  setActiveSection(activeSectionId, {
+    labelOverride: getSectionLabel(document.getElementById(activeSectionId)),
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (isAutoScrolling) return;
+      const visibleEntries = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => {
+          if (b.intersectionRatio !== a.intersectionRatio) {
+            return b.intersectionRatio - a.intersectionRatio;
+          }
+          return a.target.offsetTop - b.target.offsetTop;
+        });
+      if (!visibleEntries.length) return;
+      const nextSection = visibleEntries[0].target;
+      if (nextSection.id !== activeSectionId) {
+        setActiveSection(nextSection.id);
+      }
+    },
+    {
+      threshold: 0.45,
+      rootMargin: "-160px 0px -45%",
+    }
+  );
+
+  sections.forEach((section) => observer.observe(section));
 }
 
 function setupTabs() {
