@@ -1,0 +1,17 @@
+{
+  "name": "Celo Engage Hub",
+  "short_name": "Engage Hub",
+  "description": "Community-first GM, Deploy, Donate, and Governance hub optimized for MiniPay and Farcaster MiniApps.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8e1",
+  "theme_color": "#fbcc5c",
+  "icons": [
+    {
+      "src": "assets/logo-celo-engage-hub.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
