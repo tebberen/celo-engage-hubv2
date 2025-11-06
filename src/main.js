@@ -979,7 +979,8 @@ function renderNetworkInfo(valid) {
   }
   if (elements.walletStatusIcon) {
     const online = Boolean(valid && state.address);
-    elements.walletStatusIcon.textContent = online ? "🟢" : "🟡";
+    elements.walletStatusIcon.textContent = "•";
+    elements.walletStatusIcon.setAttribute("data-status", online ? "online" : "offline");
     elements.walletStatusIcon.setAttribute(
       "aria-label",
       online ? t("network.online", "Online") : t("network.offline", "Offline")
