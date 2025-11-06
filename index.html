@@ -42,22 +42,23 @@
             aria-label="Dil değiştir"
             data-i18n-aria-label="actions.languageToggle"
           >🌐</button>
-          <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
-          <div id="walletPill" class="wallet-pill" hidden>
-            <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
-              <span class="wallet-pill__label" data-i18n="wallet.connectedLabel">Connected:</span>
-              <span id="walletAddressLabel">—</span>
-              <span class="wallet-pill__status" aria-hidden="true">•</span>
-              <span class="wallet-pill__chevron">▾</span>
-            </button>
-            <div id="walletDropdown" class="wallet-dropdown" role="menu">
-              <div class="wallet-dropdown__network">
-                <span data-i18n="wallet.networkLabel">Network</span>
-                <strong id="walletNetworkName">—</strong>
-              </div>
-              <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
-                Disconnect
+          <div class="wallet-actions">
+            <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
+            <div id="walletPill" class="wallet-pill" hidden>
+              <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
+                <span id="walletAddressLabel">—</span>
+                <span class="wallet-pill__status" aria-hidden="true">•</span>
+                <span class="wallet-pill__chevron">▾</span>
               </button>
+              <div id="walletDropdown" class="wallet-dropdown" role="menu">
+                <div class="wallet-dropdown__network">
+                  <span data-i18n="wallet.networkLabel">Network</span>
+                  <strong id="walletNetworkName">—</strong>
+                </div>
+                <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
+                  Disconnect
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -66,7 +67,7 @@
       <main class="app-main">
         <div class="page-wrapper">
           <aside class="left-sidebar">
-            <section class="card donate-highlight">
+            <section class="card highlight-panel donate-highlight">
               <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
               <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
               <div class="donate-quick-actions">
@@ -77,7 +78,7 @@
               </div>
             </section>
 
-            <section class="card ecosystem-panel">
+            <section class="card highlight-panel ecosystem-panel">
               <div class="panel-header">
                 <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
               </div>
