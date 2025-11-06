@@ -71,229 +71,239 @@
       </header>
 
       <main class="app-main">
-        <aside class="left-sidebar">
-          <section class="card donate-highlight">
-            <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
-            <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
-            <div class="donate-quick-actions">
-              <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
-              <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
-              <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
-              <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
-            </div>
-          </section>
-
-          <section class="card ecosystem-panel">
-            <div class="panel-header">
-              <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
-            </div>
-            <ul class="ecosystem-links">
-              <li><a href="https://celo.org" target="_blank" rel="noopener">Celo Foundation</a></li>
-              <li><a href="https://docs.celo.org" target="_blank" rel="noopener">Celo Docs</a></li>
-              <li><a href="https://explorer.celo.org" target="_blank" rel="noopener">Celo Explorer</a></li>
-              <li><a href="https://forum.celo.org" target="_blank" rel="noopener">Celo Forum</a></li>
-              <li><a href="https://x.com/Celo" target="_blank" rel="noopener">Celo Twitter (X)</a></li>
-              <li><a href="https://discord.gg/celo" target="_blank" rel="noopener">Celo Discord</a></li>
-              <li><a href="https://celo.stake.id/#/proposal" target="_blank" rel="noopener">Celo Governance</a></li>
-              <li><a href="https://developers.celo.org" target="_blank" rel="noopener">Celo Developer Portal</a></li>
-              <li><a href="https://medium.com/celoorg" target="_blank" rel="noopener">Celo Blog</a></li>
-              <li><a href="https://www.youtube.com/@CeloOrg" target="_blank" rel="noopener">Celo YouTube</a></li>
-            </ul>
-            <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
-              More Ecosystem Tools →
-            </button>
-          </section>
-        </aside>
-
-        <section id="homeSection" class="section active">
-          <div class="section-header">
-            <h2 data-i18n="home.title">Community Feed</h2>
-            <p data-i18n="home.subtitle">Latest shared links from fellow builders</p>
-          </div>
-          <div class="feed-stack">
-            <div id="linkFeed" class="feed-list"></div>
-            <div class="completed-block">
-              <div class="completed-header">
-                <h3 data-i18n="feed.completedTitle">✅ Completed Links</h3>
+        <div class="page-wrapper">
+          <aside class="left-sidebar">
+            <section class="card donate-highlight">
+              <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
+              <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
+              <div class="donate-quick-actions">
+                <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
               </div>
-              <div id="completedFeed" class="feed-list feed-list--completed"></div>
-              <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
+            </section>
+
+            <section class="card ecosystem-panel">
+              <div class="panel-header">
+                <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
+              </div>
+              <ul class="ecosystem-links">
+                <li><a href="https://celo.org" target="_blank" rel="noopener">Celo Foundation</a></li>
+                <li><a href="https://docs.celo.org" target="_blank" rel="noopener">Celo Docs</a></li>
+                <li><a href="https://explorer.celo.org" target="_blank" rel="noopener">Celo Explorer</a></li>
+                <li><a href="https://forum.celo.org" target="_blank" rel="noopener">Celo Forum</a></li>
+                <li><a href="https://x.com/Celo" target="_blank" rel="noopener">Celo Twitter (X)</a></li>
+                <li><a href="https://discord.gg/celo" target="_blank" rel="noopener">Celo Discord</a></li>
+                <li><a href="https://celo.stake.id/#/proposal" target="_blank" rel="noopener">Celo Governance</a></li>
+                <li><a href="https://developers.celo.org" target="_blank" rel="noopener">Celo Developer Portal</a></li>
+                <li><a href="https://medium.com/celoorg" target="_blank" rel="noopener">Celo Blog</a></li>
+                <li><a href="https://www.youtube.com/@CeloOrg" target="_blank" rel="noopener">Celo YouTube</a></li>
+              </ul>
+              <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
+                More Ecosystem Tools →
+              </button>
+            </section>
+          </aside>
+
+          <div class="main-content">
+            <div id="breadcrumb" class="breadcrumb">
+              <span>🏠 Home</span>
+              <span class="separator">/</span>
+              <span>Community Feed</span>
             </div>
-          </div>
-        </section>
 
-        <section id="gmSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="gm.title">Send a GM</h2>
-            <p data-i18n="gm.subtitle">Drop a cheerful message to earn XP.</p>
-          </div>
-          <form id="gmForm" class="card">
-            <label for="gmMessage" data-i18n="gm.messageLabel">Message (optional)</label>
-            <textarea
-              id="gmMessage"
-              maxlength="140"
-              placeholder="GM Celo world!"
-              data-i18n-placeholder="gm.placeholder"
-            ></textarea>
-            <button type="submit" class="primary-btn" data-i18n="gm.submit">Send GM</button>
-            <p class="helper" data-i18n="gm.helper">+1 XP</p>
-          </form>
-        </section>
+            <section id="homeSection" class="section" data-section-label="Community Feed">
+              <div class="section-header">
+                <h2 data-i18n="home.title">Community Feed</h2>
+                <p data-i18n="home.subtitle">Latest shared links from fellow builders</p>
+              </div>
+              <div class="feed-stack">
+                <div id="linkFeed" class="feed-list"></div>
+                <div class="completed-block">
+                  <div class="completed-header">
+                    <h3 data-i18n="feed.completedTitle">✅ Completed Links</h3>
+                  </div>
+                  <div id="completedFeed" class="feed-list feed-list--completed"></div>
+                  <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
+                </div>
+              </div>
+            </section>
 
-        <section id="deploySection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="deploy.title">Deploy</h2>
-            <p data-i18n="deploy.subtitle">Spin up a smart contract with low gas.</p>
-          </div>
-          <form id="deployForm" class="card">
-            <label for="deployName" data-i18n="deploy.nameLabel">Contract name (optional)</label>
-            <input
-              id="deployName"
-              type="text"
-              maxlength="32"
-              placeholder="AutoName-..."
-              data-i18n-placeholder="deploy.namePlaceholder"
-            />
-            <button type="submit" class="primary-btn" data-i18n="deploy.submit">Deploy Contract</button>
-            <p class="helper" data-i18n="deploy.helper">+1 XP</p>
-          </form>
-          <div class="card" id="deployHistory">
-            <h3 data-i18n="deploy.history">Deployed Contracts</h3>
-            <ul id="deployedContracts"></ul>
-          </div>
-        </section>
-
-        <section id="donateSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="donate.title">Donate</h2>
-            <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD are declined.</p>
-          </div>
-          <div class="card donate-card">
-            <div class="tab-list" role="tablist">
-              <button type="button" class="tab-btn active" data-tab="celo" data-i18n="donate.celo">CELO</button>
-              <button type="button" class="tab-btn" data-tab="cusd" data-i18n="donate.cusd">cUSD</button>
-            </div>
-            <div class="tab-panel active" data-content="celo">
-              <form id="donateCeloForm">
-                <label for="celoAmount" data-i18n="donate.celoAmount">Amount (CELO)</label>
-                <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">Donate CELO</button>
+            <section id="gmSection" class="section" data-section-label="GM">
+              <div class="section-header">
+                <h2 data-i18n="gm.title">Send a GM</h2>
+                <p data-i18n="gm.subtitle">Drop a cheerful message to earn XP.</p>
+              </div>
+              <form id="gmForm" class="card">
+                <label for="gmMessage" data-i18n="gm.messageLabel">Message (optional)</label>
+                <textarea
+                  id="gmMessage"
+                  maxlength="140"
+                  placeholder="GM Celo world!"
+                  data-i18n-placeholder="gm.placeholder"
+                ></textarea>
+                <button type="submit" class="primary-btn" data-i18n="gm.submit">Send GM</button>
+                <p class="helper" data-i18n="gm.helper">+1 XP</p>
               </form>
-            </div>
-            <div class="tab-panel" data-content="cusd">
-              <form id="approveCusdForm">
-                <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Approval Amount (cUSD)</label>
-                <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">Approve cUSD</button>
-              </form>
-              <form id="donateCusdForm">
-                <label for="cusdAmount" data-i18n="donate.cusdAmount">Donation Amount (cUSD)</label>
-                <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
-                <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">Donate cUSD</button>
-              </form>
-            </div>
-          </div>
-          <div id="ownerPanel" class="card owner-only" hidden>
-            <h3 data-i18n="donate.owner.title">Owner Panel</h3>
-            <div class="owner-section">
-              <h4 data-i18n="donate.owner.withdrawTitle">Donation Withdrawals</h4>
-              <form id="withdrawCeloForm">
-                <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Amount</label>
-                <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">Withdraw CELO</button>
-              </form>
-              <form id="withdrawCusdForm">
-                <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Amount</label>
-                <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
-                <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">Withdraw cUSD</button>
-              </form>
-            </div>
-            <div class="owner-section">
-              <h4 data-i18n="donate.owner.proposalTitle">Create Proposal</h4>
-              <form id="proposalForm">
-                <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Title</label>
-                <input id="proposalTitle" type="text" required maxlength="80" />
-                <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Description</label>
-                <textarea id="proposalDescription" required maxlength="280"></textarea>
-                <label for="proposalLink" data-i18n="donate.owner.proposalLink">Link</label>
-                <input id="proposalLink" type="url" placeholder="https://" />
-                <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Create Proposal</button>
-              </form>
-            </div>
-          </div>
-        </section>
+            </section>
 
-        <section id="governanceSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="governance.title">Governance</h2>
-            <p data-i18n="governance.subtitle">Join the active and completed proposals.</p>
-          </div>
-          <div class="governance-columns">
-            <div class="card">
-              <h3 data-i18n="governance.active">Active Proposals</h3>
-              <ul id="activeProposals" class="proposal-list"></ul>
-            </div>
-            <div class="card">
-              <h3 data-i18n="governance.completed">Completed Proposals</h3>
-              <ul id="pastProposals" class="proposal-list"></ul>
-            </div>
-          </div>
-        </section>
+            <section id="deploySection" class="section" data-section-label="Deploy">
+              <div class="section-header">
+                <h2 data-i18n="deploy.title">Deploy</h2>
+                <p data-i18n="deploy.subtitle">Spin up a smart contract with low gas.</p>
+              </div>
+              <form id="deployForm" class="card">
+                <label for="deployName" data-i18n="deploy.nameLabel">Contract name (optional)</label>
+                <input
+                  id="deployName"
+                  type="text"
+                  maxlength="32"
+                  placeholder="AutoName-..."
+                  data-i18n-placeholder="deploy.namePlaceholder"
+                />
+                <button type="submit" class="primary-btn" data-i18n="deploy.submit">Deploy Contract</button>
+                <p class="helper" data-i18n="deploy.helper">+1 XP</p>
+              </form>
+              <div class="card" id="deployHistory">
+                <h3 data-i18n="deploy.history">Deployed Contracts</h3>
+                <ul id="deployedContracts"></ul>
+              </div>
+            </section>
 
-        <section id="badgeSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="badge.title">Badges & Tiers</h2>
-            <p data-i18n="badge.subtitle">Track your XP → Level → Tier journey.</p>
-          </div>
-          <div id="badgeShowcase" class="badge-section"></div>
-          <div class="card" id="badgeDetails"></div>
-          <div class="card">
-            <h3 data-i18n="badge.mintTitle">Upcoming NFT Mint</h3>
-            <p data-i18n="badge.mintSubtitle">You'll be able to mint your badges as NFTs soon.</p>
-            <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Coming Soon</button>
-          </div>
-        </section>
+            <section id="donateSection" class="section" data-section-label="Donate">
+              <div class="section-header">
+                <h2 data-i18n="donate.title">Donate</h2>
+                <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD are declined.</p>
+              </div>
+              <div class="card donate-card">
+                <div class="tab-list" role="tablist">
+                  <button type="button" class="tab-btn active" data-tab="celo" data-i18n="donate.celo">CELO</button>
+                  <button type="button" class="tab-btn" data-tab="cusd" data-i18n="donate.cusd">cUSD</button>
+                </div>
+                <div class="tab-panel active" data-content="celo">
+                  <form id="donateCeloForm">
+                    <label for="celoAmount" data-i18n="donate.celoAmount">Amount (CELO)</label>
+                    <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">Donate CELO</button>
+                  </form>
+                </div>
+                <div class="tab-panel" data-content="cusd">
+                  <form id="approveCusdForm">
+                    <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Approval Amount (cUSD)</label>
+                    <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">Approve cUSD</button>
+                  </form>
+                  <form id="donateCusdForm">
+                    <label for="cusdAmount" data-i18n="donate.cusdAmount">Donation Amount (cUSD)</label>
+                    <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">Donate cUSD</button>
+                  </form>
+                </div>
+              </div>
+              <div id="ownerPanel" class="card owner-only" hidden>
+                <h3 data-i18n="donate.owner.title">Owner Panel</h3>
+                <div class="owner-section">
+                  <h4 data-i18n="donate.owner.withdrawTitle">Donation Withdrawals</h4>
+                  <form id="withdrawCeloForm">
+                    <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Amount</label>
+                    <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">Withdraw CELO</button>
+                  </form>
+                  <form id="withdrawCusdForm">
+                    <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Amount</label>
+                    <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">Withdraw cUSD</button>
+                  </form>
+                </div>
+                <div class="owner-section">
+                  <h4 data-i18n="donate.owner.proposalTitle">Create Proposal</h4>
+                  <form id="proposalForm">
+                    <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Title</label>
+                    <input id="proposalTitle" type="text" required maxlength="80" />
+                    <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Description</label>
+                    <textarea id="proposalDescription" required maxlength="280"></textarea>
+                    <label for="proposalLink" data-i18n="donate.owner.proposalLink">Link</label>
+                    <input id="proposalLink" type="url" placeholder="https://" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Create Proposal</button>
+                  </form>
+                </div>
+              </div>
+            </section>
 
-        <section id="leaderboardSection" class="section">
-          <div class="section-header">
-            <h2 data-i18n="leaderboard.title">Leaderboard</h2>
-            <p data-i18n="leaderboard.subtitle">Community champions live here.</p>
+            <section id="governanceSection" class="section" data-section-label="Governance">
+              <div class="section-header">
+                <h2 data-i18n="governance.title">Governance</h2>
+                <p data-i18n="governance.subtitle">Join the active and completed proposals.</p>
+              </div>
+              <div class="governance-columns">
+                <div class="card">
+                  <h3 data-i18n="governance.active">Active Proposals</h3>
+                  <ul id="activeProposals" class="proposal-list"></ul>
+                </div>
+                <div class="card">
+                  <h3 data-i18n="governance.completed">Completed Proposals</h3>
+                  <ul id="pastProposals" class="proposal-list"></ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="badgeSection" class="section" data-section-label="Badges">
+              <div class="section-header">
+                <h2 data-i18n="badge.title">Badges &amp; Tiers</h2>
+                <p data-i18n="badge.subtitle">Track your XP → Level → Tier journey.</p>
+              </div>
+              <div id="badgeShowcase" class="badge-section"></div>
+              <div class="card" id="badgeDetails"></div>
+              <div class="card">
+                <h3 data-i18n="badge.mintTitle">Upcoming NFT Mint</h3>
+                <p data-i18n="badge.mintSubtitle">You'll be able to mint your badges as NFTs soon.</p>
+                <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Coming Soon</button>
+              </div>
+            </section>
+
+            <section id="leaderboardSection" class="section" data-section-label="Leaderboard">
+              <div class="section-header">
+                <h2 data-i18n="leaderboard.title">Leaderboard</h2>
+                <p data-i18n="leaderboard.subtitle">Community champions live here.</p>
+              </div>
+              <div class="card leaderboard-card">
+                <div class="tab-list leaderboard-tabs" role="tablist">
+                  <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Links</button>
+                  <button class="tab-btn" data-tab="topGM" data-i18n="leaderboard.tabs.gm">GM</button>
+                  <button class="tab-btn" data-tab="topDeploy" data-i18n="leaderboard.tabs.deploy">Deploy</button>
+                  <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donors</button>
+                  <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donors</button>
+                  <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Votes</button>
+                  <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Levels</button>
+                </div>
+                <div class="leaderboard-panels">
+                  <div class="tab-panel active" data-content="topLinks">
+                    <ol id="leaderboardLinks" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topGM">
+                    <ol id="leaderboardGM" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topDeploy">
+                    <ol id="leaderboardDeploy" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topCelo">
+                    <ol id="leaderboardCelo" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topCusd">
+                    <ol id="leaderboardCusd" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topVotes">
+                    <ol id="leaderboardVotes" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topBadges">
+                    <ol id="leaderboardBadges" class="leaderboard-list"></ol>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
-          <div class="card leaderboard-card">
-            <div class="tab-list leaderboard-tabs" role="tablist">
-              <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Links</button>
-              <button class="tab-btn" data-tab="topGM" data-i18n="leaderboard.tabs.gm">GM</button>
-              <button class="tab-btn" data-tab="topDeploy" data-i18n="leaderboard.tabs.deploy">Deploy</button>
-              <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donors</button>
-              <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donors</button>
-              <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Votes</button>
-              <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Levels</button>
-            </div>
-            <div class="leaderboard-panels">
-              <div class="tab-panel active" data-content="topLinks">
-                <ol id="leaderboardLinks" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topGM">
-                <ol id="leaderboardGM" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topDeploy">
-                <ol id="leaderboardDeploy" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topCelo">
-                <ol id="leaderboardCelo" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topCusd">
-                <ol id="leaderboardCusd" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topVotes">
-                <ol id="leaderboardVotes" class="leaderboard-list"></ol>
-              </div>
-              <div class="tab-panel" data-content="topBadges">
-                <ol id="leaderboardBadges" class="leaderboard-list"></ol>
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
 
       <footer class="app-footer">
