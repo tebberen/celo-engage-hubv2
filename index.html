@@ -44,6 +44,10 @@
             data-i18n-aria-label="actions.languageToggle"
           >🌐</button>
           <div class="wallet-actions">
+            <div class="wallet-verification">
+              <button id="verifyHumanButton" type="button" class="verify-btn">Verify with World ID</button>
+              <span id="walletVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+            </div>
             <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
             <div id="walletPill" class="wallet-pill" hidden>
               <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
@@ -353,7 +357,10 @@
           </button>
           <div class="modal-profile__header">
             <h2 data-i18n="profile.title">Profile</h2>
-            <p id="profileUsername" class="modal-profile__username">—</p>
+            <div class="modal-profile__identity">
+              <p id="profileUsername" class="modal-profile__username">—</p>
+              <span id="profileVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+            </div>
           </div>
           <div class="modal-profile__address">
             <span id="profileAddress" class="profile-address">—</span>

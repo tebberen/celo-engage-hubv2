@@ -197,6 +197,68 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   position: relative;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wallet-verification {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.verify-btn {
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(135deg, var(--celo-yellow), var(--celo-yellow-strong));
+  color: var(--text-strong);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  white-space: nowrap;
+}
+
+.verify-btn:hover,
+.verify-btn:focus-visible {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.verify-btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(46, 204, 113, 0.18);
+  color: #0b7a33;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  white-space: nowrap;
+}
+
+.verified-badge::before {
+  content: "✅";
+}
+
+.verified-badge[hidden] {
+  display: none;
+}
+
+.modal-profile__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .icon-btn {
