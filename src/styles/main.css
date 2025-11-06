@@ -106,30 +106,39 @@ textarea:focus-visible {
 .brand-area {
   display: flex;
   align-items: center;
-  gap: clamp(12px, 2vw, 20px);
+  gap: clamp(10px, 1.6vw, 16px);
 }
 
-.brand-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: radial-gradient(circle at 20% 20%, #fff7cc, #ffd870);
-  display: grid;
-  place-items: center;
-  font-size: 26px;
-  box-shadow: var(--shadow-glow);
+.nav-left__logo {
+  height: 40px;
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
-.brand-copy h1 {
-  margin: 0;
-  font-size: clamp(22px, 3vw, 32px);
-  font-family: "Poppins", "Inter", sans-serif;
-}
-
-.brand-copy p {
-  margin: 4px 0 0;
+.nav-left__slogan {
+  font-family: inherit;
+  font-weight: 600;
   color: var(--text-soft);
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .nav-left {
+    gap: 10px;
+  }
+
+  .nav-left__logo {
+    height: 32px;
+    max-height: 32px;
+  }
+
+  .nav-left__slogan {
+    font-size: 14px;
+  }
 }
 
 .app-nav {
