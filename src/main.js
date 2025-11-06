@@ -35,6 +35,11 @@ import {
   loadUserDeployments,
   getAnalyticsConfig,
 } from "./services/contractService.js";
+import {
+  openWorldIdVerification,
+  syncVerifiedFlag,
+  clearVerificationState,
+} from "./services/identityService.js";
 
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
@@ -50,6 +55,10 @@ const DEFAULT_FEED = [
   { user: "0xForum", link: "https://forum.celo.org", blockNumber: null, transactionHash: null },
 ];
 
+const VERIFICATION_SUCCESS_MESSAGE =
+  "Verification successful! You are now a Verified Human on Celo Engage Hub.";
+const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
+
 const state = {
   address: null,
   profile: null,
@@ -64,6 +73,7 @@ const state = {
   sharePromptLink: null,
   deviceId,
   feedEntries: [],
+  verifiedHuman: false,
 };
 
 const elements = {
@@ -82,6 +92,8 @@ const elements = {
   walletStatusIcon: document.querySelector(".wallet-pill__status"),
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
+  verifyHumanButton: document.getElementById("verifyHumanButton"),
+  walletVerifiedBadge: document.getElementById("walletVerifiedBadge"),
   profileStats: document.getElementById("profileStats"),
   badgeStack: document.getElementById("badgeStack"),
   xpProgress: document.getElementById("xpProgress"),
@@ -91,6 +103,7 @@ const elements = {
   profileUsername: document.getElementById("profileUsername"),
   profileAddress: document.getElementById("profileAddress"),
   publicProfileLink: document.getElementById("publicProfileLink"),
+  profileVerifiedBadge: document.getElementById("profileVerifiedBadge"),
   profileMetrics: document.getElementById("profileMetrics"),
   linkFeed: document.getElementById("linkFeed"),
   completedFeed: document.getElementById("completedFeed"),
@@ -148,6 +161,8 @@ let autoScrollTimeout = null;
 let wsProvider = null;
 let wsBackoff = 2000;
 
+let isVerifyingHuman = false;
+
 function init() {
   applyTheme();
   setupLanguage();
@@ -163,6 +178,7 @@ function init() {
   setupConnectModal();
   setupWalletButtons();
   setupWalletDropdown();
+  setupIdentityVerification();
   setupProfileModal();
   setupShareModal();
   setupUsernameModal();
@@ -813,11 +829,14 @@ function setupWalletButtons() {
         state.address = null;
         state.profile = null;
         state.isOwner = false;
+        state.verifiedHuman = false;
+        clearVerificationState();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
         updateWalletUI();
         renderNetworkInfo(false);
+        renderVerificationState();
         showToast("success", "Cüzdan bağlantısı kesildi.");
       } catch (error) {
         console.error("disconnect error", error);
@@ -839,6 +858,92 @@ function setupWalletDropdown() {
     if (event.target.closest("#walletPill")) return;
     closeWalletDropdown();
   });
+}
+
+function setupIdentityVerification() {
+  if (elements.verifyHumanButton) {
+    elements.verifyHumanButton.addEventListener("click", handleVerifyHumanClick);
+  }
+  renderVerificationState();
+}
+
+function syncCurrentVerification() {
+  isVerifyingHuman = false;
+  if (!state.address) {
+    state.verifiedHuman = false;
+    renderVerificationState();
+    return;
+  }
+  const verified = syncVerifiedFlag(state.address);
+  state.verifiedHuman = verified;
+  renderVerificationState();
+}
+
+function renderVerificationState() {
+  const verified = Boolean(state.address && state.verifiedHuman);
+  if (elements.verifyHumanButton) {
+    if (isVerifyingHuman && !verified) {
+      elements.verifyHumanButton.textContent = "Verifying…";
+      elements.verifyHumanButton.disabled = true;
+      elements.verifyHumanButton.setAttribute("aria-busy", "true");
+    } else {
+      elements.verifyHumanButton.textContent = verified ? "Verified Human" : "Verify with World ID";
+      elements.verifyHumanButton.disabled = verified;
+      elements.verifyHumanButton.removeAttribute("aria-busy");
+    }
+  }
+  if (elements.walletVerifiedBadge) {
+    elements.walletVerifiedBadge.hidden = !verified;
+  }
+  if (elements.profileVerifiedBadge) {
+    elements.profileVerifiedBadge.hidden = !verified;
+  }
+}
+
+async function handleVerifyHumanClick() {
+  if (isVerifyingHuman) return;
+  if (state.verifiedHuman) return;
+  if (!state.address) {
+    showToast("error", WALLET_REQUIRED_MESSAGE);
+    return;
+  }
+  isVerifyingHuman = true;
+  renderVerificationState();
+  let errorHandled = false;
+  try {
+    await openWorldIdVerification({
+      signal: state.address,
+      onSuccess: () => {
+        isVerifyingHuman = false;
+        syncCurrentVerification();
+        showToast("success", VERIFICATION_SUCCESS_MESSAGE);
+      },
+      onError: (error) => {
+        if (error) {
+          errorHandled = true;
+          console.error("World ID verification error", error);
+          const message = error?.message || UI_MESSAGES.error;
+          showToast("error", message);
+        }
+      },
+      onClose: () => {
+        isVerifyingHuman = false;
+        if (!state.verifiedHuman) {
+          renderVerificationState();
+        }
+      },
+    });
+  } catch (error) {
+    if (!(error instanceof Error && error.message === "Missing verification signal") && !errorHandled) {
+      console.error("World ID verification failed", error);
+      const message = error?.message || UI_MESSAGES.error;
+      showToast("error", message);
+    }
+    isVerifyingHuman = false;
+    if (!state.verifiedHuman) {
+      renderVerificationState();
+    }
+  }
 }
 
 function toggleWalletDropdown(forceOpen = null) {
@@ -913,6 +1018,7 @@ async function connectWallet(connector) {
     const details = await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+    syncCurrentVerification();
     updateWalletUI();
     renderNetworkInfo(true);
     closeConnectModal();
@@ -938,6 +1044,7 @@ function initWalletListeners() {
       case "connected":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        syncCurrentVerification();
         updateWalletUI();
         renderNetworkInfo(true);
         closeConnectModal();
@@ -946,6 +1053,7 @@ function initWalletListeners() {
       case "accountsChanged":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        syncCurrentVerification();
         updateWalletUI();
         await afterWalletConnected();
         break;
@@ -953,11 +1061,14 @@ function initWalletListeners() {
         state.address = null;
         state.profile = null;
         state.isOwner = false;
+        state.verifiedHuman = false;
+        clearVerificationState();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
         updateWalletUI();
         renderNetworkInfo(false);
+        renderVerificationState();
         break;
       case "networkChanged":
         renderNetworkInfo(valid);
@@ -1293,6 +1404,7 @@ function renderProfile(profile) {
     }
     elements.publicProfileLink.removeAttribute("href");
     renderBadgeDetails(null);
+    renderVerificationState();
     return;
   }
 
@@ -1352,6 +1464,7 @@ function renderProfile(profile) {
   elements.badgeStack.innerHTML = renderTierBadges(profile);
   elements.xpProgress.innerHTML = renderXpProgress(profile);
   renderBadgeDetails(profile);
+  renderVerificationState();
 }
 
 function renderTierBadges(profile) {
