@@ -180,8 +180,14 @@ textarea:focus-visible {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   justify-content: flex-end;
+}
+
+.wallet-actions {
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
 .icon-btn {
@@ -224,8 +230,17 @@ textarea:focus-visible {
   transform: translateY(-1px);
 }
 
+.wallet-actions .connect-btn,
+.wallet-pill__button {
+  min-width: 0;
+}
+
 .wallet-pill {
   position: relative;
+  display: none;
+}
+
+.wallet-pill:not([hidden]) {
   display: flex;
 }
 
@@ -322,7 +337,7 @@ textarea:focus-visible {
 
 .page-wrapper {
   display: grid;
-  grid-template-columns: minmax(240px, 28vw) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 24vw) minmax(0, 1fr);
   gap: clamp(24px, 3vw, 40px);
   width: 100%;
   align-items: start;
@@ -356,6 +371,12 @@ section {
   top: calc(var(--header-height) + clamp(12px, 2vw, 24px));
   align-self: start;
   min-width: 0;
+  max-width: clamp(260px, 24vw, 320px);
+  width: 100%;
+}
+
+.left-sidebar .card {
+  width: 100%;
 }
 
 .main-content {
@@ -428,7 +449,7 @@ section {
 
 @media (max-width: 1200px) {
   .page-wrapper {
-    grid-template-columns: minmax(220px, 32vw) minmax(0, 1fr);
+    grid-template-columns: minmax(210px, 30vw) minmax(0, 1fr);
   }
 }
 
@@ -459,6 +480,7 @@ section {
   .left-sidebar {
     position: static;
     order: 1;
+    max-width: none;
   }
 
   .main-content {
@@ -762,7 +784,7 @@ textarea {
   color: var(--text-soft);
 }
 
-.donate-highlight {
+.highlight-panel {
   background: var(--celo-yellow);
   color: var(--text-strong);
   border-radius: var(--radius-lg);
@@ -772,15 +794,19 @@ textarea {
   gap: 16px;
 }
 
-.donate-highlight h2 {
+.highlight-panel h2 {
   margin: 0;
   font-size: 22px;
 }
 
-.donate-highlight p {
+.highlight-panel p {
   margin: 0;
   color: var(--text-strong);
   font-weight: 500;
+}
+
+.donate-highlight {
+  gap: 16px;
 }
 
 .donate-quick-actions {
@@ -813,6 +839,11 @@ textarea {
   gap: 16px;
 }
 
+.ecosystem-panel .panel-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
 .ecosystem-links {
   list-style: none;
   margin: 0;
@@ -824,10 +855,12 @@ textarea {
 .ecosystem-links a {
   display: block;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--surface-strong);
-  border: 1px solid transparent;
+  border: 1px solid var(--border-strong);
   font-weight: 600;
+  box-shadow: var(--shadow-soft);
+  color: var(--text-strong);
 }
 
 .ecosystem-links a:hover,
