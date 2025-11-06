@@ -20,7 +20,7 @@
     <div id="app" class="app-shell" data-theme="golden">
       <header class="app-header">
         <div class="brand-area">
-          <div class="brand-logo">⚡</div>
+          <div class="brand-logo" aria-hidden="true">⚡</div>
           <div class="brand-copy">
             <h1 data-i18n="brand.title">Celo Engage Hub</h1>
             <p data-i18n="brand.subtitle">Support others first, then leave your link.</p>
@@ -34,27 +34,20 @@
           <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
           <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badges</button>
           <button class="nav-btn" id="profileButton" data-i18n="nav.profile">Profile</button>
-          <button
-            class="nav-btn nav-btn--icon"
-            id="navLanguageButton"
-            type="button"
-            aria-label="Dil değiştir"
-            data-i18n-aria-label="actions.languageToggle"
-          >🌐</button>
         </nav>
         <div class="header-actions">
           <button
             id="languageToggle"
-            class="icon-btn"
+            class="icon-btn header-globe"
             aria-label="Dil değiştir"
             data-i18n-aria-label="actions.languageToggle"
           >🌐</button>
           <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
           <div id="walletPill" class="wallet-pill" hidden>
             <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
-              <span class="wallet-pill__status">🟢</span>
               <span class="wallet-pill__label" data-i18n="wallet.connectedLabel">Connected:</span>
               <span id="walletAddressLabel">—</span>
+              <span class="wallet-pill__status" aria-hidden="true">•</span>
               <span class="wallet-pill__chevron">▾</span>
             </button>
             <div id="walletDropdown" class="wallet-dropdown" role="menu">
