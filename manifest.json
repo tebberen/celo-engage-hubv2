@@ -2,16 +2,56 @@
   "name": "Celo Engage Hub",
   "short_name": "Engage Hub",
   "description": "Community-first GM, Deploy, Donate, and Governance hub optimized for MiniPay and Farcaster MiniApps.",
+  "lang": "en",
+  "dir": "ltr",
+  "id": "./",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "browser"],
   "orientation": "portrait",
   "background_color": "#fff8e1",
   "theme_color": "#fbcc5c",
+  "categories": ["productivity", "finance", "social"],
   "icons": [
     {
       "src": "assets/logo-celo-engage-hub.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Community Feed",
+      "short_name": "Feed",
+      "description": "Jump to the latest community links",
+      "url": "./#homeSection"
+    },
+    {
+      "name": "Send a GM",
+      "short_name": "GM",
+      "description": "Open the GM message module",
+      "url": "./#gmSection"
+    },
+    {
+      "name": "Donate",
+      "short_name": "Donate",
+      "description": "Support the hub treasury",
+      "url": "./#donateSection"
+    },
+    {
+      "name": "Governance",
+      "short_name": "Vote",
+      "description": "Review and vote on proposals",
+      "url": "./#governanceSection"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/logo-celo-engage-hub.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "label": "Celo Engage Hub overview"
     }
   ]
 }

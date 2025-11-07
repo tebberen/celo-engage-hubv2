@@ -1,4 +1,3 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
 import {
   OWNER_ADDRESS,
   UI_MESSAGES,
@@ -50,6 +49,11 @@ if (!deviceId) {
 }
 
 const storedClickerMap = safeParseStorage(localStorage.getItem("celo-engage-link-clickers"), {});
+
+const ETHERS_CDN_URL = "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+
+let ethers;
+let ethersPromise = null;
 
 const DEFAULT_FEED = [
   { user: "0xCommunity", link: "https://celo.org", blockNumber: null, transactionHash: null },
@@ -111,15 +115,25 @@ const elements = {
   completedFeed: document.getElementById("completedFeed"),
   completedCounter: document.getElementById("completedCounter"),
   gmForm: document.getElementById("gmForm"),
+  gmMessageInput: document.getElementById("gmMessage"),
   deployForm: document.getElementById("deployForm"),
+  deployNameInput: document.getElementById("deployName"),
   donateTabs: document.querySelectorAll("#donateSection .tab-btn"),
   donatePanels: document.querySelectorAll("#donateSection .tab-panel"),
   donateCeloForm: document.getElementById("donateCeloForm"),
+  celoAmountInput: document.getElementById("celoAmount"),
   approveCusdForm: document.getElementById("approveCusdForm"),
+  cusdApproveAmountInput: document.getElementById("cusdApproveAmount"),
   donateCusdForm: document.getElementById("donateCusdForm"),
+  cusdAmountInput: document.getElementById("cusdAmount"),
   approveCeurForm: document.getElementById("approveCeurForm"),
+  ceurApproveAmountInput: document.getElementById("ceurApproveAmount"),
   donateCeurForm: document.getElementById("donateCeurForm"),
+  ceurAmountInput: document.getElementById("ceurAmount"),
   proposalForm: document.getElementById("proposalForm"),
+  proposalTitleInput: document.getElementById("proposalTitle"),
+  proposalDescriptionInput: document.getElementById("proposalDescription"),
+  proposalLinkInput: document.getElementById("proposalLink"),
   activeProposals: document.getElementById("activeProposals"),
   pastProposals: document.getElementById("pastProposals"),
   badgeDetails: document.getElementById("badgeDetails"),
@@ -145,8 +159,6 @@ const elements = {
   usernameForm: document.getElementById("usernameForm"),
   usernameInput: document.getElementById("usernameInput"),
   languageToggle: document.getElementById("languageToggle"),
-  profileButton: document.getElementById("profileButton"),
-  profileModal: document.getElementById("profileModal"),
   ecosystemModal: document.getElementById("ecosystemModal"),
   ecosystemMore: document.getElementById("ecosystemMore"),
   shareModal: document.getElementById("shareModal"),
@@ -157,6 +169,8 @@ const elements = {
   duneLink: document.getElementById("duneLink"),
   graphLink: document.getElementById("graphLink"),
   deployedContracts: document.getElementById("deployedContracts"),
+  feedSkeleton: document.getElementById("feedSkeleton"),
+  governanceSkeleton: document.getElementById("governanceSkeleton"),
 };
 
 let activeSectionId = null;
@@ -168,8 +182,231 @@ let wsBackoff = 2000;
 
 let isVerifyingHuman = false;
 
-function init() {
+const reduceMotionQuery =
+  typeof window !== "undefined" && window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+
+const modalFocusRegistry = new Map();
+
+const LOADING_TEXT = {
+  connecting: "Connecting…",
+  pending: "Pending…",
+  sendingGM: "Sending GM…",
+  deploying: "Deploying…",
+  donating: "Sending Donation…",
+  approving: "Approving…",
+  sharingLink: "Submitting Link…",
+  creatingProposal: "Submitting Proposal…",
+  withdrawing: "Processing Withdrawal…",
+  registering: "Saving Profile…",
+  voting: "Processing Vote…",
+};
+
+function getLoadingText(key, fallback) {
+  const base = LOADING_TEXT[key] || fallback;
+  return t ? t(`status.${key}`, base) || base : base;
+}
+
+function toggleSkeleton(element, show) {
+  if (!element) return;
+  if (show) {
+    element.removeAttribute("hidden");
+  } else {
+    element.setAttribute("hidden", "true");
+  }
+}
+
+function shouldReduceMotion() {
+  return Boolean(reduceMotionQuery?.matches);
+}
+
+function getFocusableElements(container) {
+  if (!container) return [];
+  const selector =
+    'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  return Array.from(container.querySelectorAll(selector)).filter((el) => {
+    if (el.hasAttribute("disabled")) return false;
+    if (el.getAttribute("aria-hidden") === "true") return false;
+    const rects = el.getClientRects();
+    return rects.length > 0;
+  });
+}
+
+function activateFocusTrap(modal, options = {}) {
+  if (!modal) return;
+  const { initialFocus } = options;
+  const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const resolveInitialFocus = () => {
+    if (initialFocus instanceof HTMLElement) return initialFocus;
+    if (typeof initialFocus === "string") {
+      return modal.querySelector(initialFocus);
+    }
+    return null;
+  };
+
+  const trapState = {
+    previouslyFocused,
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key !== "Tab") return;
+    const focusable = getFocusableElements(modal);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const current = document.activeElement;
+    if (event.shiftKey) {
+      if (current === first || !modal.contains(current)) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      }
+    } else if (current === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  };
+
+  const handleFocusIn = (event) => {
+    if (modal.contains(event.target)) return;
+    const [firstFocusable] = getFocusableElements(modal);
+    if (firstFocusable) {
+      firstFocusable.focus({ preventScroll: true });
+    }
+  };
+
+  modal.addEventListener("keydown", handleKeyDown);
+  modal.addEventListener("focusin", handleFocusIn);
+  trapState.handleKeyDown = handleKeyDown;
+  trapState.handleFocusIn = handleFocusIn;
+  modalFocusRegistry.set(modal, trapState);
+
+  const focusTarget = resolveInitialFocus() || getFocusableElements(modal)[0];
+  if (focusTarget) {
+    requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
+  }
+}
+
+function deactivateFocusTrap(modal) {
+  if (!modal) return;
+  const trapState = modalFocusRegistry.get(modal);
+  if (!trapState) return;
+  if (trapState.handleKeyDown) {
+    modal.removeEventListener("keydown", trapState.handleKeyDown);
+  }
+  if (trapState.handleFocusIn) {
+    modal.removeEventListener("focusin", trapState.handleFocusIn);
+  }
+  modalFocusRegistry.delete(modal);
+  const target = trapState.previouslyFocused;
+  if (target && document.contains(target) && !modal.contains(target)) {
+    requestAnimationFrame(() => target.focus({ preventScroll: true }));
+  }
+}
+
+function optimizeHeaderLogo() {
+  const logo = document.querySelector(".nav-left__logo");
+  if (!logo || logo.dataset.optimized === "true") return;
+  if (typeof HTMLCanvasElement === "undefined") return;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  let supportsWebp = false;
+  try {
+    supportsWebp = canvas.toDataURL("image/webp").startsWith("data:image/webp");
+  } catch (error) {
+    supportsWebp = false;
+  }
+  if (!supportsWebp) return;
+  const source = logo.currentSrc || logo.src;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = source;
+  img.onload = () => {
+    try {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL("image/webp", 0.78);
+      if (!dataUrl.startsWith("data:image/webp")) return;
+      const base64 = dataUrl.split(",")[1] || "";
+      const sizeBytes = Math.ceil(base64.length * 0.75);
+      if (sizeBytes > 0 && sizeBytes <= 200 * 1024) {
+        logo.src = dataUrl;
+        logo.dataset.optimized = "true";
+        logo.setAttribute("data-original-src", source);
+      }
+    } catch (error) {
+      console.warn("logo optimization failed", error);
+    }
+  };
+  img.onerror = (error) => {
+    console.warn("logo load error", error);
+  };
+}
+
+async function ensureEthers() {
+  if (ethers) return ethers;
+  if (!ethersPromise) {
+    ethersPromise = import(ETHERS_CDN_URL)
+      .then((module) => {
+        ethers = module.ethers;
+        return ethers;
+      })
+      .catch((error) => {
+        ethersPromise = null;
+        throw error;
+      });
+  }
+  return ethersPromise;
+}
+
+async function withButtonLoading(button, options, task) {
+  const opts = options || {};
+  const action = typeof task === "function" ? task : async () => {};
+  if (!button) {
+    return action();
+  }
+  const originalHtml = button.innerHTML;
+  const originalMinWidth = button.style.minWidth;
+  const keepWidth = opts.keepWidth !== false;
+  const measuredWidth = keepWidth ? button.getBoundingClientRect().width : null;
+  if (measuredWidth) {
+    button.style.minWidth = `${Math.ceil(measuredWidth)}px`;
+  }
+  button.disabled = true;
+  button.classList.add("is-loading");
+  button.setAttribute("aria-busy", "true");
+  if (opts.loadingText) {
+    button.textContent = opts.loadingText;
+  }
+  try {
+    return await action();
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-loading");
+    button.removeAttribute("aria-busy");
+    if (opts.loadingText) {
+      button.innerHTML = originalHtml;
+    } else {
+      button.innerHTML = originalHtml;
+    }
+    if (measuredWidth) {
+      if (originalMinWidth) {
+        button.style.minWidth = originalMinWidth;
+      } else {
+        button.style.removeProperty("min-width");
+      }
+    }
+  }
+}
+
+async function init() {
   applyTheme();
+  optimizeHeaderLogo();
   setupLanguage();
   setupNavigation();
   const initialSection = document.querySelector(".section.active") || (elements.sections && elements.sections[0]);
@@ -195,7 +432,12 @@ function init() {
   updateWalletUI();
   loadInitialData();
   initWalletListeners();
-  initWebsocket();
+  try {
+    await ensureEthers();
+    await initWebsocket();
+  } catch (error) {
+    console.error("ethers init error", error);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
@@ -298,31 +540,12 @@ function renderNavigationAria() {
 }
 
 function setupProfileModal() {
-  if (!elements.profileModal) return;
-
-  const dismissElements = elements.profileModal.querySelectorAll('[data-dismiss="profileModal"]');
-  dismissElements.forEach((closeBtn) => {
-    closeBtn.addEventListener("click", closeProfileModal);
-  });
-
   if (elements.profileCopyButton) {
     elements.profileCopyButton.addEventListener("click", handleProfileAddressCopy);
   }
 
-  if (elements.profileButton) {
-    elements.profileButton.addEventListener("click", () => {
-      if (!state.profile) {
-        refreshProfile();
-      }
-      openProfileModal();
-    });
-  }
-
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (elements.profileModal?.classList.contains("is-open")) {
-      closeProfileModal();
-    }
     if (elements.shareModal?.classList.contains("is-open")) {
       closeShareModal();
     }
@@ -336,23 +559,9 @@ function setupProfileModal() {
       closeUsernameModal();
     }
     if (elements.walletDropdown?.classList.contains("open")) {
-      closeWalletDropdown();
+      closeWalletDropdown({ restoreFocus: true });
     }
   });
-}
-
-function openProfileModal() {
-  if (!elements.profileModal) return;
-  elements.profileModal.classList.add("is-open");
-  elements.profileModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
-}
-
-function closeProfileModal() {
-  if (!elements.profileModal) return;
-  elements.profileModal.classList.remove("is-open");
-  elements.profileModal.setAttribute("aria-hidden", "true");
-  updateBodyModalState();
 }
 
 function setupShareModal() {
@@ -380,15 +589,16 @@ function openShareModal(link) {
   }
   if (elements.shareLinkInput) {
     elements.shareLinkInput.value = "https://";
-    elements.shareLinkInput.focus({ preventScroll: true });
   }
   elements.shareModal.classList.add("is-open");
   elements.shareModal.setAttribute("aria-hidden", "false");
   updateBodyModalState();
+  activateFocusTrap(elements.shareModal, { initialFocus: elements.shareLinkInput });
 }
 
 function closeShareModal() {
   if (!elements.shareModal) return;
+  deactivateFocusTrap(elements.shareModal);
   elements.shareModal.classList.remove("is-open");
   elements.shareModal.setAttribute("aria-hidden", "true");
   if (elements.shareLinkInput) {
@@ -583,14 +793,16 @@ function escapeHtml(value) {
 }
 
 function updateBodyModalState() {
-  const profileOpen = elements.profileModal?.classList.contains("is-open");
   const shareOpen = elements.shareModal?.classList.contains("is-open");
   const connectOpen = elements.connectModal?.classList.contains("is-open");
   const ecosystemOpen = elements.ecosystemModal?.classList.contains("is-open");
   const usernameOpen = elements.usernameModal?.classList.contains("is-open");
+  const smallScreenWalletOpen =
+    elements.walletDropdown?.classList.contains("open") &&
+    Boolean(typeof window !== "undefined" && window.matchMedia?.("(max-width: 480px)").matches);
   document.body.classList.toggle(
     "modal-open",
-    Boolean(profileOpen || shareOpen || connectOpen || ecosystemOpen || usernameOpen)
+    Boolean(shareOpen || connectOpen || ecosystemOpen || usernameOpen || smallScreenWalletOpen)
   );
 }
 
@@ -641,7 +853,7 @@ function refreshBreadcrumb() {
 
 function setActiveSection(sectionId, options = {}) {
   if (!sectionId) return;
-  const { labelOverride, suppressBreadcrumb } = options;
+  const { labelOverride, suppressBreadcrumb, updateUrl = true } = options;
   const sections = Array.from(elements.sections || []);
   sections.forEach((section) => {
     const isTarget = section.id === sectionId;
@@ -659,6 +871,10 @@ function setActiveSection(sectionId, options = {}) {
   });
 
   activeSectionId = sectionId;
+
+  if (updateUrl && window.location.hash !== `#${sectionId}`) {
+    history.replaceState(null, "", `#${sectionId}`);
+  }
 
   if (!suppressBreadcrumb) {
     const section = document.getElementById(sectionId);
@@ -679,19 +895,32 @@ function scrollToSection(sectionId, sectionName) {
   setActiveSection(sectionId, { labelOverride: sectionName });
 
   const targetTop = section.getBoundingClientRect().top + window.scrollY - 120;
+  const reduceMotion = shouldReduceMotion();
   window.scrollTo({
     top: targetTop > 0 ? targetTop : 0,
-    behavior: "smooth",
+    behavior: reduceMotion ? "auto" : "smooth",
   });
 
+  const cooldown = reduceMotion ? 0 : 700;
   autoScrollTimeout = setTimeout(() => {
     isAutoScrolling = false;
-  }, 700);
+  }, cooldown);
+
+  const focusDelay = reduceMotion ? 0 : 320;
+  setTimeout(() => {
+    section.focus({ preventScroll: true });
+  }, focusDelay);
 }
 
 function setupNavigation() {
   const sections = Array.from(elements.sections || []);
   if (!sections.length) return;
+
+  sections.forEach((section) => {
+    if (!section.hasAttribute("tabindex")) {
+      section.setAttribute("tabindex", "-1");
+    }
+  });
 
   const sectionButtons = Array.from(elements.navButtons || []).filter((btn) => btn.dataset?.target);
 
@@ -705,6 +934,19 @@ function setupNavigation() {
       scrollToSection(target, label);
     });
   });
+
+  const initialHash = window.location.hash ? window.location.hash.replace("#", "") : "";
+  if (initialHash) {
+    const hashSection = document.getElementById(initialHash);
+    if (hashSection) {
+      activeSectionId = initialHash;
+      const label = getSectionLabel(hashSection);
+      setActiveSection(initialHash, { labelOverride: label });
+      const targetTop = hashSection.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: targetTop > 0 ? targetTop : 0, behavior: "auto" });
+      requestAnimationFrame(() => hashSection.focus({ preventScroll: true }));
+    }
+  }
 
   if (!activeSectionId) {
     activeSectionId = sections[0].id;
@@ -792,20 +1034,18 @@ function setupDonateShortcuts() {
       if (!amount) return;
       if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
       if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
-      const originalHtml = button.innerHTML;
-      button.disabled = true;
-      button.classList.add("is-loading");
-      button.setAttribute("aria-busy", "true");
       try {
-        await doDonateCELO(amount);
+        await withButtonLoading(
+          button,
+          { loadingText: getLoadingText("donating", "Sending Donation…") },
+          async () => {
+            await doDonateCELO(amount);
+            refreshAfterTransaction();
+          }
+        );
       } catch (error) {
         console.error("quick donate error", error);
         showToast("error", parseError(error));
-      } finally {
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-        button.classList.remove("is-loading");
-        button.removeAttribute("aria-busy");
       }
     });
   });
@@ -821,7 +1061,7 @@ function setupWalletButtons() {
   if (elements.connectTrigger) {
     elements.connectTrigger.addEventListener("click", () => {
       if (state.address) {
-        toggleWalletDropdown(true);
+        toggleWalletDropdown(true, { focusMenu: true });
       } else {
         openConnectModal();
       }
@@ -832,14 +1072,23 @@ function setupWalletButtons() {
     option.addEventListener("click", async () => {
       const type = option.dataset.connectOption;
       const connector = type === "walletconnect" ? connectWalletConnect : connectWalletMetaMask;
-      await connectWallet(connector);
+      try {
+        await withButtonLoading(option, { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true }, async () => {
+          await connectWallet(connector);
+        });
+      } catch (error) {
+        console.error("connect option error", error);
+      }
     });
   });
 
   if (elements.disconnectWallet) {
     elements.disconnectWallet.addEventListener("click", async () => {
+      const button = elements.disconnectWallet;
       try {
-        await disconnectWallet();
+        await withButtonLoading(button, { loadingText: getLoadingText("pending", "Pending…") }, async () => {
+          await disconnectWallet();
+        });
         state.address = null;
         state.profile = null;
         state.isOwner = false;
@@ -864,7 +1113,27 @@ function setupWalletDropdown() {
   if (!elements.walletPillButton || !elements.walletDropdown) return;
   elements.walletPillButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    toggleWalletDropdown();
+    toggleWalletDropdown(null, { focusMenu: true });
+  });
+
+  elements.walletPillButton.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleWalletDropdown(null, { focusMenu: true });
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      toggleWalletDropdown(true, { focusMenu: true });
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeWalletDropdown({ restoreFocus: true });
+    }
+  });
+
+  elements.walletDropdown.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeWalletDropdown({ restoreFocus: true });
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -900,10 +1169,12 @@ function renderVerificationState() {
       elements.verifyHumanButton.textContent = "Verifying…";
       elements.verifyHumanButton.disabled = true;
       elements.verifyHumanButton.setAttribute("aria-busy", "true");
+      elements.verifyHumanButton.classList.add("is-loading");
     } else {
       elements.verifyHumanButton.textContent = verified ? "Verified Human" : "Verify with World ID";
       elements.verifyHumanButton.disabled = verified;
       elements.verifyHumanButton.removeAttribute("aria-busy");
+      elements.verifyHumanButton.classList.remove("is-loading");
     }
   }
   if (elements.walletVerifiedBadge) {
@@ -960,19 +1231,26 @@ async function handleVerifyHumanClick() {
   }
 }
 
-function toggleWalletDropdown(forceOpen = null) {
+function toggleWalletDropdown(forceOpen = null, options = {}) {
   if (!elements.walletDropdown || !elements.walletPillButton) return;
   const shouldOpen = forceOpen ?? !elements.walletDropdown.classList.contains("open");
   elements.walletDropdown.classList.toggle("open", shouldOpen);
   elements.walletPillButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  if (shouldOpen) {
+    if (options.focusMenu) {
+      const [firstFocusable] = getFocusableElements(elements.walletDropdown);
+      if (firstFocusable) {
+        firstFocusable.focus({ preventScroll: true });
+      }
+    }
+  } else if (options.restoreFocus) {
+    elements.walletPillButton.focus({ preventScroll: true });
+  }
+  updateBodyModalState();
 }
 
-function closeWalletDropdown() {
-  if (!elements.walletDropdown) return;
-  elements.walletDropdown.classList.remove("open");
-  if (elements.walletPillButton) {
-    elements.walletPillButton.setAttribute("aria-expanded", "false");
-  }
+function closeWalletDropdown(options = {}) {
+  toggleWalletDropdown(false, options);
 }
 
 function setupEcosystemModal() {
@@ -989,10 +1267,13 @@ function openConnectModal() {
   elements.connectModal.classList.add("is-open");
   elements.connectModal.setAttribute("aria-hidden", "false");
   updateBodyModalState();
+  const firstOption = elements.connectModal.querySelector(".wallet-option");
+  activateFocusTrap(elements.connectModal, { initialFocus: firstOption });
 }
 
 function closeConnectModal() {
   if (!elements.connectModal) return;
+  deactivateFocusTrap(elements.connectModal);
   elements.connectModal.classList.remove("is-open");
   elements.connectModal.setAttribute("aria-hidden", "true");
   updateBodyModalState();
@@ -1003,10 +1284,13 @@ function openEcosystemModal() {
   elements.ecosystemModal.classList.add("is-open");
   elements.ecosystemModal.setAttribute("aria-hidden", "false");
   updateBodyModalState();
+  const firstLink = elements.ecosystemModal.querySelector("a");
+  activateFocusTrap(elements.ecosystemModal, { initialFocus: firstLink });
 }
 
 function closeEcosystemModal() {
   if (!elements.ecosystemModal) return;
+  deactivateFocusTrap(elements.ecosystemModal);
   elements.ecosystemModal.classList.remove("is-open");
   elements.ecosystemModal.setAttribute("aria-hidden", "true");
   updateBodyModalState();
@@ -1137,6 +1421,8 @@ function showToast(type, message, hash, explorer) {
   if (!message) return;
   const toast = document.createElement("div");
   toast.className = `toast ${type || "info"}`;
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "assertive");
   toast.innerHTML = `
     <strong>${message}</strong>
     ${hash ? `<span class="hash"><a href="${explorer || `${CURRENT_NETWORK.explorer}/tx/${hash}`}" target="_blank" rel="noopener">${shorten(hash)}</a></span>` : ""}
@@ -1156,10 +1442,20 @@ function shorten(value, start = 6, end = 4) {
 async function handleGMSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const message = document.getElementById("gmMessage").value.trim();
+  const message = elements.gmMessageInput?.value.trim() || "";
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doGM(message);
-    document.getElementById("gmMessage").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("sendingGM", "Sending GM…") },
+      async () => {
+        await doGM(message);
+        if (elements.gmMessageInput) {
+          elements.gmMessageInput.value = "";
+        }
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("GM error", error);
     showToast("error", parseError(error));
@@ -1169,10 +1465,20 @@ async function handleGMSubmit(event) {
 async function handleDeploySubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const name = document.getElementById("deployName").value.trim();
+  const name = elements.deployNameInput?.value.trim() || "";
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDeploy(name);
-    document.getElementById("deployName").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("deploying", "Deploying…") },
+      async () => {
+        await doDeploy(name);
+        if (elements.deployNameInput) {
+          elements.deployNameInput.value = "";
+        }
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Deploy error", error);
     showToast("error", parseError(error));
@@ -1182,11 +1488,21 @@ async function handleDeploySubmit(event) {
 async function handleDonateCeloSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const amount = Number(document.getElementById("celoAmount").value || 0);
+  const amount = Number(elements.celoAmountInput?.value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCELO(amount);
-    document.getElementById("celoAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCELO(amount);
+        if (elements.celoAmountInput) {
+          elements.celoAmountInput.value = "";
+        }
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate CELO error", error);
     showToast("error", parseError(error));
@@ -1196,10 +1512,17 @@ async function handleDonateCeloSubmit(event) {
 async function handleApproveCusdSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const amount = Number(document.getElementById("cusdApproveAmount").value || 0);
+  const amount = Number(elements.cusdApproveAmountInput?.value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doApproveCUSD(amount);
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("approving", "Approving…") },
+      async () => {
+        await doApproveCUSD(amount);
+      }
+    );
   } catch (error) {
     console.error("Approve cUSD error", error);
     showToast("error", parseError(error));
@@ -1209,11 +1532,21 @@ async function handleApproveCusdSubmit(event) {
 async function handleDonateCusdSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const amount = Number(document.getElementById("cusdAmount").value || 0);
+  const amount = Number(elements.cusdAmountInput?.value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCUSD(amount);
-    document.getElementById("cusdAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCUSD(amount);
+        if (elements.cusdAmountInput) {
+          elements.cusdAmountInput.value = "";
+        }
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate cUSD error", error);
     showToast("error", parseError(error));
@@ -1223,10 +1556,17 @@ async function handleDonateCusdSubmit(event) {
 async function handleApproveCeurSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const amount = Number(document.getElementById("ceurApproveAmount").value || 0);
+  const amount = Number(elements.ceurApproveAmountInput?.value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doApproveCEUR(amount);
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("approving", "Approving…") },
+      async () => {
+        await doApproveCEUR(amount);
+      }
+    );
   } catch (error) {
     console.error("Approve cEUR error", error);
     showToast("error", parseError(error));
@@ -1236,11 +1576,21 @@ async function handleApproveCeurSubmit(event) {
 async function handleDonateCeurSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const amount = Number(document.getElementById("ceurAmount").value || 0);
+  const amount = Number(elements.ceurAmountInput?.value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCEUR(amount);
-    document.getElementById("ceurAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCEUR(amount);
+        if (elements.ceurAmountInput) {
+          elements.ceurAmountInput.value = "";
+        }
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate cEUR error", error);
     showToast("error", parseError(error));
@@ -1254,14 +1604,22 @@ async function handleShareLinkSubmit(event) {
   if (!url.startsWith("https://")) {
     return showToast("error", UI_MESSAGES.invalidLink);
   }
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doShareLink(url);
-    if (elements.shareLinkInput) {
-      elements.shareLinkInput.value = "https://";
-    }
-    closeShareModal();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("sharingLink", "Submitting Link…") },
+      async () => {
+        await doShareLink(url);
+        if (elements.shareLinkInput) {
+          elements.shareLinkInput.value = "https://";
+        }
+        closeShareModal();
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
-    console.error("Share link error", error);
+    console.error("share link error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1269,12 +1627,20 @@ async function handleShareLinkSubmit(event) {
 async function handleProposalSubmit(event) {
   event.preventDefault();
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
-  const title = document.getElementById("proposalTitle").value.trim();
-  const description = document.getElementById("proposalDescription").value.trim();
-  const link = document.getElementById("proposalLink").value.trim();
+  const title = elements.proposalTitleInput?.value.trim() || "";
+  const description = elements.proposalDescriptionInput?.value.trim() || "";
+  const link = elements.proposalLinkInput?.value.trim() || "";
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await govCreateProposal(title, description, link);
-    event.target.reset();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("creatingProposal", "Submitting Proposal…") },
+      async () => {
+        await govCreateProposal(title, description, link);
+        event.target.reset();
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Proposal error", error);
     showToast("error", parseError(error));
@@ -1286,9 +1652,17 @@ async function handleWithdrawSubmit(event, token) {
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
   const amountInput = event.target.querySelector("input");
   const amount = amountInput?.value || "";
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await withdrawDonations(token, amount);
-    if (amountInput) amountInput.value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("withdrawing", "Processing Withdrawal…") },
+      async () => {
+        await withdrawDonations(token, amount);
+        if (amountInput) amountInput.value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Withdraw error", error);
     showToast("error", parseError(error));
@@ -1299,10 +1673,17 @@ async function handleRegisterSubmit(event) {
   event.preventDefault();
   const username = elements.usernameInput.value.trim();
   if (!username) return;
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await registerProfile(username);
-    closeUsernameModal();
-    await refreshProfile();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("registering", "Saving Profile…") },
+      async () => {
+        await registerProfile(username);
+        closeUsernameModal();
+        await refreshProfile();
+      }
+    );
   } catch (error) {
     console.error("Register error", error);
     showToast("error", parseError(error));
@@ -1353,6 +1734,7 @@ async function refreshGlobalStats() {
 }
 
 async function refreshFeed() {
+  toggleSkeleton(elements.feedSkeleton, true);
   try {
     const [links, personalLinks] = await Promise.all([
       loadRecentLinks(20),
@@ -1373,16 +1755,21 @@ async function refreshFeed() {
     updateLinkFeedView();
   } catch (error) {
     console.error("feed error", error);
+  } finally {
+    toggleSkeleton(elements.feedSkeleton, false);
   }
 }
 
 async function refreshGovernance() {
+  toggleSkeleton(elements.governanceSkeleton, true);
   try {
     const data = await loadGovernance();
     state.governance = data;
     renderGovernance(data);
   } catch (error) {
     console.error("governance error", error);
+  } finally {
+    toggleSkeleton(elements.governanceSkeleton, false);
   }
 }
 
@@ -1718,7 +2105,14 @@ elements.activeProposals.addEventListener("click", async (event) => {
   const proposalId = Number(button.dataset.proposal);
   const support = button.dataset.vote === "true";
   try {
-    await govVote(proposalId, support);
+    await withButtonLoading(
+      button,
+      { loadingText: getLoadingText("voting", "Processing Vote…") },
+      async () => {
+        await govVote(proposalId, support);
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("vote error", error);
     showToast("error", parseError(error));
@@ -1801,27 +2195,34 @@ function parseError(error) {
 }
 
 function openUsernameModal() {
+  if (!elements.usernameModal) return;
   elements.usernameModal.classList.add("is-open");
   elements.usernameModal.setAttribute("aria-hidden", "false");
   updateBodyModalState();
+  activateFocusTrap(elements.usernameModal, { initialFocus: elements.usernameInput });
 }
 
 function closeUsernameModal() {
+  if (!elements.usernameModal) return;
+  deactivateFocusTrap(elements.usernameModal);
   elements.usernameModal.classList.remove("is-open");
   elements.usernameModal.setAttribute("aria-hidden", "true");
   updateBodyModalState();
 }
 
 async function loadInitialData() {
-  await refreshGlobalStats();
-  await refreshFeed();
-  await refreshGovernance();
-  await refreshLeaderboard();
+  await Promise.all([
+    refreshGlobalStats(),
+    refreshFeed(),
+    refreshGovernance(),
+    refreshLeaderboard(),
+  ]);
 }
 
-function initWebsocket() {
+async function initWebsocket() {
   if (!CURRENT_NETWORK.wsUrl) return;
   try {
+    await ensureEthers();
     if (wsProvider) {
       wsProvider.destroy?.();
     }

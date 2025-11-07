@@ -24,9 +24,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+      as="style"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
       rel="stylesheet"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <link rel="manifest" href="./manifest.json" />
     <link rel="miniapp-config" href="./miniapp.config.json" />
     <link rel="stylesheet" href="src/styles/main.css" />
@@ -43,6 +54,8 @@
             src="./assets/logo-celo-engage-hub.png"
             alt="Celo Engage Hub logo"
             class="nav-left__logo"
+            loading="lazy"
+            decoding="async"
           />
           <span class="nav-left__slogan">If you want support, support first.</span>
         </div>
@@ -53,35 +66,45 @@
           <button class="nav-btn" data-target="donateSection" data-i18n="nav.donate">Donate</button>
           <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
           <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badges</button>
-          <button class="nav-btn" id="profileButton" data-i18n="nav.profile">Profile</button>
+          <button class="nav-btn" data-target="profileSection" data-i18n="nav.profile">Profile</button>
         </nav>
         <div class="header-actions">
-          <button
-            id="languageToggle"
-            class="icon-btn header-globe"
-            aria-label="Dil değiştir"
-            data-i18n-aria-label="actions.languageToggle"
-          >🌐</button>
-          <div class="wallet-actions">
-            <div class="wallet-verification">
-              <button id="verifyHumanButton" type="button" class="verify-btn">Verify with World ID</button>
-              <span id="walletVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
-            </div>
-            <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
-            <div id="walletPill" class="wallet-pill" hidden>
-              <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
-                <span id="walletAddressLabel">—</span>
-                <span class="wallet-pill__status" aria-hidden="true">•</span>
-                <span class="wallet-pill__chevron">▾</span>
-              </button>
-              <div id="walletDropdown" class="wallet-dropdown" role="menu">
-                <div class="wallet-dropdown__network">
-                  <span data-i18n="wallet.networkLabel">Network</span>
-                  <strong id="walletNetworkName">—</strong>
-                </div>
-                <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
-                  Disconnect
+          <div class="action-cluster" role="group" aria-label="Wallet and language controls">
+            <button
+              id="languageToggle"
+              type="button"
+              class="icon-btn header-globe"
+              aria-label="Dil değiştir"
+              data-i18n-aria-label="actions.languageToggle"
+            >🌐</button>
+            <div class="wallet-actions">
+              <div class="identity-connect-pill" id="identityConnectPill">
+                <button id="verifyHumanButton" type="button" class="verify-btn">Verify with World ID</button>
+                <span class="identity-connect-pill__divider" aria-hidden="true"></span>
+                <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
+                <span id="walletVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+              </div>
+              <div id="walletPill" class="wallet-pill" hidden>
+                <button
+                  id="walletPillButton"
+                  class="wallet-pill__button"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                  aria-controls="walletDropdown"
+                >
+                  <span id="walletAddressLabel">—</span>
+                  <span class="wallet-pill__status" aria-hidden="true">•</span>
+                  <span class="wallet-pill__chevron">▾</span>
                 </button>
+                <div id="walletDropdown" class="wallet-dropdown" role="menu" aria-label="Wallet actions">
+                  <div class="wallet-dropdown__network">
+                    <span data-i18n="wallet.networkLabel">Network</span>
+                    <strong id="walletNetworkName">—</strong>
+                  </div>
+                  <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
+                    Disconnect
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -89,6 +112,7 @@
       </header>
 
       <main class="app-main">
+        <h1 class="page-title" data-i18n="hero.title">Celo Engage Hub</h1>
         <div class="page-wrapper">
           <aside class="left-sidebar">
             <section class="card highlight-panel donate-highlight">
@@ -137,12 +161,17 @@
                 <p data-i18n="home.subtitle">Latest shared links from fellow builders</p>
               </div>
               <div class="feed-stack">
-                <div id="linkFeed" class="feed-list"></div>
+                <div class="skeleton-group" id="feedSkeleton" aria-hidden="true">
+                  <div class="skeleton-card"></div>
+                  <div class="skeleton-card"></div>
+                  <div class="skeleton-card"></div>
+                </div>
+                <div id="linkFeed" class="feed-list" aria-live="polite"></div>
                 <div class="completed-block">
                   <div class="completed-header">
                     <h3 data-i18n="feed.completedTitle">✅ Completed Links</h3>
                   </div>
-                  <div id="completedFeed" class="feed-list feed-list--completed"></div>
+                  <div id="completedFeed" class="feed-list feed-list--completed" aria-live="polite"></div>
                   <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
                 </div>
               </div>
@@ -275,11 +304,16 @@
               <div class="governance-columns">
                 <div class="card">
                   <h3 data-i18n="governance.active">Active Proposals</h3>
-                  <ul id="activeProposals" class="proposal-list"></ul>
+                  <div class="skeleton-group skeleton-group--compact" id="governanceSkeleton" aria-hidden="true">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                  </div>
+                  <ul id="activeProposals" class="proposal-list" aria-live="polite"></ul>
                 </div>
                 <div class="card">
                   <h3 data-i18n="governance.completed">Completed Proposals</h3>
-                  <ul id="pastProposals" class="proposal-list"></ul>
+                  <ul id="pastProposals" class="proposal-list" aria-live="polite"></ul>
                 </div>
               </div>
             </section>
@@ -338,6 +372,45 @@
                 </div>
               </div>
             </section>
+
+            <section id="profileSection" class="section" data-section-label="Profile">
+              <div class="section-header">
+                <h2 data-i18n="profile.title">Profile</h2>
+                <p data-i18n="profile.subtitle">Your XP, badges, and verification status.</p>
+              </div>
+              <div class="card profile-card">
+                <div class="profile-card__identity">
+                  <div>
+                    <p id="profileUsername" class="profile-username">—</p>
+                    <span id="profileVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+                  </div>
+                  <button
+                    id="profileCopyButton"
+                    type="button"
+                    class="copy-address-btn"
+                    aria-label="Copy wallet address"
+                    data-i18n-aria-label="profile.copyAddress"
+                  >
+                    📋
+                  </button>
+                </div>
+                <span id="profileAddress" class="profile-address">—</span>
+                <div id="profileStats" class="stats-grid"></div>
+                <div class="level-tier" id="profileLevelTier">
+                  <span id="profileLevelLabel">Level —</span>
+                  <span id="profileTierLabel">Tier —</span>
+                </div>
+                <div class="badge-stack" id="badgeStack"></div>
+                <div id="xpProgress" class="xp-progress-wrap"></div>
+                <div class="profile-links">
+                  <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">View profile</a>
+                </div>
+                <div class="profile-metrics">
+                  <h3 data-i18n="profile.metricsTitle">Activity Stats</h3>
+                  <ul id="profileMetrics"></ul>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </main>
@@ -380,56 +453,7 @@
       </div>
     </div>
 
-    <div id="profileModal" class="profile-modal" aria-hidden="true">
-      <div class="profile-modal__backdrop" data-dismiss="profileModal"></div>
-      <div class="profile-modal__dialog" role="dialog" aria-modal="true">
-        <div class="modal-profile">
-          <button
-            class="modal-close icon-btn"
-            data-dismiss="profileModal"
-            aria-label="Close profile"
-            data-i18n-aria-label="profile.close"
-          >
-            ✕
-          </button>
-          <div class="modal-profile__header">
-            <h2 data-i18n="profile.title">Profile</h2>
-            <div class="modal-profile__identity">
-              <p id="profileUsername" class="modal-profile__username">—</p>
-              <span id="profileVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
-            </div>
-          </div>
-          <div class="modal-profile__address">
-            <span id="profileAddress" class="profile-address">—</span>
-            <button
-              id="profileCopyButton"
-              type="button"
-              class="copy-address-btn"
-              aria-label="Copy wallet address"
-              data-i18n-aria-label="profile.copyAddress"
-            >
-              📋
-            </button>
-          </div>
-          <div id="profileStats" class="stats-grid"></div>
-          <div class="level-tier" id="profileLevelTier">
-            <span id="profileLevelLabel">Level —</span>
-            <span id="profileTierLabel">Tier —</span>
-          </div>
-          <div class="badge-stack" id="badgeStack"></div>
-          <div id="xpProgress" class="xp-progress-wrap"></div>
-          <div class="profile-links">
-            <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">View profile</a>
-          </div>
-          <div class="profile-metrics">
-            <h3 data-i18n="profile.metricsTitle">Activity Stats</h3>
-            <ul id="profileMetrics"></ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="toastContainer" class="toast-container" role="status" aria-live="assertive"></div>
+    <div id="toastContainer" class="toast-container" role="alert" aria-live="assertive"></div>
 
     <div id="shareModal" class="share-modal" aria-hidden="true">
       <div class="share-modal__backdrop" data-dismiss="shareModal"></div>

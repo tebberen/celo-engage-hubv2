@@ -5,6 +5,34 @@
   "homepageUrl": "https://celo.org",
   "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-icon.png",
   "version": "1.0.0",
+  "developer": {
+    "name": "Celo Community Guild",
+    "website": "https://celo.org"
+  },
+  "tags": ["celo", "community", "governance", "donations"],
+  "supportedLocales": ["en", "tr"],
+  "screens": [
+    {
+      "id": "feed",
+      "label": "Community Feed",
+      "entry": "./#homeSection"
+    },
+    {
+      "id": "gm",
+      "label": "Send GM",
+      "entry": "./#gmSection"
+    },
+    {
+      "id": "donate",
+      "label": "Donate",
+      "entry": "./#donateSection"
+    },
+    {
+      "id": "governance",
+      "label": "Governance",
+      "entry": "./#governanceSection"
+    }
+  ],
   "capabilities": {
     "walletConnect": "2.0",
     "supportedTokens": ["CELO", "cUSD", "cEUR"],
