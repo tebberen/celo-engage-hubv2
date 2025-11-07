@@ -42,6 +42,7 @@ import {
   syncVerifiedFlag,
   clearVerificationState,
 } from "./services/identityService.js";
+import { fetchTalentProfile } from "./services/talentService.js";
 
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
@@ -76,6 +77,11 @@ const state = {
   deviceId,
   feedEntries: [],
   verifiedHuman: false,
+  talentProfile: {
+    status: "idle",
+    data: null,
+    error: null,
+  },
 };
 
 const elements = {
@@ -157,6 +163,20 @@ const elements = {
   deployedContracts: document.getElementById("deployedContracts"),
   feedSkeleton: document.getElementById("feedSkeleton"),
   governanceSkeleton: document.getElementById("governanceSkeleton"),
+  talentSection: document.getElementById("talentSection"),
+  talentProfileCard: document.getElementById("talentProfileCard"),
+  talentProfileContent: document.getElementById("talentProfileContent"),
+  talentProfileLoading: document.getElementById("talentProfileLoading"),
+  talentProfileError: document.getElementById("talentProfileError"),
+  talentProfileRetry: document.getElementById("talentProfileRetry"),
+  talentProfileName: document.getElementById("talentProfileName"),
+  talentProfileUsername: document.getElementById("talentProfileUsername"),
+  talentProfileBio: document.getElementById("talentProfileBio"),
+  talentProfileSupporters: document.getElementById("talentProfileSupporters"),
+  talentProfileBadges: document.getElementById("talentProfileBadges"),
+  talentProfileLink: document.getElementById("talentProfileLink"),
+  talentProfileImage: document.getElementById("talentProfileImage"),
+  talentProfileErrorMessage: document.getElementById("talentProfileErrorMessage"),
 };
 
 let activeSectionId = null;
@@ -167,12 +187,15 @@ let wsProvider = null;
 let wsBackoff = 2000;
 
 let isVerifyingHuman = false;
+let talentProfileAbortController = null;
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
 const modalFocusState = new WeakMap();
 const modalStack = [];
 let walletDropdownFocusCleanup = null;
+
+const TALENT_AVATAR_FALLBACK = "https://storage.googleapis.com/ceibalancer/celo-icon.png";
 
 const LOADING_TEXT = {
   connecting: "Connecting…",
@@ -340,6 +363,7 @@ function init() {
   setupUsernameModal();
   setupEcosystemModal();
   setupFeedInteractions();
+  setupTalentProfile();
   setupToastBridge();
   updateAnalyticsLinks();
   renderNetworkInfo(false);
@@ -411,6 +435,7 @@ function applyLanguage(lang) {
   translateDocument();
   renderProfile(state.profile);
   renderBadgeDetails(state.profile);
+  renderTalentProfileState();
   renderGlobalCounters(state.global);
   renderNavigationAria();
   updateLinkFeedView();
@@ -530,6 +555,23 @@ function setupFeedInteractions() {
   if (elements.completedFeed) {
     elements.completedFeed.addEventListener("click", handleFeedClick);
   }
+}
+
+function setupTalentProfile() {
+  if (!elements.talentProfileCard) return;
+
+  if (elements.talentProfileRetry) {
+    elements.talentProfileRetry.addEventListener("click", () => {
+      refreshTalentProfile({ keepPrevious: false });
+    });
+  }
+
+  state.talentProfile = {
+    status: "loading",
+    data: null,
+    error: null,
+  };
+  renderTalentProfileState();
 }
 
 function handleFeedClick(event) {
@@ -1585,6 +1627,52 @@ async function handleRegisterSubmit(event) {
   }
 }
 
+async function refreshTalentProfile({ keepPrevious = true } = {}) {
+  if (!elements.talentProfileCard) return;
+
+  if (talentProfileAbortController) {
+    talentProfileAbortController.abort();
+  }
+
+  const controller = new AbortController();
+  talentProfileAbortController = controller;
+  const previousData = keepPrevious ? state.talentProfile?.data : null;
+
+  state.talentProfile = {
+    status: "loading",
+    data: previousData,
+    error: null,
+  };
+  renderTalentProfileState();
+
+  try {
+    const profile = await fetchTalentProfile({ signal: controller.signal });
+    if (talentProfileAbortController !== controller) {
+      return;
+    }
+    state.talentProfile = {
+      status: "success",
+      data: profile,
+      error: null,
+    };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      return;
+    }
+    console.error("Talent profile fetch error", error);
+    state.talentProfile = {
+      status: "error",
+      data: previousData,
+      error,
+    };
+  } finally {
+    if (talentProfileAbortController === controller) {
+      talentProfileAbortController = null;
+    }
+    renderTalentProfileState();
+  }
+}
+
 function refreshAfterTransaction() {
   return Promise.all([
     refreshProfile(),
@@ -1592,6 +1680,7 @@ function refreshAfterTransaction() {
     refreshGovernance(),
     refreshLeaderboard(),
     refreshFeed(),
+    refreshTalentProfile({ keepPrevious: true }),
   ]);
 }
 
@@ -1703,6 +1792,125 @@ async function handleProfileAddressCopy() {
     console.error("copy error", error);
     showToast("error", UI_MESSAGES.error);
   }
+}
+
+function renderTalentProfileState() {
+  if (!elements.talentProfileCard) return;
+
+  const { status = "idle", data = null, error = null } = state.talentProfile || {};
+  const isLoading = status === "loading";
+  const hasError = status === "error";
+  const hasData = Boolean(data);
+
+  if (isLoading) {
+    elements.talentProfileCard.setAttribute("aria-busy", "true");
+  } else {
+    elements.talentProfileCard.removeAttribute("aria-busy");
+  }
+
+  if (elements.talentProfileLoading) {
+    elements.talentProfileLoading.hidden = !isLoading;
+    elements.talentProfileLoading.setAttribute("aria-hidden", String(!isLoading));
+  }
+
+  if (elements.talentProfileError) {
+    elements.talentProfileError.hidden = !hasError;
+  }
+
+  if (elements.talentProfileRetry) {
+    elements.talentProfileRetry.disabled = isLoading;
+  }
+
+  if (elements.talentProfileContent) {
+    elements.talentProfileContent.hidden = !hasData;
+  }
+
+  if (hasError && elements.talentProfileErrorMessage) {
+    const base = t("talent.error", "We couldn't load the profile right now. Please try again soon.");
+    const detail = error?.status ? ` (${error.status})` : "";
+    elements.talentProfileErrorMessage.textContent = `${base}${detail}`;
+  }
+
+  if (!hasData) {
+    return;
+  }
+
+  const { name, username, bio, profileImage, supporters, badges, profileUrl } = data;
+  const safeProfileUrl = typeof profileUrl === "string" && profileUrl.trim().startsWith("http") ? profileUrl.trim() : null;
+
+  if (elements.talentProfileName) {
+    elements.talentProfileName.textContent = name || "—";
+  }
+
+  if (elements.talentProfileUsername) {
+    if (username) {
+      elements.talentProfileUsername.textContent = `@${username}`;
+      elements.talentProfileUsername.removeAttribute("hidden");
+    } else {
+      elements.talentProfileUsername.textContent = "";
+      elements.talentProfileUsername.setAttribute("hidden", "true");
+    }
+  }
+
+  if (elements.talentProfileBio) {
+    const trimmedBio = (bio || "").trim();
+    const fallbackBio = t("talent.bioEmpty", "No bio added yet.");
+    elements.talentProfileBio.textContent = trimmedBio || fallbackBio;
+    elements.talentProfileBio.classList.toggle("is-empty", !trimmedBio);
+  }
+
+  if (elements.talentProfileSupporters) {
+    elements.talentProfileSupporters.textContent = formatNumber(supporters || 0);
+  }
+
+  if (elements.talentProfileImage) {
+    const source = profileImage || TALENT_AVATAR_FALLBACK;
+    if (elements.talentProfileImage.src !== source) {
+      elements.talentProfileImage.src = source;
+    }
+    const altTemplate = t("talent.avatarAlt", "{name}'s Talent Protocol profile photo");
+    const altName = name || username || "Talent";
+    elements.talentProfileImage.alt = altTemplate.replace("{name}", altName);
+  }
+
+  if (elements.talentProfileBadges) {
+    renderTalentBadges(Array.isArray(badges) ? badges : []);
+  }
+
+  if (elements.talentProfileLink) {
+    if (safeProfileUrl) {
+      elements.talentProfileLink.href = safeProfileUrl;
+      elements.talentProfileLink.classList.remove("is-disabled");
+      elements.talentProfileLink.removeAttribute("aria-disabled");
+    } else {
+      elements.talentProfileLink.href = "#";
+      elements.talentProfileLink.classList.add("is-disabled");
+      elements.talentProfileLink.setAttribute("aria-disabled", "true");
+    }
+  }
+}
+
+function renderTalentBadges(badges) {
+  if (!elements.talentProfileBadges) return;
+
+  if (!Array.isArray(badges) || badges.length === 0) {
+    elements.talentProfileBadges.innerHTML = `<span class="talent-badge-empty">${t("talent.badgesEmpty", "No badges yet.")}</span>`;
+    return;
+  }
+
+  const visibleBadges = badges.slice(0, 6);
+  elements.talentProfileBadges.innerHTML = visibleBadges
+    .map((badge) => {
+      if (!badge) return "";
+      const name = escapeHtml(badge.name || "");
+      const description = escapeHtml(badge.description || badge.name || "");
+      const iconUrl = typeof badge.icon === "string" && badge.icon.trim().startsWith("http") ? badge.icon.trim() : "";
+      const icon = iconUrl
+        ? `<span class="talent-badge-icon"><img src="${escapeHtml(iconUrl)}" alt="" loading="lazy" decoding="async" /></span>`
+        : "";
+      return `<span class="badge-chip" title="${description}">${icon}${name}</span>`;
+    })
+    .join("");
 }
 
 function renderProfile(profile) {
@@ -2107,6 +2315,7 @@ async function loadInitialData() {
     refreshFeed(),
     refreshGovernance(),
     refreshLeaderboard(),
+    refreshTalentProfile({ keepPrevious: false }),
   ]);
 }
 

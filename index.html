@@ -72,6 +72,7 @@
           <button class="nav-btn" data-target="deploySection" data-i18n="nav.deploy">Deploy</button>
           <button class="nav-btn" data-target="donateSection" data-i18n="nav.donate">Donate</button>
           <button class="nav-btn" data-target="governanceSection" data-i18n="nav.governance">Governance</button>
+          <button class="nav-btn" data-target="talentSection" data-i18n="nav.talent">Talent Profile</button>
           <button class="nav-btn" data-target="badgeSection" data-i18n="nav.badge">Badges</button>
           <button class="nav-btn" data-target="profileSection" data-i18n="nav.profile">Profile</button>
         </nav>
@@ -316,6 +317,57 @@
                   <ul id="pastProposals" class="proposal-list" aria-live="polite"></ul>
                 </div>
               </div>
+            </section>
+
+            <section id="talentSection" class="section" data-section-label="Talent Profile">
+              <div class="section-header">
+                <h2 data-i18n="talent.title">Talent Profile</h2>
+                <p data-i18n="talent.subtitle">Track my Talent Protocol journey from inside Celo Engage Hub.</p>
+              </div>
+              <article class="card talent-card" id="talentProfileCard" aria-live="polite">
+                <div class="talent-loading" id="talentProfileLoading">
+                  <span class="talent-spinner" aria-hidden="true"></span>
+                  <span data-i18n="talent.loading">Loading Talent Protocol profile…</span>
+                </div>
+                <div class="talent-error" id="talentProfileError" hidden>
+                  <p id="talentProfileErrorMessage" data-i18n="talent.error">
+                    Unable to load the profile right now. Please try again shortly.
+                  </p>
+                  <button type="button" class="secondary-btn" id="talentProfileRetry" data-i18n="talent.retry">Retry</button>
+                </div>
+                <div class="talent-content" id="talentProfileContent" hidden>
+                  <header class="talent-hero">
+                    <div class="talent-avatar">
+                      <img id="talentProfileImage" src="" alt="" loading="lazy" decoding="async" />
+                    </div>
+                    <div class="talent-heading">
+                      <h3 id="talentProfileName" class="talent-name">—</h3>
+                      <p id="talentProfileUsername" class="talent-username">—</p>
+                    </div>
+                  </header>
+                  <p id="talentProfileBio" class="talent-bio">—</p>
+                  <div class="talent-metrics">
+                    <div class="talent-metric">
+                      <span class="talent-metric__label" data-i18n="talent.supporters">Supporters</span>
+                      <strong id="talentProfileSupporters">0</strong>
+                    </div>
+                    <div class="talent-metric">
+                      <span class="talent-metric__label" data-i18n="talent.badges">Badges</span>
+                      <div id="talentProfileBadges" class="talent-badges"></div>
+                    </div>
+                  </div>
+                  <a
+                    id="talentProfileLink"
+                    class="primary-btn talent-profile-link"
+                    href="#"
+                    target="_blank"
+                    rel="noopener"
+                    data-i18n="talent.cta"
+                  >
+                    View on Talent Protocol
+                  </a>
+                </div>
+              </article>
             </section>
 
             <section id="badgeSection" class="section" data-section-label="Badges">
