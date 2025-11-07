@@ -10,6 +10,7 @@
       "deploy": "Deploy",
       "donate": "Bağış",
       "governance": "Yönetim",
+      "talent": "Talent Profil",
       "badge": "Rozetler",
       "profile": "Profil"
     },
@@ -124,6 +125,19 @@
       "voteNoShort": "Hayır",
       "detail": "Detay"
     },
+    "talent": {
+      "title": "Talent Profil",
+      "subtitle": "Talent Protocol yolculuğumu Celo Engage Hub içinde takip et.",
+      "loading": "Talent Protocol profili yükleniyor…",
+      "error": "Profil şu anda yüklenemedi. Lütfen daha sonra tekrar deneyin.",
+      "retry": "Tekrar dene",
+      "supporters": "Destekçiler",
+      "badges": "Rozetler",
+      "badgesEmpty": "Henüz rozet yok.",
+      "bioEmpty": "Henüz bio eklenmedi.",
+      "avatarAlt": "{name} için Talent Protocol profil fotoğrafı",
+      "cta": "Talent Protocol'de Görüntüle"
+    },
     "badge": {
       "title": "Rozetler & Tier",
       "subtitle": "XP → Level → Tier yolculuğunu takip et.",
@@ -220,6 +234,7 @@
       "deploy": "Deploy",
       "donate": "Donate",
       "governance": "Governance",
+      "talent": "Talent Profile",
       "badge": "Badges",
       "profile": "Profile"
     },
@@ -333,6 +348,19 @@
       "voteYesShort": "Yes",
       "voteNoShort": "No",
       "detail": "Details"
+    },
+    "talent": {
+      "title": "Talent Profile",
+      "subtitle": "Follow my Talent Protocol story directly inside Celo Engage Hub.",
+      "loading": "Loading Talent Protocol profile…",
+      "error": "We couldn't load the profile right now. Please try again soon.",
+      "retry": "Retry",
+      "supporters": "Supporters",
+      "badges": "Badges",
+      "badgesEmpty": "No badges yet.",
+      "bioEmpty": "No bio added yet.",
+      "avatarAlt": "{name}'s Talent Protocol profile photo",
+      "cta": "View on Talent Protocol"
     },
     "badge": {
       "title": "Badges & Tiers",
