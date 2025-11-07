@@ -145,8 +145,6 @@ const elements = {
   usernameForm: document.getElementById("usernameForm"),
   usernameInput: document.getElementById("usernameInput"),
   languageToggle: document.getElementById("languageToggle"),
-  profileButton: document.getElementById("profileButton"),
-  profileModal: document.getElementById("profileModal"),
   ecosystemModal: document.getElementById("ecosystemModal"),
   ecosystemMore: document.getElementById("ecosystemMore"),
   shareModal: document.getElementById("shareModal"),
@@ -157,6 +155,8 @@ const elements = {
   duneLink: document.getElementById("duneLink"),
   graphLink: document.getElementById("graphLink"),
   deployedContracts: document.getElementById("deployedContracts"),
+  feedSkeleton: document.getElementById("feedSkeleton"),
+  governanceSkeleton: document.getElementById("governanceSkeleton"),
 };
 
 let activeSectionId = null;
@@ -167,6 +167,74 @@ let wsProvider = null;
 let wsBackoff = 2000;
 
 let isVerifyingHuman = false;
+
+const LOADING_TEXT = {
+  connecting: "Connecting…",
+  pending: "Pending…",
+  sendingGM: "Sending GM…",
+  deploying: "Deploying…",
+  donating: "Sending Donation…",
+  approving: "Approving…",
+  sharingLink: "Submitting Link…",
+  creatingProposal: "Submitting Proposal…",
+  withdrawing: "Processing Withdrawal…",
+  registering: "Saving Profile…",
+  voting: "Processing Vote…",
+};
+
+function getLoadingText(key, fallback) {
+  const base = LOADING_TEXT[key] || fallback;
+  return t ? t(`status.${key}`, base) || base : base;
+}
+
+function toggleSkeleton(element, show) {
+  if (!element) return;
+  if (show) {
+    element.removeAttribute("hidden");
+  } else {
+    element.setAttribute("hidden", "true");
+  }
+}
+
+async function withButtonLoading(button, options, task) {
+  const opts = options || {};
+  const action = typeof task === "function" ? task : async () => {};
+  if (!button) {
+    return action();
+  }
+  const originalHtml = button.innerHTML;
+  const originalMinWidth = button.style.minWidth;
+  const keepWidth = opts.keepWidth !== false;
+  const measuredWidth = keepWidth ? button.getBoundingClientRect().width : null;
+  if (measuredWidth) {
+    button.style.minWidth = `${Math.ceil(measuredWidth)}px`;
+  }
+  button.disabled = true;
+  button.classList.add("is-loading");
+  button.setAttribute("aria-busy", "true");
+  if (opts.loadingText) {
+    button.textContent = opts.loadingText;
+  }
+  try {
+    return await action();
+  } finally {
+    button.disabled = false;
+    button.classList.remove("is-loading");
+    button.removeAttribute("aria-busy");
+    if (opts.loadingText) {
+      button.innerHTML = originalHtml;
+    } else {
+      button.innerHTML = originalHtml;
+    }
+    if (measuredWidth) {
+      if (originalMinWidth) {
+        button.style.minWidth = originalMinWidth;
+      } else {
+        button.style.removeProperty("min-width");
+      }
+    }
+  }
+}
 
 function init() {
   applyTheme();
@@ -298,31 +366,12 @@ function renderNavigationAria() {
 }
 
 function setupProfileModal() {
-  if (!elements.profileModal) return;
-
-  const dismissElements = elements.profileModal.querySelectorAll('[data-dismiss="profileModal"]');
-  dismissElements.forEach((closeBtn) => {
-    closeBtn.addEventListener("click", closeProfileModal);
-  });
-
   if (elements.profileCopyButton) {
     elements.profileCopyButton.addEventListener("click", handleProfileAddressCopy);
   }
 
-  if (elements.profileButton) {
-    elements.profileButton.addEventListener("click", () => {
-      if (!state.profile) {
-        refreshProfile();
-      }
-      openProfileModal();
-    });
-  }
-
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (elements.profileModal?.classList.contains("is-open")) {
-      closeProfileModal();
-    }
     if (elements.shareModal?.classList.contains("is-open")) {
       closeShareModal();
     }
@@ -339,20 +388,6 @@ function setupProfileModal() {
       closeWalletDropdown();
     }
   });
-}
-
-function openProfileModal() {
-  if (!elements.profileModal) return;
-  elements.profileModal.classList.add("is-open");
-  elements.profileModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
-}
-
-function closeProfileModal() {
-  if (!elements.profileModal) return;
-  elements.profileModal.classList.remove("is-open");
-  elements.profileModal.setAttribute("aria-hidden", "true");
-  updateBodyModalState();
 }
 
 function setupShareModal() {
@@ -583,14 +618,13 @@ function escapeHtml(value) {
 }
 
 function updateBodyModalState() {
-  const profileOpen = elements.profileModal?.classList.contains("is-open");
   const shareOpen = elements.shareModal?.classList.contains("is-open");
   const connectOpen = elements.connectModal?.classList.contains("is-open");
   const ecosystemOpen = elements.ecosystemModal?.classList.contains("is-open");
   const usernameOpen = elements.usernameModal?.classList.contains("is-open");
   document.body.classList.toggle(
     "modal-open",
-    Boolean(profileOpen || shareOpen || connectOpen || ecosystemOpen || usernameOpen)
+    Boolean(shareOpen || connectOpen || ecosystemOpen || usernameOpen)
   );
 }
 
@@ -641,7 +675,7 @@ function refreshBreadcrumb() {
 
 function setActiveSection(sectionId, options = {}) {
   if (!sectionId) return;
-  const { labelOverride, suppressBreadcrumb } = options;
+  const { labelOverride, suppressBreadcrumb, updateUrl = true } = options;
   const sections = Array.from(elements.sections || []);
   sections.forEach((section) => {
     const isTarget = section.id === sectionId;
@@ -659,6 +693,10 @@ function setActiveSection(sectionId, options = {}) {
   });
 
   activeSectionId = sectionId;
+
+  if (updateUrl && window.location.hash !== `#${sectionId}`) {
+    history.replaceState(null, "", `#${sectionId}`);
+  }
 
   if (!suppressBreadcrumb) {
     const section = document.getElementById(sectionId);
@@ -687,11 +725,21 @@ function scrollToSection(sectionId, sectionName) {
   autoScrollTimeout = setTimeout(() => {
     isAutoScrolling = false;
   }, 700);
+
+  setTimeout(() => {
+    section.focus({ preventScroll: true });
+  }, 320);
 }
 
 function setupNavigation() {
   const sections = Array.from(elements.sections || []);
   if (!sections.length) return;
+
+  sections.forEach((section) => {
+    if (!section.hasAttribute("tabindex")) {
+      section.setAttribute("tabindex", "-1");
+    }
+  });
 
   const sectionButtons = Array.from(elements.navButtons || []).filter((btn) => btn.dataset?.target);
 
@@ -705,6 +753,19 @@ function setupNavigation() {
       scrollToSection(target, label);
     });
   });
+
+  const initialHash = window.location.hash ? window.location.hash.replace("#", "") : "";
+  if (initialHash) {
+    const hashSection = document.getElementById(initialHash);
+    if (hashSection) {
+      activeSectionId = initialHash;
+      const label = getSectionLabel(hashSection);
+      setActiveSection(initialHash, { labelOverride: label });
+      const targetTop = hashSection.getBoundingClientRect().top + window.scrollY - 120;
+      window.scrollTo({ top: targetTop > 0 ? targetTop : 0, behavior: "auto" });
+      requestAnimationFrame(() => hashSection.focus({ preventScroll: true }));
+    }
+  }
 
   if (!activeSectionId) {
     activeSectionId = sections[0].id;
@@ -792,20 +853,18 @@ function setupDonateShortcuts() {
       if (!amount) return;
       if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
       if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
-      const originalHtml = button.innerHTML;
-      button.disabled = true;
-      button.classList.add("is-loading");
-      button.setAttribute("aria-busy", "true");
       try {
-        await doDonateCELO(amount);
+        await withButtonLoading(
+          button,
+          { loadingText: getLoadingText("donating", "Sending Donation…") },
+          async () => {
+            await doDonateCELO(amount);
+            refreshAfterTransaction();
+          }
+        );
       } catch (error) {
         console.error("quick donate error", error);
         showToast("error", parseError(error));
-      } finally {
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-        button.classList.remove("is-loading");
-        button.removeAttribute("aria-busy");
       }
     });
   });
@@ -832,14 +891,23 @@ function setupWalletButtons() {
     option.addEventListener("click", async () => {
       const type = option.dataset.connectOption;
       const connector = type === "walletconnect" ? connectWalletConnect : connectWalletMetaMask;
-      await connectWallet(connector);
+      try {
+        await withButtonLoading(option, { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true }, async () => {
+          await connectWallet(connector);
+        });
+      } catch (error) {
+        console.error("connect option error", error);
+      }
     });
   });
 
   if (elements.disconnectWallet) {
     elements.disconnectWallet.addEventListener("click", async () => {
+      const button = elements.disconnectWallet;
       try {
-        await disconnectWallet();
+        await withButtonLoading(button, { loadingText: getLoadingText("pending", "Pending…") }, async () => {
+          await disconnectWallet();
+        });
         state.address = null;
         state.profile = null;
         state.isOwner = false;
@@ -900,10 +968,12 @@ function renderVerificationState() {
       elements.verifyHumanButton.textContent = "Verifying…";
       elements.verifyHumanButton.disabled = true;
       elements.verifyHumanButton.setAttribute("aria-busy", "true");
+      elements.verifyHumanButton.classList.add("is-loading");
     } else {
       elements.verifyHumanButton.textContent = verified ? "Verified Human" : "Verify with World ID";
       elements.verifyHumanButton.disabled = verified;
       elements.verifyHumanButton.removeAttribute("aria-busy");
+      elements.verifyHumanButton.classList.remove("is-loading");
     }
   }
   if (elements.walletVerifiedBadge) {
@@ -1157,9 +1227,17 @@ async function handleGMSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const message = document.getElementById("gmMessage").value.trim();
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doGM(message);
-    document.getElementById("gmMessage").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("sendingGM", "Sending GM…") },
+      async () => {
+        await doGM(message);
+        document.getElementById("gmMessage").value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("GM error", error);
     showToast("error", parseError(error));
@@ -1170,9 +1248,17 @@ async function handleDeploySubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const name = document.getElementById("deployName").value.trim();
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDeploy(name);
-    document.getElementById("deployName").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("deploying", "Deploying…") },
+      async () => {
+        await doDeploy(name);
+        document.getElementById("deployName").value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Deploy error", error);
     showToast("error", parseError(error));
@@ -1184,9 +1270,17 @@ async function handleDonateCeloSubmit(event) {
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const amount = Number(document.getElementById("celoAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCELO(amount);
-    document.getElementById("celoAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCELO(amount);
+        document.getElementById("celoAmount").value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate CELO error", error);
     showToast("error", parseError(error));
@@ -1198,8 +1292,15 @@ async function handleApproveCusdSubmit(event) {
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const amount = Number(document.getElementById("cusdApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doApproveCUSD(amount);
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("approving", "Approving…") },
+      async () => {
+        await doApproveCUSD(amount);
+      }
+    );
   } catch (error) {
     console.error("Approve cUSD error", error);
     showToast("error", parseError(error));
@@ -1211,9 +1312,17 @@ async function handleDonateCusdSubmit(event) {
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const amount = Number(document.getElementById("cusdAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCUSD(amount);
-    document.getElementById("cusdAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCUSD(amount);
+        document.getElementById("cusdAmount").value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate cUSD error", error);
     showToast("error", parseError(error));
@@ -1225,8 +1334,15 @@ async function handleApproveCeurSubmit(event) {
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const amount = Number(document.getElementById("ceurApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doApproveCEUR(amount);
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("approving", "Approving…") },
+      async () => {
+        await doApproveCEUR(amount);
+      }
+    );
   } catch (error) {
     console.error("Approve cEUR error", error);
     showToast("error", parseError(error));
@@ -1238,9 +1354,17 @@ async function handleDonateCeurSubmit(event) {
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   const amount = Number(document.getElementById("ceurAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doDonateCEUR(amount);
-    document.getElementById("ceurAmount").value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("donating", "Sending Donation…") },
+      async () => {
+        await doDonateCEUR(amount);
+        document.getElementById("ceurAmount").value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Donate cEUR error", error);
     showToast("error", parseError(error));
@@ -1254,14 +1378,22 @@ async function handleShareLinkSubmit(event) {
   if (!url.startsWith("https://")) {
     return showToast("error", UI_MESSAGES.invalidLink);
   }
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await doShareLink(url);
-    if (elements.shareLinkInput) {
-      elements.shareLinkInput.value = "https://";
-    }
-    closeShareModal();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("sharingLink", "Submitting Link…") },
+      async () => {
+        await doShareLink(url);
+        if (elements.shareLinkInput) {
+          elements.shareLinkInput.value = "https://";
+        }
+        closeShareModal();
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
-    console.error("Share link error", error);
+    console.error("share link error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1272,9 +1404,17 @@ async function handleProposalSubmit(event) {
   const title = document.getElementById("proposalTitle").value.trim();
   const description = document.getElementById("proposalDescription").value.trim();
   const link = document.getElementById("proposalLink").value.trim();
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await govCreateProposal(title, description, link);
-    event.target.reset();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("creatingProposal", "Submitting Proposal…") },
+      async () => {
+        await govCreateProposal(title, description, link);
+        event.target.reset();
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Proposal error", error);
     showToast("error", parseError(error));
@@ -1286,9 +1426,17 @@ async function handleWithdrawSubmit(event, token) {
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
   const amountInput = event.target.querySelector("input");
   const amount = amountInput?.value || "";
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await withdrawDonations(token, amount);
-    if (amountInput) amountInput.value = "";
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("withdrawing", "Processing Withdrawal…") },
+      async () => {
+        await withdrawDonations(token, amount);
+        if (amountInput) amountInput.value = "";
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("Withdraw error", error);
     showToast("error", parseError(error));
@@ -1299,10 +1447,17 @@ async function handleRegisterSubmit(event) {
   event.preventDefault();
   const username = elements.usernameInput.value.trim();
   if (!username) return;
+  const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
-    await registerProfile(username);
-    closeUsernameModal();
-    await refreshProfile();
+    await withButtonLoading(
+      submitter,
+      { loadingText: getLoadingText("registering", "Saving Profile…") },
+      async () => {
+        await registerProfile(username);
+        closeUsernameModal();
+        await refreshProfile();
+      }
+    );
   } catch (error) {
     console.error("Register error", error);
     showToast("error", parseError(error));
@@ -1353,6 +1508,7 @@ async function refreshGlobalStats() {
 }
 
 async function refreshFeed() {
+  toggleSkeleton(elements.feedSkeleton, true);
   try {
     const [links, personalLinks] = await Promise.all([
       loadRecentLinks(20),
@@ -1373,16 +1529,21 @@ async function refreshFeed() {
     updateLinkFeedView();
   } catch (error) {
     console.error("feed error", error);
+  } finally {
+    toggleSkeleton(elements.feedSkeleton, false);
   }
 }
 
 async function refreshGovernance() {
+  toggleSkeleton(elements.governanceSkeleton, true);
   try {
     const data = await loadGovernance();
     state.governance = data;
     renderGovernance(data);
   } catch (error) {
     console.error("governance error", error);
+  } finally {
+    toggleSkeleton(elements.governanceSkeleton, false);
   }
 }
 
@@ -1718,7 +1879,14 @@ elements.activeProposals.addEventListener("click", async (event) => {
   const proposalId = Number(button.dataset.proposal);
   const support = button.dataset.vote === "true";
   try {
-    await govVote(proposalId, support);
+    await withButtonLoading(
+      button,
+      { loadingText: getLoadingText("voting", "Processing Vote…") },
+      async () => {
+        await govVote(proposalId, support);
+        refreshAfterTransaction();
+      }
+    );
   } catch (error) {
     console.error("vote error", error);
     showToast("error", parseError(error));
@@ -1813,10 +1981,12 @@ function closeUsernameModal() {
 }
 
 async function loadInitialData() {
-  await refreshGlobalStats();
-  await refreshFeed();
-  await refreshGovernance();
-  await refreshLeaderboard();
+  await Promise.all([
+    refreshGlobalStats(),
+    refreshFeed(),
+    refreshGovernance(),
+    refreshLeaderboard(),
+  ]);
 }
 
 function initWebsocket() {
