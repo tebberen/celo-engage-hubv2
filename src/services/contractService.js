@@ -1,4 +1,4 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+import { ethers } from "../utils/cdn-modules.js";
 import {
   CONTRACT_ADDRESS,
   CONTRACT_ABI,

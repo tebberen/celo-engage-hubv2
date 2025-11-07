@@ -1,5 +1,4 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-import EthereumProvider from "https://esm.sh/@walletconnect/ethereum-provider@2.9.1";
+import { ethers, EthereumProvider } from "../utils/cdn-modules.js";
 import {
   APP_NAME,
   NETWORKS,
