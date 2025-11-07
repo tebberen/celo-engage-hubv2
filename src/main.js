@@ -1,4 +1,4 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
   UI_MESSAGES,
@@ -168,6 +168,12 @@ let wsBackoff = 2000;
 
 let isVerifyingHuman = false;
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+const modalFocusState = new WeakMap();
+const modalStack = [];
+let walletDropdownFocusCleanup = null;
+
 const LOADING_TEXT = {
   connecting: "Connecting…",
   pending: "Pending…",
@@ -185,6 +191,83 @@ const LOADING_TEXT = {
 function getLoadingText(key, fallback) {
   const base = LOADING_TEXT[key] || fallback;
   return t ? t(`status.${key}`, base) || base : base;
+}
+
+function getFocusableElements(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter((el) => {
+    if (el.hasAttribute("disabled")) return false;
+    if (el.getAttribute("aria-hidden") === "true") return false;
+    const rect = el.getBoundingClientRect?.();
+    return Boolean(el.offsetParent || el === document.activeElement || (rect && rect.width && rect.height));
+  });
+}
+
+function bindFocusTrap(container) {
+  if (!container) return () => {};
+  const handleKeydown = (event) => {
+    if (event.key !== "Tab") return;
+    const focusable = getFocusableElements(container);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey) {
+      if (active === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      }
+    } else if (active === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  };
+  container.addEventListener("keydown", handleKeydown);
+  return () => container.removeEventListener("keydown", handleKeydown);
+}
+
+function openModalEl(modal, { focusTarget, trigger } = {}) {
+  if (!modal) return;
+  const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const cleanup = bindFocusTrap(modal);
+  const restoreTarget = trigger instanceof HTMLElement ? trigger : previouslyFocused;
+  modalFocusState.set(modal, { cleanup, restoreTarget });
+  const existingIndex = modalStack.indexOf(modal);
+  if (existingIndex !== -1) {
+    modalStack.splice(existingIndex, 1);
+  }
+  modalStack.push(modal);
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden", "false");
+  updateBodyModalState();
+  const directTarget = focusTarget instanceof HTMLElement ? focusTarget : null;
+  const initialFocus = directTarget || modal.querySelector("[data-autofocus]") || getFocusableElements(modal)[0];
+  if (initialFocus instanceof HTMLElement) {
+    initialFocus.focus({ preventScroll: true });
+  }
+}
+
+function closeModalEl(modal) {
+  if (!modal) return;
+  modal.classList.remove("is-open");
+  modal.setAttribute("aria-hidden", "true");
+  const state = modalFocusState.get(modal);
+  if (state?.cleanup) {
+    state.cleanup();
+  }
+  modalFocusState.delete(modal);
+  const index = modalStack.lastIndexOf(modal);
+  if (index !== -1) {
+    modalStack.splice(index, 1);
+  }
+  updateBodyModalState();
+  const target = state?.restoreTarget;
+  if (target && typeof target.focus === "function") {
+    target.focus({ preventScroll: true });
+  }
 }
 
 function toggleSkeleton(element, show) {
@@ -372,26 +455,34 @@ function setupProfileModal() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    if (elements.shareModal?.classList.contains("is-open")) {
-      closeShareModal();
-    }
-    if (elements.connectModal?.classList.contains("is-open")) {
-      closeConnectModal();
-    }
-    if (elements.ecosystemModal?.classList.contains("is-open")) {
-      closeEcosystemModal();
-    }
-    if (elements.usernameModal?.classList.contains("is-open")) {
-      closeUsernameModal();
+    if (modalStack.length) {
+      const currentModal = modalStack[modalStack.length - 1];
+      if (currentModal === elements.shareModal) {
+        closeShareModal();
+        return;
+      }
+      if (currentModal === elements.connectModal) {
+        closeConnectModal();
+        return;
+      }
+      if (currentModal === elements.ecosystemModal) {
+        closeEcosystemModal();
+        return;
+      }
+      if (currentModal === elements.usernameModal) {
+        closeUsernameModal();
+        return;
+      }
     }
     if (elements.walletDropdown?.classList.contains("open")) {
-      closeWalletDropdown();
+      closeWalletDropdown({ restoreFocus: true });
     }
   });
 }
 
 function setupShareModal() {
   if (!elements.shareModal) return;
+  elements.shareModal.setAttribute("aria-hidden", "true");
   const dismissElements = elements.shareModal.querySelectorAll('[data-dismiss="shareModal"]');
   dismissElements.forEach((btn) => {
     btn.addEventListener("click", closeShareModal);
@@ -403,11 +494,12 @@ function setupShareModal() {
 
 function setupUsernameModal() {
   if (!elements.usernameModal) return;
+  elements.usernameModal.setAttribute("aria-hidden", "true");
   const dismissButtons = elements.usernameModal.querySelectorAll('[data-dismiss="usernameModal"]');
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeUsernameModal));
 }
 
-function openShareModal(link) {
+function openShareModal(link, trigger) {
   if (!elements.shareModal) return;
   state.sharePromptLink = link || null;
   if (elements.sharePromptLink) {
@@ -415,17 +507,13 @@ function openShareModal(link) {
   }
   if (elements.shareLinkInput) {
     elements.shareLinkInput.value = "https://";
-    elements.shareLinkInput.focus({ preventScroll: true });
   }
-  elements.shareModal.classList.add("is-open");
-  elements.shareModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
+  openModalEl(elements.shareModal, { focusTarget: elements.shareLinkInput, trigger });
 }
 
 function closeShareModal() {
   if (!elements.shareModal) return;
-  elements.shareModal.classList.remove("is-open");
-  elements.shareModal.setAttribute("aria-hidden", "true");
+  closeModalEl(elements.shareModal);
   if (elements.shareLinkInput) {
     elements.shareLinkInput.value = "https://";
   }
@@ -433,7 +521,6 @@ function closeShareModal() {
     elements.sharePromptLink.textContent = "—";
   }
   state.sharePromptLink = null;
-  updateBodyModalState();
 }
 
 function setupFeedInteractions() {
@@ -454,7 +541,7 @@ function handleFeedClick(event) {
   if (!url) return;
   window.open(url, "_blank", "noopener");
   registerLinkInteraction(url);
-  openShareModal(url);
+  openShareModal(url, trigger);
 }
 
 function registerLinkInteraction(url) {
@@ -618,14 +705,7 @@ function escapeHtml(value) {
 }
 
 function updateBodyModalState() {
-  const shareOpen = elements.shareModal?.classList.contains("is-open");
-  const connectOpen = elements.connectModal?.classList.contains("is-open");
-  const ecosystemOpen = elements.ecosystemModal?.classList.contains("is-open");
-  const usernameOpen = elements.usernameModal?.classList.contains("is-open");
-  document.body.classList.toggle(
-    "modal-open",
-    Boolean(shareOpen || connectOpen || ecosystemOpen || usernameOpen)
-  );
+  document.body.classList.toggle("modal-open", modalStack.length > 0);
 }
 
 function safeParseStorage(value, fallback = {}) {
@@ -872,6 +952,7 @@ function setupDonateShortcuts() {
 
 function setupConnectModal() {
   if (!elements.connectModal) return;
+  elements.connectModal.setAttribute("aria-hidden", "true");
   const dismissButtons = elements.connectModal.querySelectorAll('[data-dismiss="connectModal"]');
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
 }
@@ -882,7 +963,7 @@ function setupWalletButtons() {
       if (state.address) {
         toggleWalletDropdown(true);
       } else {
-        openConnectModal();
+        openConnectModal(elements.connectTrigger);
       }
     });
   }
@@ -930,9 +1011,28 @@ function setupWalletButtons() {
 
 function setupWalletDropdown() {
   if (!elements.walletPillButton || !elements.walletDropdown) return;
+  elements.walletDropdown.setAttribute("aria-hidden", "true");
   elements.walletPillButton.addEventListener("click", (event) => {
     event.stopPropagation();
     toggleWalletDropdown();
+  });
+
+  elements.walletPillButton.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space") {
+      event.preventDefault();
+      toggleWalletDropdown();
+    }
+    if (event.key === "ArrowDown" && !elements.walletDropdown.classList.contains("open")) {
+      event.preventDefault();
+      openWalletDropdown();
+    }
+  });
+
+  elements.walletDropdown.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeWalletDropdown({ restoreFocus: true });
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -1030,18 +1130,42 @@ async function handleVerifyHumanClick() {
   }
 }
 
+function openWalletDropdown() {
+  if (!elements.walletDropdown || !elements.walletPillButton) return;
+  elements.walletDropdown.classList.add("open");
+  elements.walletDropdown.setAttribute("aria-hidden", "false");
+  elements.walletPillButton.setAttribute("aria-expanded", "true");
+  walletDropdownFocusCleanup?.();
+  walletDropdownFocusCleanup = bindFocusTrap(elements.walletDropdown);
+  const focusable = getFocusableElements(elements.walletDropdown);
+  if (focusable[0]) {
+    focusable[0].focus({ preventScroll: true });
+  }
+}
+
 function toggleWalletDropdown(forceOpen = null) {
   if (!elements.walletDropdown || !elements.walletPillButton) return;
   const shouldOpen = forceOpen ?? !elements.walletDropdown.classList.contains("open");
-  elements.walletDropdown.classList.toggle("open", shouldOpen);
-  elements.walletPillButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  if (shouldOpen) {
+    openWalletDropdown();
+  } else {
+    closeWalletDropdown({ restoreFocus: true });
+  }
 }
 
-function closeWalletDropdown() {
+function closeWalletDropdown({ restoreFocus = false } = {}) {
   if (!elements.walletDropdown) return;
   elements.walletDropdown.classList.remove("open");
+  elements.walletDropdown.setAttribute("aria-hidden", "true");
+  if (walletDropdownFocusCleanup) {
+    walletDropdownFocusCleanup();
+    walletDropdownFocusCleanup = null;
+  }
   if (elements.walletPillButton) {
     elements.walletPillButton.setAttribute("aria-expanded", "false");
+    if (restoreFocus) {
+      elements.walletPillButton.focus({ preventScroll: true });
+    }
   }
 }
 
@@ -1050,36 +1174,30 @@ function setupEcosystemModal() {
     elements.ecosystemMore.addEventListener("click", openEcosystemModal);
   }
   if (!elements.ecosystemModal) return;
+  elements.ecosystemModal.setAttribute("aria-hidden", "true");
   const dismissButtons = elements.ecosystemModal.querySelectorAll('[data-dismiss="ecosystemModal"]');
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeEcosystemModal));
 }
 
-function openConnectModal() {
+function openConnectModal(trigger) {
   if (!elements.connectModal) return;
-  elements.connectModal.classList.add("is-open");
-  elements.connectModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
+  const defaultFocus = elements.connectOptions?.[0];
+  openModalEl(elements.connectModal, { focusTarget: defaultFocus, trigger });
 }
 
 function closeConnectModal() {
   if (!elements.connectModal) return;
-  elements.connectModal.classList.remove("is-open");
-  elements.connectModal.setAttribute("aria-hidden", "true");
-  updateBodyModalState();
+  closeModalEl(elements.connectModal);
 }
 
 function openEcosystemModal() {
   if (!elements.ecosystemModal) return;
-  elements.ecosystemModal.classList.add("is-open");
-  elements.ecosystemModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
+  openModalEl(elements.ecosystemModal, { trigger: elements.ecosystemMore });
 }
 
 function closeEcosystemModal() {
   if (!elements.ecosystemModal) return;
-  elements.ecosystemModal.classList.remove("is-open");
-  elements.ecosystemModal.setAttribute("aria-hidden", "true");
-  updateBodyModalState();
+  closeModalEl(elements.ecosystemModal);
 }
 
 function setupToastBridge() {
@@ -1207,6 +1325,9 @@ function showToast(type, message, hash, explorer) {
   if (!message) return;
   const toast = document.createElement("div");
   toast.className = `toast ${type || "info"}`;
+  toast.setAttribute("role", "alert");
+  toast.setAttribute("aria-live", "assertive");
+  toast.setAttribute("aria-atomic", "true");
   toast.innerHTML = `
     <strong>${message}</strong>
     ${hash ? `<span class="hash"><a href="${explorer || `${CURRENT_NETWORK.explorer}/tx/${hash}`}" target="_blank" rel="noopener">${shorten(hash)}</a></span>` : ""}
@@ -1465,11 +1586,13 @@ async function handleRegisterSubmit(event) {
 }
 
 function refreshAfterTransaction() {
-  refreshProfile();
-  refreshGlobalStats();
-  refreshGovernance();
-  refreshLeaderboard();
-  refreshFeed();
+  return Promise.all([
+    refreshProfile(),
+    refreshGlobalStats(),
+    refreshGovernance(),
+    refreshLeaderboard(),
+    refreshFeed(),
+  ]);
 }
 
 async function refreshProfile() {
@@ -1968,16 +2091,14 @@ function parseError(error) {
   return UI_MESSAGES.error;
 }
 
-function openUsernameModal() {
-  elements.usernameModal.classList.add("is-open");
-  elements.usernameModal.setAttribute("aria-hidden", "false");
-  updateBodyModalState();
+function openUsernameModal(trigger) {
+  if (!elements.usernameModal) return;
+  openModalEl(elements.usernameModal, { focusTarget: elements.usernameInput, trigger });
 }
 
 function closeUsernameModal() {
-  elements.usernameModal.classList.remove("is-open");
-  elements.usernameModal.setAttribute("aria-hidden", "true");
-  updateBodyModalState();
+  if (!elements.usernameModal) return;
+  closeModalEl(elements.usernameModal);
 }
 
 async function loadInitialData() {

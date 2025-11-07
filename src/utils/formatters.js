@@ -1,4 +1,4 @@
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+import { ethers } from "./cdn-modules.js";
 
 const DEFAULT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
 

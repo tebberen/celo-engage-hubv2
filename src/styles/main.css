@@ -10,6 +10,10 @@
   --text-soft: rgba(11, 11, 11, 0.68);
   --border: rgba(251, 204, 92, 0.6);
   --border-strong: rgba(251, 204, 92, 0.9);
+  --nav-button-bg: #fff6da;
+  --nav-button-text: #271502;
+  --verified-badge-bg: #c6f0d9;
+  --verified-badge-text: #0b5126;
   --shadow-soft: 0 18px 40px -24px rgba(251, 204, 92, 0.8);
   --shadow-card: 0 18px 40px -20px rgba(251, 204, 92, 0.6);
   --shadow-glow: 0 0 16px rgba(251, 204, 92, 0.55);
@@ -115,18 +119,24 @@ textarea:focus-visible {
 }
 
 .nav-left__logo {
+  display: inline-flex;
   height: 40px;
   max-height: 40px;
   width: auto;
+  flex-shrink: 0;
+}
+
+.nav-left__logo img {
+  height: 100%;
+  width: auto;
   object-fit: contain;
   display: block;
-  flex-shrink: 0;
 }
 
 .nav-left__slogan {
   font-family: inherit;
   font-weight: 600;
-  color: var(--text-soft);
+  color: #201103;
   font-size: 16px;
   line-height: 1.2;
 }
@@ -139,6 +149,10 @@ textarea:focus-visible {
   .nav-left__logo {
     height: 32px;
     max-height: 32px;
+  }
+
+  .nav-left__logo img {
+    height: 100%;
   }
 
   .nav-left__slogan {
@@ -162,8 +176,8 @@ textarea:focus-visible {
 .nav-btn {
   position: relative;
   border: 1px solid transparent;
-  background: #ffffff;
-  color: #221505;
+  background: var(--nav-button-bg);
+  color: var(--nav-button-text);
   font-weight: 600;
   padding: 10px 18px;
   border-radius: 999px;
@@ -175,14 +189,14 @@ textarea:focus-visible {
 
 .nav-btn:hover,
 .nav-btn:focus-visible {
-  color: var(--text-strong);
+  color: var(--nav-button-text);
   border-color: rgba(251, 204, 92, 0.8);
   box-shadow: var(--shadow-glow);
 }
 
 .nav-btn.active {
-  color: var(--text-strong);
-  background: #fff7d6;
+  color: var(--nav-button-text);
+  background: #ffefbc;
   border-color: rgba(251, 204, 92, 0.85);
   box-shadow: var(--shadow-soft);
 }
@@ -200,8 +214,18 @@ textarea:focus-visible {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
   justify-content: flex-end;
+}
+
+.header-actions__cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 245, 0.85);
+  box-shadow: 0 8px 20px -16px rgba(0, 0, 0, 0.35);
+  flex-wrap: wrap;
 }
 
 .page-title {
@@ -218,6 +242,11 @@ textarea:focus-visible {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.header-actions__cluster:focus-within,
+.wallet-actions:focus-within .header-actions__cluster {
+  box-shadow: var(--shadow-glow);
 }
 
 .verify-btn {
@@ -250,11 +279,11 @@ textarea:focus-visible {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(46, 204, 113, 0.18);
-  color: #0b7a33;
+  background: var(--verified-badge-bg);
+  color: var(--verified-badge-text);
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid rgba(46, 204, 113, 0.35);
+  border: 1px solid rgba(11, 81, 38, 0.45);
   white-space: nowrap;
 }
 
@@ -1190,10 +1219,12 @@ textarea {
 
 .toast-container {
   position: fixed;
-  right: 24px;
+  right: 16px;
+  left: 16px;
   bottom: 24px;
   display: grid;
   gap: 12px;
+  justify-items: end;
   z-index: 40;
 }
 
@@ -1204,6 +1235,7 @@ textarea {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-card);
   min-width: 260px;
+  width: min(320px, 100%);
   transition: opacity 0.4s ease;
 }
 
@@ -1219,6 +1251,24 @@ textarea {
 .toast .hash a {
   color: var(--text-muted);
   font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .toast {
+    transition: none !important;
+  }
+
+  .modal-dialog,
+  .share-modal__dialog {
+    animation: none !important;
+  }
 }
 
 .miniapp-floating-label {
@@ -1260,14 +1310,14 @@ textarea {
 .modal-dialog,
 .share-modal__dialog {
   position: relative;
-  margin: clamp(40px, 10vh, 80px) auto;
+  margin: clamp(24px, 8vh, 80px) auto;
   max-width: 420px;
   background: var(--surface-strong);
   border-radius: var(--radius-lg);
   border: 2px solid var(--border-strong);
   box-shadow: 0 40px 60px -30px rgba(251, 204, 92, 0.55);
   padding: clamp(24px, 4vw, 32px);
-  max-height: min(90vh, 640px);
+  max-height: min(100vh, 640px);
   overflow-y: auto;
   animation: modalScale 0.32s ease;
 }
@@ -1857,6 +1907,116 @@ textarea {
     bottom: 12px;
     font-size: 12px;
     padding: 8px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --header-height: 72px;
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    text-align: left;
+    gap: 12px;
+    padding: 14px 16px 18px;
+  }
+
+  .brand-area {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .nav-left__slogan {
+    font-size: 13px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .header-actions__cluster {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .wallet-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .identity-connect-pill {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .identity-connect-pill .verify-btn,
+  .identity-connect-pill .connect-btn {
+    flex: 1 1 120px;
+    min-width: 0;
+    padding-inline: 12px;
+  }
+
+  .wallet-pill,
+  #identityConnectPill {
+    flex: 1 1 100%;
+  }
+
+  .wallet-pill__button {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .wallet-dropdown {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    margin: 0;
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+    max-width: none;
+    box-shadow: 0 -20px 40px -24px rgba(0, 0, 0, 0.35);
+    display: flex;
+    transform: translateY(100%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    animation: none;
+    gap: 16px;
+  }
+
+  .wallet-dropdown.open {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .wallet-dropdown__network {
+    font-size: 14px;
+  }
+
+  .toast-container {
+    bottom: 16px;
+    gap: 10px;
+  }
+
+  .toast {
+    width: 100%;
   }
 }
 
