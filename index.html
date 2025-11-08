@@ -86,10 +86,10 @@
             >🌐</button>
             <div class="wallet-actions">
               <div class="identity-connect-pill" id="identityConnectPill">
-                <button id="verifyHumanButton" type="button" class="verify-btn">Verify with World ID</button>
+                <button id="verifyHumanButton" type="button" class="verify-btn">Verify with Self ID</button>
                 <span class="identity-connect-pill__divider" aria-hidden="true"></span>
                 <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
-                <span id="walletVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+                <span id="walletVerifiedBadge" class="status-badge status-badge--unverified">Not verified</span>
               </div>
               <div id="walletPill" class="wallet-pill" hidden>
                 <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
@@ -434,7 +434,7 @@
                 <div class="profile-card__identity">
                   <div>
                     <p id="profileUsername" class="profile-username">—</p>
-                    <span id="profileVerifiedBadge" class="verified-badge" hidden>Verified Human</span>
+                    <span id="profileVerifiedBadge" class="status-badge status-badge--unverified">Not verified</span>
                   </div>
                   <button
                     id="profileCopyButton"
@@ -501,6 +501,24 @@
               </div>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="selfModal" class="modal-layer self-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="selfModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="selfModal" aria-label="Close Self verification">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2>Verify with Self ID</h2>
+          <p>Scan the QR code with the Self mobile app to complete verification.</p>
+          <div id="selfQrContainer" class="self-qr-container" aria-live="polite"></div>
+          <div class="self-deeplink">
+            <a id="selfDeepLink" class="self-deeplink__button" href="#" target="_blank" rel="noopener" hidden>Open in Self App</a>
+          </div>
+          <p id="selfStatusMessage" class="self-status" aria-live="polite">Waiting for verification…</p>
         </div>
       </div>
     </div>

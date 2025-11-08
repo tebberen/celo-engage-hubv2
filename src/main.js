@@ -38,9 +38,10 @@ import {
   getAnalyticsConfig,
 } from "./services/contractService.js";
 import {
-  openWorldIdVerification,
+  openSelfVerification,
   syncVerifiedFlag,
   clearVerificationState,
+  closeSelfVerification,
 } from "./services/identityService.js";
 import { fetchTalentProfile } from "./services/talentService.js";
 
@@ -58,8 +59,8 @@ const DEFAULT_FEED = [
   { user: "0xForum", link: "https://forum.celo.org", blockNumber: null, transactionHash: null },
 ];
 
-const VERIFICATION_SUCCESS_MESSAGE =
-  "Verification successful! You are now a Verified Human on Celo Engage Hub.";
+const VERIFICATION_SUCCESS_MESSAGE = "✅ Verified with Self ID successfully.";
+const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
 const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
 
 const state = {
@@ -157,6 +158,10 @@ const elements = {
   shareLinkForm: document.getElementById("shareLinkForm"),
   shareLinkInput: document.getElementById("shareLinkInput"),
   sharePromptLink: document.getElementById("sharePromptLink"),
+  selfModal: document.getElementById("selfModal"),
+  selfQrContainer: document.getElementById("selfQrContainer"),
+  selfDeepLink: document.getElementById("selfDeepLink"),
+  selfStatusMessage: document.getElementById("selfStatusMessage"),
   donateQuickButtons: document.querySelectorAll("[data-donate-amount]"),
   duneLink: document.getElementById("duneLink"),
   graphLink: document.getElementById("graphLink"),
@@ -187,6 +192,7 @@ let wsProvider = null;
 let wsBackoff = 2000;
 
 let isVerifyingHuman = false;
+let activeSelfSession = null;
 let talentProfileAbortController = null;
 
 const FOCUSABLE_SELECTOR =
@@ -1036,6 +1042,7 @@ function setupWalletButtons() {
         state.isOwner = false;
         state.verifiedHuman = false;
         clearVerificationState();
+        closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
@@ -1084,10 +1091,93 @@ function setupWalletDropdown() {
   });
 }
 
+function resetSelfVerificationModal() {
+  if (elements.selfQrContainer) {
+    elements.selfQrContainer.innerHTML = "";
+  }
+  if (elements.selfStatusMessage) {
+    elements.selfStatusMessage.textContent = "Waiting for verification…";
+  }
+  if (elements.selfDeepLink) {
+    elements.selfDeepLink.setAttribute("hidden", "true");
+    elements.selfDeepLink.removeAttribute("href");
+  }
+}
+
+function updateSelfStatusMessage(status) {
+  if (!elements.selfStatusMessage) return;
+  let text = "Waiting for verification…";
+  const normalized = typeof status === "string" ? status : status?.type || status?.status;
+  switch (normalized) {
+    case "verified":
+      text = "Verification complete. You can close this window.";
+      break;
+    case "failed":
+    case "error":
+      text = "Verification failed. Try again.";
+      break;
+    case "scanned":
+      text = "Scan detected. Approve in the Self app.";
+      break;
+    case "pending":
+    case "started":
+    case "initiated":
+      text = "Waiting for verification…";
+      break;
+    default:
+      if (normalized) {
+        text = normalized;
+      } else if (status?.message) {
+        text = status.message;
+      }
+  }
+  elements.selfStatusMessage.textContent = text;
+}
+
+function updateSelfDeepLink(link) {
+  if (!elements.selfDeepLink) return;
+  if (link) {
+    elements.selfDeepLink.href = link;
+    elements.selfDeepLink.removeAttribute("hidden");
+  } else {
+    elements.selfDeepLink.setAttribute("hidden", "true");
+    elements.selfDeepLink.removeAttribute("href");
+  }
+}
+
+function openSelfVerificationModal(trigger) {
+  if (!elements.selfModal) return;
+  resetSelfVerificationModal();
+  openModalEl(elements.selfModal, { trigger });
+}
+
+function closeSelfVerificationModal() {
+  if (!elements.selfModal) return;
+  closeModalEl(elements.selfModal);
+  resetSelfVerificationModal();
+  closeSelfVerification();
+  activeSelfSession = null;
+  if (isVerifyingHuman && !state.verifiedHuman) {
+    isVerifyingHuman = false;
+    renderVerificationState();
+  }
+}
+
+function setupSelfVerificationModal() {
+  if (!elements.selfModal) return;
+  const dismissButtons = elements.selfModal.querySelectorAll('[data-dismiss="selfModal"]');
+  dismissButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      closeSelfVerificationModal();
+    });
+  });
+}
+
 function setupIdentityVerification() {
   if (elements.verifyHumanButton) {
     elements.verifyHumanButton.addEventListener("click", handleVerifyHumanClick);
   }
+  setupSelfVerificationModal();
   renderVerificationState();
 }
 
@@ -1103,8 +1193,28 @@ function syncCurrentVerification() {
   renderVerificationState();
 }
 
+function updateVerificationBadge(element, verified, hasWallet) {
+  if (!element) return;
+  if (verified) {
+    element.textContent = "Verified with Self";
+    element.classList.add("status-badge--verified");
+    element.classList.remove("status-badge--unverified");
+    element.removeAttribute("hidden");
+  } else {
+    element.textContent = "Not verified";
+    element.classList.remove("status-badge--verified");
+    element.classList.add("status-badge--unverified");
+    if (hasWallet) {
+      element.removeAttribute("hidden");
+    } else {
+      element.setAttribute("hidden", "true");
+    }
+  }
+}
+
 function renderVerificationState() {
-  const verified = Boolean(state.address && state.verifiedHuman);
+  const hasWallet = Boolean(state.address);
+  const verified = Boolean(hasWallet && state.verifiedHuman);
   if (elements.verifyHumanButton) {
     if (isVerifyingHuman && !verified) {
       elements.verifyHumanButton.textContent = "Verifying…";
@@ -1112,18 +1222,14 @@ function renderVerificationState() {
       elements.verifyHumanButton.setAttribute("aria-busy", "true");
       elements.verifyHumanButton.classList.add("is-loading");
     } else {
-      elements.verifyHumanButton.textContent = verified ? "Verified Human" : "Verify with World ID";
+      elements.verifyHumanButton.textContent = verified ? "Verified with Self" : "Verify with Self ID";
       elements.verifyHumanButton.disabled = verified;
       elements.verifyHumanButton.removeAttribute("aria-busy");
       elements.verifyHumanButton.classList.remove("is-loading");
     }
   }
-  if (elements.walletVerifiedBadge) {
-    elements.walletVerifiedBadge.hidden = !verified;
-  }
-  if (elements.profileVerifiedBadge) {
-    elements.profileVerifiedBadge.hidden = !verified;
-  }
+  updateVerificationBadge(elements.walletVerifiedBadge, verified, hasWallet);
+  updateVerificationBadge(elements.profileVerifiedBadge, verified, hasWallet);
 }
 
 async function handleVerifyHumanClick() {
@@ -1135,40 +1241,52 @@ async function handleVerifyHumanClick() {
   }
   isVerifyingHuman = true;
   renderVerificationState();
+  openSelfVerificationModal(elements.verifyHumanButton);
+  updateSelfStatusMessage("pending");
   let errorHandled = false;
   try {
-    await openWorldIdVerification({
-      signal: state.address,
-      onSuccess: () => {
+    const session = await openSelfVerification({
+      address: state.address,
+      container: elements.selfQrContainer,
+      onVerified: () => {
         isVerifyingHuman = false;
+        activeSelfSession = null;
         syncCurrentVerification();
         showToast("success", VERIFICATION_SUCCESS_MESSAGE);
+        closeSelfVerificationModal();
       },
       onError: (error) => {
         if (error) {
           errorHandled = true;
-          console.error("World ID verification error", error);
-          const message = error?.message || UI_MESSAGES.error;
-          showToast("error", message);
+          console.error("Self verification error", error);
         }
-      },
-      onClose: () => {
         isVerifyingHuman = false;
-        if (!state.verifiedHuman) {
-          renderVerificationState();
-        }
+        activeSelfSession = null;
+        updateSelfStatusMessage("failed");
+        showToast("error", VERIFICATION_FAILURE_MESSAGE);
+        closeSelfVerificationModal();
+        renderVerificationState();
+      },
+      onStatus: (status) => {
+        updateSelfStatusMessage(status);
+      },
+      onDeepLink: (link) => {
+        updateSelfDeepLink(link);
       },
     });
+    activeSelfSession = session;
+    if (!session?.deepLink) {
+      updateSelfDeepLink(null);
+    }
   } catch (error) {
-    if (!(error instanceof Error && error.message === "Missing verification signal") && !errorHandled) {
-      console.error("World ID verification failed", error);
-      const message = error?.message || UI_MESSAGES.error;
-      showToast("error", message);
+    if (!errorHandled) {
+      console.error("Self verification failed to initialize", error);
+      showToast("error", VERIFICATION_FAILURE_MESSAGE);
     }
     isVerifyingHuman = false;
-    if (!state.verifiedHuman) {
-      renderVerificationState();
-    }
+    activeSelfSession = null;
+    closeSelfVerificationModal();
+    renderVerificationState();
   }
 }
 
@@ -1299,6 +1417,7 @@ function initWalletListeners() {
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
         syncCurrentVerification();
         updateWalletUI();
+        closeSelfVerificationModal();
         await afterWalletConnected();
         break;
       case "disconnected":
@@ -1307,6 +1426,7 @@ function initWalletListeners() {
         state.isOwner = false;
         state.verifiedHuman = false;
         clearVerificationState();
+        closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
