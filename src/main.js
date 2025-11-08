@@ -217,6 +217,8 @@ const LOADING_TEXT = {
   voting: "Processing Vote…",
 };
 
+const WITHDRAW_TOKENS = new Set(["CELO", "cUSD", "cEUR"]);
+
 function getLoadingText(key, fallback) {
   const base = LOADING_TEXT[key] || fallback;
   return t ? t(`status.${key}`, base) || base : base;
@@ -314,6 +316,9 @@ async function withButtonLoading(button, options, task) {
   if (!button) {
     return action();
   }
+  if (button.dataset.loading === "true") {
+    return undefined;
+  }
   const originalHtml = button.innerHTML;
   const originalMinWidth = button.style.minWidth;
   const keepWidth = opts.keepWidth !== false;
@@ -321,6 +326,7 @@ async function withButtonLoading(button, options, task) {
   if (measuredWidth) {
     button.style.minWidth = `${Math.ceil(measuredWidth)}px`;
   }
+  button.dataset.loading = "true";
   button.disabled = true;
   button.classList.add("is-loading");
   button.setAttribute("aria-busy", "true");
@@ -330,6 +336,7 @@ async function withButtonLoading(button, options, task) {
   try {
     return await action();
   } finally {
+    delete button.dataset.loading;
     button.disabled = false;
     button.classList.remove("is-loading");
     button.removeAttribute("aria-busy");
@@ -1033,6 +1040,7 @@ function setupWalletButtons() {
   if (elements.disconnectWallet) {
     elements.disconnectWallet.addEventListener("click", async () => {
       const button = elements.disconnectWallet;
+      const previousAddress = state.address;
       try {
         await withButtonLoading(button, { loadingText: getLoadingText("pending", "Pending…") }, async () => {
           await disconnectWallet();
@@ -1041,7 +1049,7 @@ function setupWalletButtons() {
         state.profile = null;
         state.isOwner = false;
         state.verifiedHuman = false;
-        clearVerificationState();
+        clearVerificationState(previousAddress);
         closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
@@ -1420,12 +1428,13 @@ function initWalletListeners() {
         closeSelfVerificationModal();
         await afterWalletConnected();
         break;
-      case "disconnected":
+      case "disconnected": {
+        const previousAddress = state.address || address;
         state.address = null;
         state.profile = null;
         state.isOwner = false;
         state.verifiedHuman = false;
-        clearVerificationState();
+        clearVerificationState(previousAddress);
         closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
@@ -1434,6 +1443,7 @@ function initWalletListeners() {
         renderNetworkInfo(false);
         renderVerificationState();
         break;
+      }
       case "networkChanged":
         renderNetworkInfo(valid);
         if (!valid) {
@@ -1657,8 +1667,15 @@ async function handleDonateCeurSubmit(event) {
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const url = elements.shareLinkInput?.value.trim() || "";
-  if (!url.startsWith("https://")) {
+  const rawUrl = elements.shareLinkInput?.value.trim() || "";
+  let sanitizedUrl = null;
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") {
+      return showToast("error", UI_MESSAGES.invalidLink);
+    }
+    sanitizedUrl = parsed.toString();
+  } catch (error) {
     return showToast("error", UI_MESSAGES.invalidLink);
   }
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -1667,7 +1684,7 @@ async function handleShareLinkSubmit(event) {
       submitter,
       { loadingText: getLoadingText("sharingLink", "Submitting Link…") },
       async () => {
-        await doShareLink(url);
+        await doShareLink(sanitizedUrl);
         if (elements.shareLinkInput) {
           elements.shareLinkInput.value = "https://";
         }
@@ -1706,16 +1723,25 @@ async function handleProposalSubmit(event) {
 
 async function handleWithdrawSubmit(event, token) {
   event.preventDefault();
+  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
+  if (!WITHDRAW_TOKENS.has(token)) {
+    console.warn("Withdraw attempted with unsupported token", token);
+    return showToast("error", UI_MESSAGES.error);
+  }
   const amountInput = event.target.querySelector("input");
-  const amount = amountInput?.value || "";
+  const rawAmount = amountInput?.value?.trim() || "";
+  const amountValue = Number(rawAmount);
+  if (!rawAmount || Number.isNaN(amountValue) || amountValue <= 0) {
+    return showToast("error", UI_MESSAGES.invalidAmount);
+  }
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("withdrawing", "Processing Withdrawal…") },
       async () => {
-        await withdrawDonations(token, amount);
+        await withdrawDonations(token, rawAmount);
         if (amountInput) amountInput.value = "";
         refreshAfterTransaction();
       }
@@ -2413,9 +2439,20 @@ function formatDuration(seconds) {
 
 function parseError(error) {
   if (!error) return UI_MESSAGES.error;
-  if (error.data?.message) return error.data.message;
-  if (error.error?.message) return error.error.message;
-  if (typeof error.message === "string") return error.message;
+  const code = error?.code ?? error?.error?.code;
+  const rawMessage = String(
+    error?.data?.message || error?.error?.message || error?.message || error?.reason || ""
+  ).trim();
+  const normalized = rawMessage.toLowerCase();
+  if (code === 4001 || normalized.includes("user rejected") || normalized.includes("user denied")) {
+    return UI_MESSAGES.txRejected;
+  }
+  if (normalized.includes("insufficient funds") || normalized.includes("insufficient balance")) {
+    return UI_MESSAGES.insufficientFunds || UI_MESSAGES.error;
+  }
+  if (normalized.includes("network") && normalized.includes("mismatch")) {
+    return UI_MESSAGES.wrongNetwork;
+  }
   return UI_MESSAGES.error;
 }
 

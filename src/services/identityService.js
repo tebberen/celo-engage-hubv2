@@ -102,8 +102,22 @@ export function setVerifiedHuman(address, value) {
   return verifiedHuman;
 }
 
-export function clearVerificationState() {
+export function clearVerificationState(address = null) {
   cleanupActiveSession();
+  if (address) {
+    const key = normalizeAddress(address);
+    if (key) {
+      const map = getVerificationMap();
+      if (map[key]) {
+        delete map[key];
+        if (Object.keys(map).length) {
+          persistVerificationMap(map);
+        } else if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    }
+  }
   verifiedHuman = false;
 }
 
