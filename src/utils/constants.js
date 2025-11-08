@@ -71,6 +71,8 @@ export const UI_MESSAGES = {
   txRejected: "İşlem reddedildi.",
   ownerOnly: "Bu işlem yalnızca sahip adresi tarafından yapılabilir.",
   approveFirst: "Lütfen önce onay işlemini tamamlayın.",
+  invalidAmount: "Geçersiz miktar. Lütfen pozitif bir değer girin.",
+  insufficientFunds: "Yetersiz bakiye. Lütfen bakiyenizi kontrol edin.",
   success: "İşlem başarıyla tamamlandı!",
   error: "Bir hata oluştu. Lütfen tekrar deneyin.",
 };

@@ -215,6 +215,7 @@ export async function connectWalletConnect() {
 }
 
 export async function disconnectWallet() {
+  const previousAddress = selectedAddress;
   if (walletConnectProvider) {
     try {
       await walletConnectProvider.disconnect();
@@ -228,7 +229,7 @@ export async function disconnectWallet() {
   signer = null;
   selectedAddress = null;
   connectionType = null;
-  notify("disconnected");
+  notify("disconnected", { address: previousAddress });
 }
 
 export function isWalletConnected() {
