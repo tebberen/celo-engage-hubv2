@@ -355,9 +355,34 @@ export async function loadGlobalStats() {
   const badge = getBadge();
   const gov = getGov();
 
+  const defaultGlobalStats = [
+    ethers.constants.Zero,
+    ethers.constants.Zero,
+    ethers.constants.Zero,
+    ethers.constants.Zero,
+    ethers.constants.Zero,
+    ethers.constants.Zero,
+  ];
+
+  const hasGlobalStatsFn = typeof hub?.getGlobalStats === "function";
+  if (!hasGlobalStatsFn) {
+    console.warn("getGlobalStats not found on hub contract");
+  }
+
+  const globalStatsPromise = hasGlobalStatsFn
+    ? hub
+        .getGlobalStats()
+        .catch((error) => {
+          console.warn("getGlobalStats call failed", error);
+          return defaultGlobalStats;
+        })
+    : Promise.resolve(defaultGlobalStats);
+
   const [global, donationStats, totalDonated, totalDonors, badgeStats, governanceStats] = await Promise.all([
-    hub.getGlobalStats(),
-    donate.getDonateStats().catch(() => [ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]),
+    globalStatsPromise,
+    donate
+      .getDonateStats()
+      .catch(() => [ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]),
     donate.totalDonated().catch(() => ethers.constants.Zero),
     donate.totalDonators().catch(() => ethers.constants.Zero),
     badge.getBadgeStats().catch(() => [ethers.constants.Zero]),
