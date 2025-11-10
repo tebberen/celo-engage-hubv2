@@ -33,9 +33,9 @@ import {
   loadRecentLinks,
   loadGovernance,
   loadLeaderboard,
-  loadUserLinks,
   loadUserDeployments,
   getAnalyticsConfig,
+  getLink,
 } from "./services/contractService.js";
 import {
   openSelfVerification,
@@ -51,17 +51,17 @@ if (!deviceId) {
   localStorage.setItem("celo-engage-device-id", deviceId);
 }
 
-const storedClickerMap = safeParseStorage(localStorage.getItem("celo-engage-link-clickers"), {});
-
-const DEFAULT_FEED = [
-  { user: "0xCommunity", link: "https://celo.org", blockNumber: null, transactionHash: null },
-  { user: "0xBuilders", link: "https://developers.celo.org", blockNumber: null, transactionHash: null },
-  { user: "0xForum", link: "https://forum.celo.org", blockNumber: null, transactionHash: null },
-];
+const SUPPORT_STORAGE_KEY = "celo-engage-link-supports";
+const COMPLETED_STORAGE_KEY = "completedLinks";
+const storedSupportCounts = safeParseStorage(localStorage.getItem(SUPPORT_STORAGE_KEY), {});
+const storedCompletedLinks = safeParseStorage(localStorage.getItem(COMPLETED_STORAGE_KEY), []);
+const newLinkHighlights = new Set();
 
 const VERIFICATION_SUCCESS_MESSAGE = "✅ Verified with Self ID successfully.";
 const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
 const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
+const COMPLETION_THRESHOLD = 3;
+const MAX_COMPLETED_HISTORY = 50;
 
 const state = {
   address: null,
@@ -73,7 +73,9 @@ const state = {
   theme: "golden",
   language: localStorage.getItem("celo-engage-lang") || "tr",
   translations: {},
-  linkClickers: storedClickerMap,
+  supportCounts: sanitizeSupportCounts(storedSupportCounts),
+  completedLinks: [],
+  unseenLinkCount: 0,
   sharePromptLink: null,
   deviceId,
   feedEntries: [],
@@ -114,9 +116,12 @@ const elements = {
   publicProfileLink: document.getElementById("publicProfileLink"),
   profileVerifiedBadge: document.getElementById("profileVerifiedBadge"),
   profileMetrics: document.getElementById("profileMetrics"),
+  feedSpinner: document.getElementById("feedSpinner"),
+  feedBadge: document.getElementById("feedBadge"),
   linkFeed: document.getElementById("linkFeed"),
   completedFeed: document.getElementById("completedFeed"),
   completedCounter: document.getElementById("completedCounter"),
+  completedBadge: document.getElementById("completedBadge"),
   gmForm: document.getElementById("gmForm"),
   deployForm: document.getElementById("deployForm"),
   donateTabs: document.querySelectorAll("#donate .tab-btn"),
@@ -189,6 +194,7 @@ const elements = {
 let activeSectionId = null;
 let wsProvider = null;
 let wsBackoff = 2000;
+let linkEventContract = null;
 
 let isVerifyingHuman = false;
 let activeSelfSession = null;
@@ -360,6 +366,7 @@ function init() {
   setupNavigation();
   const initialSection = document.querySelector(".section.active") || (elements.sections && elements.sections[0]);
   if (initialSection) {
+    activeSectionId = initialSection.id || "home";
     requestAnimationFrame(() => initialSection.classList.add("fade-in"));
   }
   setupTabs();
@@ -374,6 +381,7 @@ function init() {
   setupShareModal();
   setupUsernameModal();
   setupEcosystemModal();
+  initializeFeedState();
   setupFeedInteractions();
   setupTalentProfile();
   setupToastBridge();
@@ -381,11 +389,13 @@ function init() {
   renderNetworkInfo(false);
   updateWalletUI();
   loadInitialData();
+  setupLinkLiveUpdates();
   initWalletListeners();
   initWebsocket();
 }
 
 document.addEventListener("DOMContentLoaded", init);
+window.addEventListener("beforeunload", cleanupLinkLiveUpdates);
 
 function t(key, fallback = "") {
   if (!key) return fallback;
@@ -565,10 +575,7 @@ function closeShareModal() {
 
 function setupFeedInteractions() {
   if (elements.linkFeed) {
-    elements.linkFeed.addEventListener("click", handleFeedClick);
-  }
-  if (elements.completedFeed) {
-    elements.completedFeed.addEventListener("click", handleFeedClick);
+    elements.linkFeed.addEventListener("click", handleFeedSupportClick);
   }
 }
 
@@ -589,156 +596,267 @@ function setupTalentProfile() {
   renderTalentProfileState();
 }
 
-function handleFeedClick(event) {
-  const trigger = event.target.closest("[data-feed-link]");
-  if (!trigger) return;
+function handleFeedSupportClick(event) {
+  const button = event.target.closest("button[data-support]");
+  if (!button) return;
   event.preventDefault();
-  const encodedLink = trigger.getAttribute("data-feed-link");
-  const url = encodedLink ? decodeURIComponent(encodedLink) : trigger.getAttribute("href");
-  if (!url) return;
-  window.open(url, "_blank", "noopener");
-  registerLinkInteraction(url);
-  openShareModal(url, trigger);
+  const key = button.dataset.support;
+  if (!key) return;
+  handleSupportAction(key);
 }
 
-function registerLinkInteraction(url) {
-  const key = getLinkKey(url);
-  if (!key) return;
-  const userId = getCurrentUserId();
-  const existing = new Set(state.linkClickers[key] || []);
-  if (existing.size >= 3 && !existing.has(userId)) {
-    return;
-  }
-  const previous = existing.size;
-  if (!existing.has(userId)) {
-    existing.add(userId);
-    state.linkClickers[key] = Array.from(existing);
-    persistLinkClickers();
-  }
-  const newCount = existing.size;
-  if (newCount >= 3 && previous < 3) {
-    const card = document.querySelector(`[data-feed-key="${key}"]`);
-    if (card) {
-      card.classList.add("feed-card--completing");
-      card.addEventListener(
-        "animationend",
-        () => {
-          card.classList.remove("feed-card--completing");
-          updateLinkFeedView();
-        },
-        { once: true }
-      );
-      return;
-    }
+function handleSupportAction(key) {
+  const current = getSupportCount(key);
+  const next = Math.min(COMPLETION_THRESHOLD, current + 1);
+  state.supportCounts[key] = next;
+  persistSupportCounts();
+  const entry = findLinkEntryByKey(key);
+  if (next >= COMPLETION_THRESHOLD && entry) {
+    moveLinkToCompleted(entry);
   }
   updateLinkFeedView();
 }
 
-function persistLinkClickers() {
-  localStorage.setItem("celo-engage-link-clickers", JSON.stringify(state.linkClickers));
+function persistSupportCounts() {
+  localStorage.setItem(SUPPORT_STORAGE_KEY, JSON.stringify(state.supportCounts));
+}
+
+function findLinkEntryByKey(key) {
+  if (!key) return null;
+  return (
+    state.feedEntries.find((item) => item.key === key) ||
+    state.completedLinks.find((item) => item.key === key) ||
+    null
+  );
+}
+
+function mergeLinkEntries(entries, options = {}) {
+  const mode = options.mode || "merge";
+  const trackNew = options.trackNew ?? mode !== "replace";
+  const base = mode === "replace" ? [] : Array.isArray(state.feedEntries) ? state.feedEntries.slice() : [];
+  const map = new Map();
+  base.forEach((item) => {
+    if (item?.key) {
+      map.set(item.key, { ...item });
+    }
+  });
+  const incoming = Array.isArray(entries) ? entries : [];
+  const newKeys = [];
+  incoming
+    .map((entry) => normalizeLinkEntry(entry))
+    .filter(Boolean)
+    .forEach((item) => {
+      const existing = map.get(item.key);
+      const merged = {
+        ...(existing || {}),
+        ...item,
+        addedAt: item.addedAt || existing?.addedAt || Date.now(),
+      };
+      if (!existing && trackNew) {
+        newKeys.push(item.key);
+      }
+      map.set(item.key, merged);
+    });
+  const combined = Array.from(map.values());
+  combined.sort((a, b) => {
+    const blockDiff = (b.blockNumber || 0) - (a.blockNumber || 0);
+    if (blockDiff !== 0) return blockDiff;
+    return (b.addedAt || 0) - (a.addedAt || 0);
+  });
+  state.feedEntries = combined;
+  return newKeys;
+}
+
+function getSupportCount(key) {
+  const value = state.supportCounts?.[key];
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function moveLinkToCompleted(entry) {
+  if (!entry?.key) return;
+  const existingIndex = state.completedLinks.findIndex((item) => item.key === entry.key);
+  const completedEntry = { ...entry, completedAt: Date.now() };
+  if (existingIndex !== -1) {
+    state.completedLinks.splice(existingIndex, 1);
+  }
+  state.completedLinks = [completedEntry, ...state.completedLinks].slice(0, MAX_COMPLETED_HISTORY);
+  state.supportCounts[entry.key] = COMPLETION_THRESHOLD;
+  persistSupportCounts();
+  persistCompletedLinks();
+  updateCompletedBadge();
+}
+
+function persistCompletedLinks() {
+  const serializable = state.completedLinks.map(({ key, user, link, transactionHash, blockNumber, completedAt }) => ({
+    key,
+    user,
+    link,
+    transactionHash,
+    blockNumber,
+    completedAt,
+  }));
+  localStorage.setItem(COMPLETED_STORAGE_KEY, JSON.stringify(serializable));
+}
+
+function toggleFeedSpinner(show) {
+  if (!elements.feedSpinner) return;
+  elements.feedSpinner.hidden = !show;
+}
+
+function setFeedBusy(isBusy) {
+  if (!elements.linkFeed) return;
+  if (isBusy) {
+    elements.linkFeed.setAttribute("aria-busy", "true");
+  } else {
+    elements.linkFeed.removeAttribute("aria-busy");
+  }
 }
 
 function updateLinkFeedView() {
   if (!elements.linkFeed) return;
-  const sourceEntries = Array.isArray(state.feedEntries) && state.feedEntries.length ? state.feedEntries : DEFAULT_FEED;
-  const activeEntries = filterFeedEntries(sourceEntries);
-  const completedEntries = getCompletedEntries(sourceEntries);
-
+  const activeEntries = getActiveLinkEntries();
   if (!activeEntries.length) {
     elements.linkFeed.innerHTML = `<p class="feed-empty">${t("feed.empty", "Henüz bağlantı paylaşılmadı.")}</p>`;
   } else {
     elements.linkFeed.innerHTML = activeEntries.map(renderFeedCard).join("");
   }
+  if (activeSectionId === "home") {
+    applyLinkHighlights();
+  }
+  updateCompletedView();
+}
 
+function getActiveLinkEntries() {
+  if (!Array.isArray(state.feedEntries)) return [];
+  return state.feedEntries.filter((entry) => !isLinkCompleted(entry));
+}
+
+function updateCompletedView() {
   if (elements.completedFeed) {
-    elements.completedFeed.innerHTML = completedEntries.length
-      ? completedEntries.map(renderCompletedCard).join("")
-      : `<p class="feed-empty">${t("feed.completedEmpty", "Tamamlanan bağlantı yok.")}</p>`;
+    const completedEntries = getCompletedLinkEntries();
+    if (!completedEntries.length) {
+      elements.completedFeed.innerHTML = `<p class="feed-empty">${t("feed.completedEmpty", "Tamamlanan bağlantı yok.")}</p>`;
+    } else {
+      elements.completedFeed.innerHTML = completedEntries.map(renderCompletedCard).join("");
+    }
   }
-
+  const completedCount = getCompletedLinkEntries().length;
   if (elements.completedCounter) {
-    elements.completedCounter.textContent = `✅ ${completedEntries.length} ${t("feed.counter", "Bağlantı tamamlandı")}`;
+    elements.completedCounter.textContent = `✅ ${completedCount} ${t("feed.counter", "Bağlantı tamamlandı")}`;
+  }
+  updateCompletedBadge();
+}
+
+function getCompletedLinkEntries() {
+  if (!Array.isArray(state.completedLinks)) return [];
+  return state.completedLinks.slice();
+}
+
+function updateCompletedBadge() {
+  if (!elements.completedBadge) return;
+  const count = getCompletedLinkEntries().length;
+  if (count > 0) {
+    elements.completedBadge.textContent = count;
+    elements.completedBadge.removeAttribute("hidden");
+  } else {
+    elements.completedBadge.textContent = "0";
+    elements.completedBadge.setAttribute("hidden", "true");
   }
 }
 
-function filterFeedEntries(entries) {
-  if (!Array.isArray(entries)) return [];
-  return entries.filter((item) => getLinkClickCount(item.link) < 3);
+function updateLinkBadge() {
+  if (!elements.feedBadge) return;
+  const count = state.unseenLinkCount || 0;
+  if (count > 0) {
+    elements.feedBadge.textContent = count;
+    elements.feedBadge.removeAttribute("hidden");
+  } else {
+    elements.feedBadge.textContent = "0";
+    elements.feedBadge.setAttribute("hidden", "true");
+  }
 }
 
-function getCompletedEntries(entries) {
-  if (!Array.isArray(entries)) return [];
-  return entries.filter((item) => getLinkClickCount(item.link) >= 3);
+function applyLinkHighlights() {
+  if (activeSectionId !== "home") return;
+  newLinkHighlights.forEach((key) => {
+    const card = document.querySelector(`[data-feed-key="${key}"]`);
+    if (card) {
+      card.classList.add("feed-card--highlight");
+      setTimeout(() => card.classList.remove("feed-card--highlight"), 1200);
+    }
+  });
+  newLinkHighlights.clear();
 }
 
-function renderFeedCard(item) {
-  const rawLink = item.link || "";
+function markLinksAsSeen() {
+  if (state.unseenLinkCount === 0) return;
+  state.unseenLinkCount = 0;
+  updateLinkBadge();
+}
+
+function isLinkCompleted(entry) {
+  if (!entry?.key) return false;
+  const supportCount = getSupportCount(entry.key);
+  if (supportCount >= COMPLETION_THRESHOLD) return true;
+  return state.completedLinks.some((item) => item.key === entry.key);
+}
+
+function renderFeedCard(entry) {
+  const rawLink = entry.link || "";
   const safeLink = escapeHtml(rawLink);
   const encodedLink = encodeURIComponent(rawLink);
-  const key = getLinkKey(rawLink);
-  const clicks = getLinkClickCount(item.link);
-  const remaining = Math.max(0, 3 - clicks);
-  const userLabel = escapeHtml(shorten(item.user || "0x0"));
-  const blockLabel = item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni");
-  const progressPercent = Math.min(100, Math.round((Math.min(clicks, 3) / 3) * 100));
+  const supportCount = getSupportCount(entry.key);
+  const remaining = Math.max(0, COMPLETION_THRESHOLD - supportCount);
+  const explorerLink = entry.transactionHash ? `${CURRENT_NETWORK.explorer}/tx/${entry.transactionHash}` : "";
+  const hashLabel = entry.transactionHash ? escapeHtml(shorten(entry.transactionHash)) : t("feed.pending", "Bekliyor");
+  const blockLabel = entry.blockNumber ? `#${entry.blockNumber}` : t("feed.new", "Yeni");
   return `
-    <article class="feed-card" data-feed-key="${key}">
+    <article class="feed-card" data-feed-key="${entry.key}">
       <div class="feed-card__meta">
-        <span>${userLabel}</span>
-        <time>${blockLabel}</time>
+        <span class="feed-card__user">${escapeHtml(shorten(entry.user || "0x0"))}</span>
+        ${explorerLink ? `<a href="${explorerLink}" target="_blank" rel="noopener">${hashLabel}</a>` : `<span>${hashLabel}</span>`}
       </div>
       <a class="feed-card__link" data-feed-link="${encodedLink}" href="${safeLink}" target="_blank" rel="noopener">${safeLink}</a>
+      <div class="feed-card__details">${blockLabel}</div>
       <div class="feed-card__footer">
-        <div class="feed-card__progress">
-          <span>${t("feed.progress", "Destek")}: ${Math.min(clicks, 3)}/3</span>
-          <div class="progress-bar"><span style="width:${progressPercent}%"></span></div>
+        <button type="button" class="support-btn" data-support="${entry.key}" ${supportCount >= COMPLETION_THRESHOLD ? "disabled" : ""}>
+          <span>${t("feed.support", "Support")}</span>
+        </button>
+        <div class="support-stats">
+          <strong>${supportCount}/${COMPLETION_THRESHOLD}</strong>
+          <span>${t("feed.supportLabel", "Destek")}</span>
         </div>
-        <span>${t("feed.remaining", "Kalan tıklama")}: ${remaining}</span>
+        <span class="feed-card__remaining">${remaining ? `${remaining} ${t("feed.remaining", "kaldı")}` : t("feed.ready", "Hazır!")}</span>
       </div>
     </article>
   `;
 }
 
-function renderCompletedCard(item) {
-  const rawLink = item.link || "";
+function renderCompletedCard(entry) {
+  const rawLink = entry.link || "";
   const safeLink = escapeHtml(rawLink);
   const encodedLink = encodeURIComponent(rawLink);
-  const key = getLinkKey(rawLink);
-  const userLabel = escapeHtml(shorten(item.user || "0x0"));
-  const blockLabel = item.blockNumber ? `#${item.blockNumber}` : t("feed.new", "Yeni");
-  const clicks = Math.min(3, Math.max(0, getLinkClickCount(item.link)));
+  const explorerLink = entry.transactionHash ? `${CURRENT_NETWORK.explorer}/tx/${entry.transactionHash}` : "";
+  const hashLabel = entry.transactionHash ? escapeHtml(shorten(entry.transactionHash)) : t("feed.pending", "Bekliyor");
+  const blockLabel = entry.blockNumber ? `#${entry.blockNumber}` : t("feed.new", "Yeni");
   return `
-    <article class="feed-card feed-card--completed" data-feed-key="${key}">
+    <article class="feed-card feed-card--completed" data-feed-key="${entry.key}">
       <div class="feed-card__meta">
-        <span>${userLabel}</span>
-        <time>${blockLabel}</time>
+        <span class="feed-card__user">${escapeHtml(shorten(entry.user || "0x0"))}</span>
+        ${explorerLink ? `<a href="${explorerLink}" target="_blank" rel="noopener">${hashLabel}</a>` : `<span>${hashLabel}</span>`}
       </div>
       <a class="feed-card__link" data-feed-link="${encodedLink}" href="${safeLink}" target="_blank" rel="noopener">${safeLink}</a>
+      <div class="feed-card__details">${blockLabel}</div>
       <div class="feed-card__footer">
         <span class="feed-card__badge">✅ ${t("feed.completedBadge", "Tamamlandı")}</span>
-        <span>${t("feed.progress", "Destek")}: ${clicks}/3</span>
+        <div class="support-stats">
+          <strong>${COMPLETION_THRESHOLD}/${COMPLETION_THRESHOLD}</strong>
+          <span>${t("feed.supportLabel", "Destek")}</span>
+        </div>
       </div>
     </article>
   `;
-}
-
-function getLinkClickCount(url) {
-  const key = getLinkKey(url);
-  const entries = state.linkClickers[key];
-  return Array.isArray(entries) ? entries.length : 0;
-}
-
-function getLinkKey(url) {
-  const normalized = normalizeLink(url);
-  return normalized ? encodeURIComponent(normalized) : "";
-}
-
-function normalizeLink(url) {
-  return typeof url === "string" ? url.trim().toLowerCase() : "";
-}
-
-function getCurrentUserId() {
-  return (state.address ? state.address.toLowerCase() : state.deviceId) || state.deviceId;
 }
 
 function escapeHtml(value) {
@@ -773,6 +891,87 @@ function safeParseStorage(value, fallback = {}) {
   } catch (error) {
     console.warn("storage parse error", error);
     return fallback;
+  }
+}
+
+function sanitizeSupportCounts(map) {
+  if (!map || typeof map !== "object") return {};
+  return Object.entries(map).reduce((acc, [key, value]) => {
+    if (!key) return acc;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      acc[key] = Math.min(COMPLETION_THRESHOLD, Math.max(0, Math.floor(numeric)));
+    }
+    return acc;
+  }, {});
+}
+
+function sanitizeCompletedLinks(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const sanitized = [];
+  list.forEach((item) => {
+    const entry = normalizeLinkEntry(item);
+    if (!entry || seen.has(entry.key)) return;
+    const completedAt = Number(item?.completedAt || Date.now());
+    sanitized.push({ ...entry, completedAt: Number.isFinite(completedAt) ? completedAt : Date.now() });
+    seen.add(entry.key);
+  });
+  sanitized.sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+  return sanitized.slice(0, MAX_COMPLETED_HISTORY);
+}
+
+function initializeFeedState() {
+  state.completedLinks = sanitizeCompletedLinks(storedCompletedLinks);
+  if (Array.isArray(state.completedLinks)) {
+    state.completedLinks.forEach((entry) => {
+      if (entry?.key) {
+        state.supportCounts[entry.key] = COMPLETION_THRESHOLD;
+      }
+    });
+    persistSupportCounts();
+  }
+  localStorage.removeItem("celo-engage-link-clickers");
+  updateCompletedView();
+  updateLinkBadge();
+}
+
+function normalizeLinkEntry(entry, options = {}) {
+  if (!entry) return null;
+  const rawLink = typeof entry.link === "string" ? entry.link.trim() : "";
+  const transactionHash = entry.transactionHash ? String(entry.transactionHash) : null;
+  const key = getLinkKey(rawLink, transactionHash);
+  if (!key) return null;
+  const blockNumber = Number(entry.blockNumber);
+  const addedAt = Number(entry.addedAt || Date.now());
+  return {
+    key,
+    user: entry.user || entry.address || "0x0",
+    link: rawLink,
+    transactionHash,
+    blockNumber: Number.isFinite(blockNumber) && blockNumber > 0 ? blockNumber : 0,
+    addedAt: Number.isFinite(addedAt) ? addedAt : Date.now(),
+    isNew: Boolean(options.isNew || entry.isNew),
+  };
+}
+
+function getLinkKey(link, hash) {
+  if (hash) {
+    return String(hash).toLowerCase();
+  }
+  const normalized = normalizeLink(link);
+  return normalized ? encodeURIComponent(normalized) : "";
+}
+
+function normalizeLink(link) {
+  if (typeof link !== "string") return "";
+  const trimmed = link.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.toString().toLowerCase();
+  } catch (error) {
+    return trimmed.toLowerCase();
   }
 }
 
@@ -836,6 +1035,13 @@ function showSection(sectionId, options = {}) {
   });
 
   activeSectionId = sectionId;
+
+  if (sectionId === "home") {
+    markLinksAsSeen();
+    requestAnimationFrame(() => {
+      applyLinkHighlights();
+    });
+  }
 
   if (updateUrl && window.location.hash !== `#${sectionId}`) {
     history.replaceState(null, "", `#${sectionId}`);
@@ -1829,30 +2035,79 @@ async function refreshGlobalStats() {
   }
 }
 
-async function refreshFeed() {
-  toggleSkeleton(elements.feedSkeleton, true);
+async function refreshFeed({ showLoading = true } = {}) {
+  if (showLoading) {
+    toggleSkeleton(elements.feedSkeleton, true);
+    toggleFeedSpinner(true);
+  }
+  setFeedBusy(true);
   try {
-    const [links, personalLinks] = await Promise.all([
-      loadRecentLinks(20),
-      state.address ? loadUserLinks(state.address).catch(() => []) : Promise.resolve([]),
-    ]);
-    const combined = [...links];
-    personalLinks.forEach((item) => {
-      if (!combined.find((entry) => entry.link === item.link)) {
-        combined.unshift({
-          user: item.address,
-          link: item.link,
-          blockNumber: null,
-          transactionHash: null,
-        });
-      }
-    });
-    state.feedEntries = combined.length ? combined : [...DEFAULT_FEED];
+    const links = await loadRecentLinks(40);
+    mergeLinkEntries(links, { mode: "replace", trackNew: false });
     updateLinkFeedView();
+    markLinksAsSeen();
   } catch (error) {
     console.error("feed error", error);
+    if (elements.linkFeed) {
+      elements.linkFeed.innerHTML = `<p class="feed-empty feed-empty--error">${t(
+        "feed.error",
+        "Bağlantılar yüklenemedi. Lütfen tekrar deneyin."
+      )}</p>`;
+    }
+    showToast("error", t("feed.errorToast", "Community links could not be loaded. Try again soon."));
   } finally {
-    toggleSkeleton(elements.feedSkeleton, false);
+    if (showLoading) {
+      toggleSkeleton(elements.feedSkeleton, false);
+      toggleFeedSpinner(false);
+    }
+    setFeedBusy(false);
+  }
+}
+
+function setupLinkLiveUpdates() {
+  cleanupLinkLiveUpdates();
+  try {
+    linkEventContract = getLink();
+    linkEventContract.on("LinkShared", handleLinkSharedEvent);
+  } catch (error) {
+    console.error("live link listener error", error);
+  }
+}
+
+function cleanupLinkLiveUpdates() {
+  if (!linkEventContract) return;
+  try {
+    linkEventContract.removeAllListeners("LinkShared");
+  } catch (error) {
+    console.warn("link listener cleanup error", error);
+  }
+  linkEventContract = null;
+}
+
+function handleLinkSharedEvent(user, link, event) {
+  try {
+    const entry = normalizeLinkEntry({
+      user,
+      link,
+      transactionHash: event?.transactionHash,
+      blockNumber: event?.blockNumber,
+      addedAt: Date.now(),
+      isNew: true,
+    });
+    if (!entry) return;
+    const newKeys = mergeLinkEntries([entry]);
+    if (!newKeys.length) return;
+    newKeys.forEach((key) => newLinkHighlights.add(key));
+    if (activeSectionId !== "home") {
+      state.unseenLinkCount += newKeys.length;
+      updateLinkBadge();
+    } else {
+      markLinksAsSeen();
+    }
+    updateLinkFeedView();
+    showToast("info", t("feed.newLinkToast", "New link detected on-chain!"));
+  } catch (error) {
+    console.error("link shared handler error", error);
   }
 }
 
@@ -2257,15 +2512,6 @@ function renderGlobalCounters(stats) {
     .join("");
 }
 
-function renderLinkFeed(entries) {
-  if (Array.isArray(entries) && entries.length) {
-    state.feedEntries = entries;
-  } else {
-    state.feedEntries = [...DEFAULT_FEED];
-  }
-  updateLinkFeedView();
-}
-
 function renderDeployments(contracts) {
   if (!elements.deployedContracts) return;
   if (!contracts?.length) {
@@ -2483,7 +2729,6 @@ function subscribeToEvents() {
     { contract: "PROFILE", events: ["UserRegistered", "ProfileUpdated", "UsernameUpdated"] },
     { contract: "GM", events: ["GMSent"] },
     { contract: "DONATE", events: ["DonationMade", "Withdrawn"] },
-    { contract: "LINK", events: ["LinkShared"] },
     { contract: "GOVERNANCE", events: ["ProposalCreated", "Voted", "Executed"] },
     { contract: "BADGE", events: ["BadgeEarned", "LevelUp"] },
   ];
