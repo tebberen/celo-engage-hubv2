@@ -862,6 +862,32 @@ textarea {
   gap: 12px;
 }
 
+#home .link-hub {
+  display: grid;
+  gap: 24px;
+}
+
+#home .share-card {
+  display: grid;
+  gap: 16px;
+}
+
+#home .share-form {
+  display: grid;
+  gap: 12px;
+}
+
+#home .share-form button {
+  justify-self: flex-start;
+}
+
+@media (min-width: 960px) {
+  #home .link-hub {
+    grid-template-columns: minmax(0, 320px) 1fr;
+    align-items: start;
+  }
+}
+
 .feed-stack {
   display: flex;
   flex-direction: column;

@@ -37,8 +37,8 @@
       "close": "Ekosistem penceresini kapat"
     },
     "home": {
-      "title": "Topluluk Akışı",
-      "subtitle": "Toplulukta paylaşılan en yeni bağlantılar"
+      "title": "Bağlantı Merkezi",
+      "subtitle": "Bağlantını paylaş ve topluluk bağlantılarını keşfet."
     },
     "feed": {
       "empty": "Henüz bağlantı paylaşılmadı.",
@@ -261,8 +261,8 @@
       "close": "Close ecosystem modal"
     },
     "home": {
-      "title": "Community Feed",
-      "subtitle": "Latest shared links from fellow builders"
+      "title": "Link Hub",
+      "subtitle": "Share your project link and explore the community feed."
     },
     "feed": {
       "empty": "No links shared yet.",
