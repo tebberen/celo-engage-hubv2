@@ -1180,14 +1180,60 @@ function setupConnectModal() {
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
 }
 
+function hasInjectedWalletProvider() {
+  return typeof window !== "undefined" && typeof window.ethereum !== "undefined";
+}
+
+function getInjectedWalletConnector() {
+  if (!hasInjectedWalletProvider()) {
+    return null;
+  }
+  return connectWalletMetaMask;
+}
+
+function updateConnectOptionAvailability() {
+  if (!elements.connectOptions?.length) return;
+  const hasInjected = hasInjectedWalletProvider();
+  elements.connectOptions.forEach((option) => {
+    if (option.dataset.connectOption !== "metamask") return;
+    option.disabled = !hasInjected;
+    option.setAttribute("aria-disabled", hasInjected ? "false" : "true");
+  });
+}
+
 function setupWalletButtons() {
+  updateConnectOptionAvailability();
+  if (typeof window !== "undefined") {
+    window.addEventListener("ethereum#initialized", updateConnectOptionAvailability, { once: true });
+    setTimeout(updateConnectOptionAvailability, 1000);
+  }
+
   if (elements.connectTrigger) {
-    elements.connectTrigger.addEventListener("click", () => {
+    elements.connectTrigger.addEventListener("click", async () => {
       if (state.address) {
         toggleWalletDropdown(true);
-      } else {
-        openConnectModal(elements.connectTrigger);
+        return;
       }
+      const injectedConnector = getInjectedWalletConnector();
+      if (injectedConnector) {
+        let connected = false;
+        try {
+          await withButtonLoading(
+            elements.connectTrigger,
+            { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+            async () => {
+              await connectWallet(injectedConnector);
+              connected = Boolean(state.address);
+            }
+          );
+        } catch (error) {
+          console.error("direct connect error", error);
+        }
+        if (connected) {
+          return;
+        }
+      }
+      openConnectModal(elements.connectTrigger);
     });
   }
 
@@ -1573,6 +1619,7 @@ async function afterWalletConnected() {
   await refreshGlobalStats();
   await refreshGovernance();
   await refreshLeaderboard();
+  await refreshFeed({ showLoading: false });
   renderOwnerPanel();
 }
 
