@@ -15,8 +15,10 @@ let signer = null;
 let selectedAddress = null;
 let connectionType = null;
 let walletConnectProvider = null;
+let injectedEthereumProvider = null;
 
 const walletSubscribers = new Set();
+const providerEventHandlers = new WeakMap();
 
 function isMiniPayEnvironment() {
   if (typeof navigator === "undefined") return false;
@@ -63,20 +65,45 @@ export async function checkCurrentNetwork(currentProvider = provider) {
   return network.chainId === expected;
 }
 
-async function requestSwitchNetwork() {
-  if (typeof window === "undefined" || !window.ethereum) {
+function getInjectedEthereumProvider() {
+  if (typeof window === "undefined") return null;
+  const { ethereum } = window;
+  if (!ethereum) return null;
+
+  const providers = Array.isArray(ethereum.providers) ? ethereum.providers : [];
+  if (providers.length > 0) {
+    const metaMaskProvider = providers.find((prov) => prov?.isMetaMask);
+    return metaMaskProvider || providers[0] || null;
+  }
+
+  return ethereum;
+}
+
+function detachInjectedProvider(providerInstance) {
+  if (!providerInstance) return;
+  const handlers = providerEventHandlers.get(providerInstance);
+  if (handlers) {
+    providerInstance.removeListener?.("accountsChanged", handlers.accountsChanged);
+    providerInstance.removeListener?.("chainChanged", handlers.chainChanged);
+    providerEventHandlers.delete(providerInstance);
+  }
+}
+
+async function requestSwitchNetwork(targetProvider = injectedEthereumProvider) {
+  const providerToUse = targetProvider || getInjectedEthereumProvider();
+  if (!providerToUse?.request) {
     return false;
   }
 
   try {
-    await window.ethereum.request({
+    await providerToUse.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: CURRENT_NETWORK.chainId }],
     });
     return true;
   } catch (error) {
     if (error?.code === 4902) {
-      await window.ethereum.request({
+      await providerToUse.request({
         method: "wallet_addEthereumChain",
         params: [CELO_PARAMS],
       });
@@ -87,10 +114,13 @@ async function requestSwitchNetwork() {
   }
 }
 
-function bindMetaMaskEvents(web3Provider) {
-  if (!window.ethereum) return;
+function bindMetaMaskEvents(rawProvider, web3Provider) {
+  const targetProvider = rawProvider || injectedEthereumProvider || getInjectedEthereumProvider();
+  if (!targetProvider?.on) return;
 
-  window.ethereum.on("accountsChanged", (accounts) => {
+  detachInjectedProvider(targetProvider);
+
+  const handleAccountsChanged = (accounts) => {
     if (!accounts?.length) {
       disconnectWallet();
       return;
@@ -98,11 +128,18 @@ function bindMetaMaskEvents(web3Provider) {
     selectedAddress = ethers.utils.getAddress(accounts[0]);
     signer = web3Provider.getSigner();
     notify("accountsChanged", { address: selectedAddress });
-  });
+  };
 
-  window.ethereum.on("chainChanged", async () => {
+  const handleChainChanged = async () => {
     const valid = await checkCurrentNetwork(web3Provider);
     notify("networkChanged", { valid });
+  };
+
+  targetProvider.on("accountsChanged", handleAccountsChanged);
+  targetProvider.on("chainChanged", handleChainChanged);
+  providerEventHandlers.set(targetProvider, {
+    accountsChanged: handleAccountsChanged,
+    chainChanged: handleChainChanged,
   });
 }
 
@@ -130,27 +167,35 @@ function bindWalletConnectEvents(wcProvider, web3Provider) {
 }
 
 export async function connectWalletMetaMask() {
-  if (typeof window === "undefined" || !window.ethereum) {
+  if (typeof window === "undefined") {
     throw new Error(UI_MESSAGES.walletNotConnected);
   }
 
-  provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-
   try {
-    const accounts = await provider.send("eth_requestAccounts", []);
+    const rawProvider = getInjectedEthereumProvider();
+    if (!rawProvider) {
+      console.warn("No wallet provider detected");
+      throw new Error(UI_MESSAGES.walletNotConnected);
+    }
+
+    const web3Provider = new ethers.providers.Web3Provider(rawProvider, "any");
+    provider = web3Provider;
+    injectedEthereumProvider = rawProvider;
+
+    const accounts = await web3Provider.send("eth_requestAccounts", []);
     selectedAddress = ethers.utils.getAddress(accounts[0]);
-    const networkOk = await checkCurrentNetwork(provider);
+    const networkOk = await checkCurrentNetwork(web3Provider);
 
     if (!networkOk) {
-      const switched = await requestSwitchNetwork();
+      const switched = await requestSwitchNetwork(rawProvider);
       if (!switched) {
         throw new Error(UI_MESSAGES.wrongNetwork);
       }
     }
 
-    signer = provider.getSigner();
+    signer = web3Provider.getSigner();
     connectionType = "metamask";
-    bindMetaMaskEvents(provider);
+    bindMetaMaskEvents(rawProvider, web3Provider);
     notify("connected", { address: selectedAddress, connectionType });
     return getWalletDetails();
   } catch (error) {
@@ -158,6 +203,8 @@ export async function connectWalletMetaMask() {
     signer = null;
     selectedAddress = null;
     connectionType = null;
+    detachInjectedProvider(injectedEthereumProvider);
+    injectedEthereumProvider = null;
     throw error;
   }
 }
@@ -229,6 +276,8 @@ export async function disconnectWallet() {
   signer = null;
   selectedAddress = null;
   connectionType = null;
+  detachInjectedProvider(injectedEthereumProvider);
+  injectedEthereumProvider = null;
   notify("disconnected", { address: previousAddress });
 }
 
@@ -238,6 +287,10 @@ export function isWalletConnected() {
 
 export function getConnectionType() {
   return connectionType;
+}
+
+export function getInjectedProvider() {
+  return getInjectedEthereumProvider();
 }
 
 export async function switchNetwork(networkKey) {

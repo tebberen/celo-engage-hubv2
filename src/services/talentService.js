@@ -91,27 +91,41 @@ export async function fetchTalentProfile({ signal } = {}) {
 
   if (TALENT_PROTOCOL_API_KEY) {
     headers.set("Authorization", `Bearer ${TALENT_PROTOCOL_API_KEY}`);
+  } else {
+    console.warn("Talent Protocol API key is missing. Requests may fail with 404/401 responses.");
   }
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers,
-    signal,
-    credentials: "omit",
-  });
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      signal,
+      credentials: "omit",
+    });
 
-  if (!response.ok) {
-    const error = new Error(`Talent Protocol request failed with status ${response.status}`);
-    error.status = response.status;
+    if (!response.ok) {
+      const error = new Error(`Talent Protocol request failed with status ${response.status}`);
+      error.status = response.status;
+      if (response.status === 404) {
+        error.userMessage = "Talent data unavailable. Check API key.";
+      }
+      throw error;
+    }
+
+    const data = await response.json().catch(() => ({}));
+    const profile = normalizeProfile(data);
+
+    if (!profile) {
+      const error = new Error("Talent Protocol profile response was empty");
+      error.status = 422;
+      throw error;
+    }
+
+    return profile;
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw error;
+    }
     throw error;
   }
-
-  const data = await response.json().catch(() => ({}));
-  const profile = normalizeProfile(data);
-
-  if (!profile) {
-    throw new Error("Talent Protocol profile response was empty");
-  }
-
-  return profile;
 }

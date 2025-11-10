@@ -12,6 +12,7 @@ import {
   connectWalletMetaMask,
   connectWalletConnect,
   disconnectWallet,
+  getInjectedProvider,
   onWalletEvent,
 } from "./services/walletService.js";
 import {
@@ -193,7 +194,6 @@ const elements = {
 
 let activeSectionId = null;
 let wsProvider = null;
-let wsBackoff = 2000;
 let linkEventContract = null;
 
 let isVerifyingHuman = false;
@@ -1181,11 +1181,11 @@ function setupConnectModal() {
 }
 
 function hasInjectedWalletProvider() {
-  return typeof window !== "undefined" && typeof window.ethereum !== "undefined";
+  return Boolean(getInjectedProvider());
 }
 
 function getInjectedWalletConnector() {
-  if (!hasInjectedWalletProvider()) {
+  if (!getInjectedProvider()) {
     return null;
   }
   return connectWalletMetaMask;
@@ -2023,6 +2023,7 @@ async function refreshTalentProfile({ keepPrevious = true } = {}) {
       return;
     }
     console.error("Talent profile fetch error", error);
+    showToast("error", t("talent.errorToast", "Talent data unavailable. Check API key."));
     state.talentProfile = {
       status: "error",
       data: previousData,
@@ -2114,8 +2115,14 @@ async function refreshFeed({ showLoading = true } = {}) {
 function setupLinkLiveUpdates() {
   cleanupLinkLiveUpdates();
   try {
-    linkEventContract = getLink();
-    linkEventContract.on("LinkShared", handleLinkSharedEvent);
+    const contract = getLink();
+    if (contract?.on) {
+      linkEventContract = contract;
+      contract.on("LinkShared", handleLinkSharedEvent);
+    } else {
+      linkEventContract = null;
+      console.warn("Link contract does not support event subscriptions");
+    }
   } catch (error) {
     console.error("live link listener error", error);
   }
@@ -2124,7 +2131,7 @@ function setupLinkLiveUpdates() {
 function cleanupLinkLiveUpdates() {
   if (!linkEventContract) return;
   try {
-    linkEventContract.removeAllListeners("LinkShared");
+    linkEventContract.removeAllListeners?.("LinkShared");
   } catch (error) {
     console.warn("link listener cleanup error", error);
   }
@@ -2734,40 +2741,15 @@ async function loadInitialData() {
 }
 
 function initWebsocket() {
-  if (!CURRENT_NETWORK.wsUrl) return;
   try {
-    if (wsProvider) {
-      wsProvider.destroy?.();
+    if (wsProvider?.removeAllListeners) {
+      wsProvider.removeAllListeners();
     }
-    wsProvider = new ethers.providers.WebSocketProvider(CURRENT_NETWORK.wsUrl);
-    wsProvider._websocket.on("open", () => {
-      console.info("WS bağlandı");
-      wsBackoff = 2000;
-    });
-    wsProvider._websocket.on("close", () => {
-      console.warn("WS bağlantısı kapandı, yeniden deneniyor...");
-      scheduleReconnect();
-    });
-    wsProvider._websocket.on("error", (err) => {
-      console.warn("WS hatası", err);
-      scheduleReconnect();
-    });
+    wsProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
     subscribeToEvents();
   } catch (error) {
-    console.error("WebSocket init error", error);
-    scheduleReconnect();
+    console.error("Provider init error", error);
   }
-}
-
-function scheduleReconnect() {
-  if (wsProvider) {
-    wsProvider.removeAllListeners?.();
-    wsProvider = null;
-  }
-  setTimeout(() => {
-    wsBackoff = Math.min(wsBackoff * 1.5, 60000);
-    initWebsocket();
-  }, wsBackoff);
 }
 
 function subscribeToEvents() {
