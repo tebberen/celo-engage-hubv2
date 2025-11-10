@@ -187,9 +187,6 @@ const elements = {
 };
 
 let activeSectionId = null;
-let isAutoScrolling = false;
-let autoScrollTimeout = null;
-
 let wsProvider = null;
 let wsBackoff = 2000;
 
@@ -813,17 +810,23 @@ function refreshBreadcrumb() {
   updateBreadcrumb(getSectionLabel(activeSection));
 }
 
-function setActiveSection(sectionId, options = {}) {
+function showSection(sectionId, options = {}) {
   if (!sectionId) return;
   const { labelOverride, suppressBreadcrumb, updateUrl = true } = options;
   const sections = Array.from(elements.sections || []);
+  let targetSection = null;
   sections.forEach((section) => {
     const isTarget = section.id === sectionId;
     section.classList.toggle("active", isTarget);
     if (isTarget) {
+      targetSection = section;
+      section.style.display = "flex";
       section.classList.remove("fade-in");
       void section.offsetWidth;
       section.classList.add("fade-in");
+    } else {
+      section.style.display = "none";
+      section.classList.remove("fade-in");
     }
   });
 
@@ -839,36 +842,15 @@ function setActiveSection(sectionId, options = {}) {
   }
 
   if (!suppressBreadcrumb) {
-    const section = document.getElementById(sectionId);
-    const label = labelOverride || getSectionLabel(section);
+    const label = labelOverride || getSectionLabel(targetSection);
     updateBreadcrumb(label);
   }
-}
 
-function scrollToSection(sectionId, sectionName) {
-  const section = document.getElementById(sectionId);
-  if (!section) return;
-
-  if (autoScrollTimeout) {
-    clearTimeout(autoScrollTimeout);
+  if (targetSection) {
+    requestAnimationFrame(() => {
+      targetSection.focus({ preventScroll: true });
+    });
   }
-
-  isAutoScrolling = true;
-  setActiveSection(sectionId, { labelOverride: sectionName });
-
-  const targetTop = section.getBoundingClientRect().top + window.scrollY - 120;
-  window.scrollTo({
-    top: targetTop > 0 ? targetTop : 0,
-    behavior: "smooth",
-  });
-
-  autoScrollTimeout = setTimeout(() => {
-    isAutoScrolling = false;
-  }, 700);
-
-  setTimeout(() => {
-    section.focus({ preventScroll: true });
-  }, 320);
 }
 
 function setupNavigation() {
@@ -890,55 +872,27 @@ function setupNavigation() {
       if (!target) return;
       const section = document.getElementById(target);
       const label = getSectionLabel(section) || btn.textContent?.trim();
-      scrollToSection(target, label);
+      showSection(target, { labelOverride: label });
     });
   });
 
   const initialHash = window.location.hash ? window.location.hash.replace("#", "") : "";
-  if (initialHash) {
-    const hashSection = document.getElementById(initialHash);
-    if (hashSection) {
-      activeSectionId = initialHash;
-      const label = getSectionLabel(hashSection);
-      setActiveSection(initialHash, { labelOverride: label });
-      const targetTop = hashSection.getBoundingClientRect().top + window.scrollY - 120;
-      window.scrollTo({ top: targetTop > 0 ? targetTop : 0, behavior: "auto" });
-      requestAnimationFrame(() => hashSection.focus({ preventScroll: true }));
-    }
+  const hashSection = initialHash ? document.getElementById(initialHash) : null;
+  if (hashSection) {
+    showSection(initialHash, {
+      labelOverride: getSectionLabel(hashSection),
+      updateUrl: false,
+    });
+    return;
   }
 
-  if (!activeSectionId) {
-    activeSectionId = sections[0].id;
+  const initialSection = document.querySelector(".section.active") || sections[0];
+  if (initialSection) {
+    showSection(initialSection.id, {
+      labelOverride: getSectionLabel(initialSection),
+      updateUrl: false,
+    });
   }
-
-  setActiveSection(activeSectionId, {
-    labelOverride: getSectionLabel(document.getElementById(activeSectionId)),
-  });
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (isAutoScrolling) return;
-      const visibleEntries = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => {
-          if (b.intersectionRatio !== a.intersectionRatio) {
-            return b.intersectionRatio - a.intersectionRatio;
-          }
-          return a.target.offsetTop - b.target.offsetTop;
-        });
-      if (!visibleEntries.length) return;
-      const nextSection = visibleEntries[0].target;
-      if (nextSection.id !== activeSectionId) {
-        setActiveSection(nextSection.id);
-      }
-    },
-    {
-      threshold: 0.45,
-      rootMargin: "-160px 0px -45%",
-    }
-  );
-
-  sections.forEach((section) => observer.observe(section));
 }
 
 function setupTabs() {
