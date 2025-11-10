@@ -24,13 +24,13 @@
       "name": "Donate",
       "short_name": "Donate",
       "description": "Open the donation tools to support the community",
-      "url": "./#donateSection"
+      "url": "./#donate"
     },
     {
       "name": "Leaderboard",
       "short_name": "Leaders",
       "description": "View the top contributors on Celo Engage Hub",
-      "url": "./#leaderboardSection"
+      "url": "./#leaderboard"
     }
   ]
 }

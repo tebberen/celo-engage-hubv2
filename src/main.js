@@ -119,8 +119,8 @@ const elements = {
   completedCounter: document.getElementById("completedCounter"),
   gmForm: document.getElementById("gmForm"),
   deployForm: document.getElementById("deployForm"),
-  donateTabs: document.querySelectorAll("#donateSection .tab-btn"),
-  donatePanels: document.querySelectorAll("#donateSection .tab-panel"),
+  donateTabs: document.querySelectorAll("#donate .tab-btn"),
+  donatePanels: document.querySelectorAll("#donate .tab-panel"),
   donateCeloForm: document.getElementById("donateCeloForm"),
   approveCusdForm: document.getElementById("approveCusdForm"),
   donateCusdForm: document.getElementById("donateCusdForm"),
@@ -131,8 +131,8 @@ const elements = {
   pastProposals: document.getElementById("pastProposals"),
   badgeDetails: document.getElementById("badgeDetails"),
   badgeShowcase: document.getElementById("badgeShowcase"),
-  leaderboardTabs: document.querySelectorAll("#leaderboardSection .tab-btn"),
-  leaderboardPanels: document.querySelectorAll("#leaderboardSection .tab-panel"),
+  leaderboardTabs: document.querySelectorAll("#leaderboard .tab-btn"),
+  leaderboardPanels: document.querySelectorAll("#leaderboard .tab-panel"),
   leaderboardLists: {
     topLinks: document.getElementById("leaderboardLinks"),
     topGM: document.getElementById("leaderboardGM"),
@@ -158,6 +158,8 @@ const elements = {
   shareLinkForm: document.getElementById("shareLinkForm"),
   shareLinkInput: document.getElementById("shareLinkInput"),
   sharePromptLink: document.getElementById("sharePromptLink"),
+  sharePromptForm: document.getElementById("sharePromptForm"),
+  sharePromptInput: document.getElementById("sharePromptInput"),
   selfModal: document.getElementById("selfModal"),
   selfQrContainer: document.getElementById("selfQrContainer"),
   selfDeepLink: document.getElementById("selfDeepLink"),
@@ -168,7 +170,7 @@ const elements = {
   deployedContracts: document.getElementById("deployedContracts"),
   feedSkeleton: document.getElementById("feedSkeleton"),
   governanceSkeleton: document.getElementById("governanceSkeleton"),
-  talentSection: document.getElementById("talentSection"),
+  talentSection: document.getElementById("talent"),
   talentProfileCard: document.getElementById("talentProfileCard"),
   talentProfileContent: document.getElementById("talentProfileContent"),
   talentProfileLoading: document.getElementById("talentProfileLoading"),
@@ -525,6 +527,9 @@ function setupShareModal() {
   dismissElements.forEach((btn) => {
     btn.addEventListener("click", closeShareModal);
   });
+  if (elements.sharePromptInput && !elements.sharePromptInput.value) {
+    elements.sharePromptInput.value = "https://";
+  }
   if (elements.shareLinkInput && !elements.shareLinkInput.value) {
     elements.shareLinkInput.value = "https://";
   }
@@ -543,17 +548,17 @@ function openShareModal(link, trigger) {
   if (elements.sharePromptLink) {
     elements.sharePromptLink.textContent = link || "—";
   }
-  if (elements.shareLinkInput) {
-    elements.shareLinkInput.value = "https://";
+  if (elements.sharePromptInput) {
+    elements.sharePromptInput.value = "https://";
   }
-  openModalEl(elements.shareModal, { focusTarget: elements.shareLinkInput, trigger });
+  openModalEl(elements.shareModal, { focusTarget: elements.sharePromptInput, trigger });
 }
 
 function closeShareModal() {
   if (!elements.shareModal) return;
   closeModalEl(elements.shareModal);
-  if (elements.shareLinkInput) {
-    elements.shareLinkInput.value = "https://";
+  if (elements.sharePromptInput) {
+    elements.sharePromptInput.value = "https://";
   }
   if (elements.sharePromptLink) {
     elements.sharePromptLink.textContent = "—";
@@ -797,7 +802,7 @@ function getSectionLabel(section) {
 function updateBreadcrumb(sectionName) {
   if (!elements.breadcrumb) return;
   const navButtons = Array.from(elements.navButtons || []);
-  const homeButton = navButtons.find((btn) => btn.dataset?.target === "homeSection");
+  const homeButton = navButtons.find((btn) => btn.dataset?.target === "home");
   const homeLabel = homeButton?.textContent?.trim() || homeButton?.dataset?.sectionLabel || "Home";
   const currentLabel = sectionName?.trim() || homeLabel;
   elements.breadcrumb.innerHTML = `<span>🏠 ${homeLabel}</span><span class="separator">/</span><span>${currentLabel}</span>`;
@@ -970,6 +975,9 @@ function setupForms() {
   }
   if (elements.shareLinkForm) {
     elements.shareLinkForm.addEventListener("submit", handleShareLinkSubmit);
+  }
+  if (elements.sharePromptForm) {
+    elements.sharePromptForm.addEventListener("submit", handleShareLinkSubmit);
   }
   elements.proposalForm.addEventListener("submit", handleProposalSubmit);
   elements.withdrawCeloForm.addEventListener("submit", (e) => handleWithdrawSubmit(e, "CELO"));
@@ -1667,7 +1675,9 @@ async function handleDonateCeurSubmit(event) {
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
   if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const rawUrl = elements.shareLinkInput?.value.trim() || "";
+  const form = event.currentTarget;
+  const input = form?.querySelector("[data-share-input]") || elements.shareLinkInput || elements.sharePromptInput;
+  const rawUrl = input?.value.trim() || "";
   let sanitizedUrl = null;
   try {
     const parsed = new URL(rawUrl);
@@ -1685,8 +1695,8 @@ async function handleShareLinkSubmit(event) {
       { loadingText: getLoadingText("sharingLink", "Submitting Link…") },
       async () => {
         await doShareLink(sanitizedUrl);
-        if (elements.shareLinkInput) {
-          elements.shareLinkInput.value = "https://";
+        if (input) {
+          input.value = "https://";
         }
         closeShareModal();
         refreshAfterTransaction();
