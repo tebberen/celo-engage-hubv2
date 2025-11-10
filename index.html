@@ -72,8 +72,6 @@
           <button class="nav-btn" data-target="deploy" data-i18n="nav.deploy">Deploy</button>
           <button class="nav-btn" data-target="donate" data-i18n="nav.donate">Donate</button>
           <button class="nav-btn" data-target="governance" data-i18n="nav.governance">Governance</button>
-          <button class="nav-btn" data-target="talent" data-i18n="nav.talent">Talent Profile</button>
-          <button class="nav-btn" data-target="badges" data-i18n="nav.badge">Badges</button>
           <button class="nav-btn" data-target="profile" data-i18n="nav.profile">Profile</button>
         </nav>
         <div class="header-actions" role="group" aria-label="Account actions">
@@ -180,19 +178,27 @@
                   </form>
                 </article>
                 <div class="feed-stack">
-                  <div class="skeleton-group" id="feedSkeleton" aria-hidden="true">
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                  </div>
-                  <div id="linkFeed" class="feed-list" aria-live="polite"></div>
-                  <div class="completed-block">
-                    <div class="completed-header">
-                      <h3 data-i18n="feed.completedTitle">✅ Completed Links</h3>
+                  <section class="feed-section" aria-labelledby="communityFeedHeading">
+                    <div class="feed-section__header">
+                      <h3 id="communityFeedHeading" data-i18n="feed.communityTitle">Community Feed</h3>
+                      <span id="feedBadge" class="pill-badge" hidden>0</span>
+                      <div id="feedSpinner" class="loading-indicator" role="status" aria-hidden="true" hidden></div>
+                    </div>
+                    <div class="skeleton-group" id="feedSkeleton" aria-hidden="true" hidden>
+                      <div class="skeleton-card"></div>
+                      <div class="skeleton-card"></div>
+                      <div class="skeleton-card"></div>
+                    </div>
+                    <div id="linkFeed" class="feed-list" aria-live="polite"></div>
+                  </section>
+                  <section class="feed-section" aria-labelledby="completedFeedHeading">
+                    <div class="feed-section__header">
+                      <h3 id="completedFeedHeading" data-i18n="feed.completedTitle">✅ Completed Links</h3>
+                      <span id="completedBadge" class="pill-badge" hidden>0</span>
                     </div>
                     <div id="completedFeed" class="feed-list feed-list--completed" aria-live="polite"></div>
                     <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
-                  </div>
+                  </section>
                 </div>
               </div>
             </section>

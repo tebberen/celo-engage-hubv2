@@ -251,7 +251,7 @@ export async function doShareLink(url) {
   const tx = await linkModule.shareLink(address, url);
   emitToast("pending", "Link paylaşımı gönderildi...", tx.hash);
   const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
+  emitToast("success", "Link successfully shared!", tx.hash);
   return receipt;
 }
 
