@@ -15,6 +15,7 @@ export const NETWORKS = {
     wsUrl: "wss://forno.celo.org/ws",
     explorer: "https://celoscan.io",
     iconUrls: [],
+    fallbackRpcUrls: ["https://rpc.ankr.com/celo", "https://1rpc.io/celo"],
   },
   sepolia: {
     name: "Celo Sepolia",
@@ -24,6 +25,7 @@ export const NETWORKS = {
     wsUrl: "wss://forno.celo-sepolia.org/ws",
     explorer: "https://celo-sepolia.blockscout.com",
     iconUrls: [],
+    fallbackRpcUrls: ["https://rpc.sepolia.celo-testnet.org", "https://1rpc.io/celo/sepolia"],
   },
   alfajores: {
     name: "Celo Alfajores",
@@ -33,14 +35,22 @@ export const NETWORKS = {
     wsUrl: "wss://alfajores-forno.celo-testnet.org/ws",
     explorer: "https://alfajores.celoscan.io",
     iconUrls: [],
+    fallbackRpcUrls: ["https://rpc.ankr.com/celo_alfajores", "https://alfajores.rpc.thirdweb.com"]
   },
 };
 
 export const NETWORK_KEYS = Object.keys(NETWORKS);
 export const CURRENT_NETWORK = NETWORKS[DEFAULT_NETWORK];
 
-export const TALENT_PROTOCOL_API_BASE_URL = "https://api.talentprotocol.com/v1/";
+export const NETWORK_FALLBACK_RPC_URLS = {
+  mainnet: ["https://rpc.openchain.xyz/celo"],
+  sepolia: ["https://celo-sepolia.gateway.tenderly.co"],
+  alfajores: ["https://celo-alfajores.gateway.pokt.network/v1/lb/62b1e6fdae2f9c00398be3c8"],
+};
+
+export const TALENT_PROTOCOL_API_BASE_URL = "https://api.talentprotocol.com/api/v3/";
 export const TALENT_PROTOCOL_API_KEY = "68ce7d63b305518b0d82c21b67f549d4ea1024d0a96608e44ee65d82d978";
+export const TALENT_PROTOCOL_DEFAULT_USERNAME = "celo";
 
 export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
 

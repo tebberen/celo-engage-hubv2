@@ -37,6 +37,7 @@ import {
   loadUserDeployments,
   getAnalyticsConfig,
   getLink,
+  getLinkEventContract,
 } from "./services/contractService.js";
 import {
   openSelfVerification,
@@ -57,6 +58,7 @@ const COMPLETED_STORAGE_KEY = "completedLinks";
 const storedSupportCounts = safeParseStorage(localStorage.getItem(SUPPORT_STORAGE_KEY), {});
 const storedCompletedLinks = safeParseStorage(localStorage.getItem(COMPLETED_STORAGE_KEY), []);
 const newLinkHighlights = new Set();
+const liveLinkCache = new Set();
 
 const VERIFICATION_SUCCESS_MESSAGE = "✅ Verified with Self ID successfully.";
 const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
@@ -418,7 +420,7 @@ async function setupLanguage() {
       state.translations = await response.json();
     }
   } catch (error) {
-    console.error("language load error", error);
+    console.error("❌ [App] Language load error", error);
   } finally {
     applyLanguage(state.language);
   }
@@ -630,6 +632,15 @@ function findLinkEntryByKey(key) {
   );
 }
 
+function syncLiveLinkCache(entries = []) {
+  liveLinkCache.clear();
+  entries.forEach((item) => {
+    if (item?.key) {
+      liveLinkCache.add(item.key);
+    }
+  });
+}
+
 function mergeLinkEntries(entries, options = {}) {
   const mode = options.mode || "merge";
   const trackNew = options.trackNew ?? mode !== "replace";
@@ -664,6 +675,7 @@ function mergeLinkEntries(entries, options = {}) {
     return (b.addedAt || 0) - (a.addedAt || 0);
   });
   state.feedEntries = combined;
+  syncLiveLinkCache(combined);
   return newKeys;
 }
 
@@ -725,6 +737,10 @@ function updateLinkFeedView() {
     applyLinkHighlights();
   }
   updateCompletedView();
+}
+
+function renderRecentLinks() {
+  updateLinkFeedView();
 }
 
 function getActiveLinkEntries() {
@@ -1166,7 +1182,7 @@ function setupDonateShortcuts() {
           }
         );
       } catch (error) {
-        console.error("quick donate error", error);
+        console.error("❌ [Donate] Quick donate failed", error);
         showToast("error", parseError(error));
       }
     });
@@ -1227,7 +1243,7 @@ function setupWalletButtons() {
             }
           );
         } catch (error) {
-          console.error("direct connect error", error);
+          console.error("❌ [Wallet] Direct connect failed", error);
         }
         if (connected) {
           return;
@@ -1246,7 +1262,7 @@ function setupWalletButtons() {
           await connectWallet(connector);
         });
       } catch (error) {
-        console.error("connect option error", error);
+        console.error("❌ [Wallet] Connection option failed", error);
       }
     });
   });
@@ -1273,7 +1289,7 @@ function setupWalletButtons() {
         renderVerificationState();
         showToast("success", "Cüzdan bağlantısı kesildi.");
       } catch (error) {
-        console.error("disconnect error", error);
+        console.error("❌ [Wallet] Disconnect failed", error);
         showToast("error", parseError(error));
       }
     });
@@ -1480,7 +1496,7 @@ async function handleVerifyHumanClick() {
       onError: (error) => {
         if (error) {
           errorHandled = true;
-          console.error("Self verification error", error);
+          console.error("❌ [Self] Verification callback error", error);
         }
         isVerifyingHuman = false;
         activeSelfSession = null;
@@ -1502,7 +1518,7 @@ async function handleVerifyHumanClick() {
     }
   } catch (error) {
     if (!errorHandled) {
-      console.error("Self verification failed to initialize", error);
+      console.error("❌ [Self] Verification initialization failed", error);
       showToast("error", VERIFICATION_FAILURE_MESSAGE);
     }
     isVerifyingHuman = false;
@@ -1609,7 +1625,7 @@ async function connectWallet(connector) {
     showToast("success", "Cüzdan bağlandı.");
     await afterWalletConnected();
   } catch (error) {
-    console.error("connectWallet error", error);
+    console.error("❌ [Wallet] Connection error", error);
     showToast("error", error?.message || UI_MESSAGES.error);
   }
 }
@@ -1747,7 +1763,7 @@ async function handleGMSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("GM error", error);
+    console.error("❌ [GM] Submission failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -1768,7 +1784,7 @@ async function handleDeploySubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Deploy error", error);
+    console.error("❌ [Deploy] Submission failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -1790,7 +1806,7 @@ async function handleDonateCeloSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Donate CELO error", error);
+    console.error("❌ [Donate] CELO donation error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1810,7 +1826,7 @@ async function handleApproveCusdSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Approve cUSD error", error);
+    console.error("❌ [Donate] cUSD approval error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1832,7 +1848,7 @@ async function handleDonateCusdSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Donate cUSD error", error);
+    console.error("❌ [Donate] cUSD donation error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1852,7 +1868,7 @@ async function handleApproveCeurSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Approve cEUR error", error);
+    console.error("❌ [Donate] cEUR approval error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1874,7 +1890,7 @@ async function handleDonateCeurSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Donate cEUR error", error);
+    console.error("❌ [Donate] cEUR donation error", error);
     showToast("error", parseError(error));
   }
 }
@@ -1910,7 +1926,7 @@ async function handleShareLinkSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("share link error", error);
+    console.error("❌ [Link] Share action failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -1933,7 +1949,7 @@ async function handleProposalSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Proposal error", error);
+    console.error("❌ [Governance] Proposal submission failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -1964,7 +1980,7 @@ async function handleWithdrawSubmit(event, token) {
       }
     );
   } catch (error) {
-    console.error("Withdraw error", error);
+    console.error("❌ [Donate] Withdraw failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -1985,7 +2001,7 @@ async function handleRegisterSubmit(event) {
       }
     );
   } catch (error) {
-    console.error("Register error", error);
+    console.error("❌ [Profile] Registration flow failed", error);
     showToast("error", parseError(error));
   }
 }
@@ -2022,7 +2038,7 @@ async function refreshTalentProfile({ keepPrevious = true } = {}) {
     if (controller.signal.aborted) {
       return;
     }
-    console.error("Talent profile fetch error", error);
+    console.error("❌ [Talent] Profile fetch failed", error);
     showToast("error", t("talent.errorToast", "Talent data unavailable. Check API key."));
     state.talentProfile = {
       status: "error",
@@ -2068,7 +2084,7 @@ async function refreshProfile() {
       closeUsernameModal();
     }
   } catch (error) {
-    console.error("loadProfile error", error);
+    console.error("❌ [Profile] Failed to refresh profile", error);
     renderProfile(null);
   }
 }
@@ -2079,7 +2095,7 @@ async function refreshGlobalStats() {
     state.global = stats;
     renderGlobalCounters(stats);
   } catch (error) {
-    console.error("global stats error", error);
+    console.error("❌ [Hub] Failed to refresh global stats", error);
   }
 }
 
@@ -2092,10 +2108,10 @@ async function refreshFeed({ showLoading = true } = {}) {
   try {
     const links = await loadRecentLinks(40);
     mergeLinkEntries(links, { mode: "replace", trackNew: false });
-    updateLinkFeedView();
+    renderRecentLinks();
     markLinksAsSeen();
   } catch (error) {
-    console.error("feed error", error);
+    console.error("❌ [Link] Failed to refresh feed", error);
     if (elements.linkFeed) {
       elements.linkFeed.innerHTML = `<p class="feed-empty feed-empty--error">${t(
         "feed.error",
@@ -2115,16 +2131,25 @@ async function refreshFeed({ showLoading = true } = {}) {
 function setupLinkLiveUpdates() {
   cleanupLinkLiveUpdates();
   try {
-    const contract = getLink();
+    const contract = getLinkEventContract();
     if (contract?.on) {
       linkEventContract = contract;
       contract.on("LinkShared", handleLinkSharedEvent);
+      const provider = contract.provider;
+      const ws = provider?._websocket;
+      ws?.on?.("error", (error) => {
+        console.error("❌ [Link] Event provider error", error);
+      });
+      ws?.on?.("close", () => {
+        console.warn("⚠️ [Link] Event provider closed. Rebinding listener.");
+        setupLinkLiveUpdates();
+      });
     } else {
       linkEventContract = null;
       console.warn("Link contract does not support event subscriptions");
     }
   } catch (error) {
-    console.error("live link listener error", error);
+    console.error("❌ [Link] Failed to initialize live updates", error);
   }
 }
 
@@ -2149,6 +2174,9 @@ function handleLinkSharedEvent(user, link, event) {
       isNew: true,
     });
     if (!entry) return;
+    if (entry.key && liveLinkCache.has(entry.key)) {
+      return;
+    }
     const newKeys = mergeLinkEntries([entry]);
     if (!newKeys.length) return;
     newKeys.forEach((key) => newLinkHighlights.add(key));
@@ -2158,10 +2186,10 @@ function handleLinkSharedEvent(user, link, event) {
     } else {
       markLinksAsSeen();
     }
-    updateLinkFeedView();
+    renderRecentLinks();
     showToast("info", t("feed.newLinkToast", "New link detected on-chain!"));
   } catch (error) {
-    console.error("link shared handler error", error);
+    console.error("❌ [Link] Failed to handle live link", error);
   }
 }
 
@@ -2172,7 +2200,7 @@ async function refreshGovernance() {
     state.governance = data;
     renderGovernance(data);
   } catch (error) {
-    console.error("governance error", error);
+    console.error("❌ [Governance] Failed to refresh proposals", error);
   } finally {
     toggleSkeleton(elements.governanceSkeleton, false);
   }
@@ -2184,7 +2212,7 @@ async function refreshLeaderboard() {
     state.leaderboard = data;
     renderLeaderboard(data);
   } catch (error) {
-    console.error("leaderboard error", error);
+    console.error("❌ [Leaderboard] Failed to refresh data", error);
   }
 }
 
@@ -2208,7 +2236,7 @@ async function handleProfileAddressCopy() {
     const successMessage = t("profile.copySuccess", "Address copied!");
     showToast("success", successMessage);
   } catch (error) {
-    console.error("copy error", error);
+    console.error("❌ [Profile] Copy address failed", error);
     showToast("error", UI_MESSAGES.error);
   }
 }
@@ -2629,7 +2657,7 @@ elements.activeProposals.addEventListener("click", async (event) => {
       }
     );
   } catch (error) {
-    console.error("vote error", error);
+    console.error("❌ [Governance] Vote flow failed", error);
     showToast("error", parseError(error));
   }
 });
@@ -2748,7 +2776,7 @@ function initWebsocket() {
     wsProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
     subscribeToEvents();
   } catch (error) {
-    console.error("Provider init error", error);
+    console.error("❌ [Provider] Initialization error", error);
   }
 }
 
@@ -2774,7 +2802,7 @@ function subscribeToEvents() {
         });
       });
     } catch (error) {
-      console.error(`WS event subscribe error for ${contract}`, error);
+      console.error(`❌ [Provider] WS event subscribe error for ${contract}`, error);
     }
   });
 }
