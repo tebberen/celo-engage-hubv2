@@ -16,10 +16,15 @@ import {
   NETWORKS,
   CUSD_TOKEN_ADDRESS,
   CEUR_TOKEN_ADDRESS,
+  NETWORK_FALLBACK_RPC_URLS,
 } from "../utils/constants.js";
 import { getWalletDetails } from "./walletService.js";
 
-const readProvider = new ethers.providers.JsonRpcProvider(CURRENT_NETWORK.rpcUrl);
+const READ_RPC_TIMEOUT = 20000;
+const DEFAULT_POLLING_INTERVAL = 10000;
+
+let readProvider = null;
+let eventProvider = null;
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function allowance(address owner, address spender) external view returns (uint256)",
@@ -31,6 +36,161 @@ const DONATE_TOKEN_ABI = ["function donateToken(address token, address user, uin
 
 let toastHandler = () => {};
 
+function getActiveNetworkKey() {
+  return DEFAULT_NETWORK;
+}
+
+function collectEnvUrls(candidate) {
+  if (!candidate) return [];
+  if (Array.isArray(candidate)) return candidate.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean);
+  if (typeof candidate === "string") {
+    return candidate
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function getRpcUrls() {
+  const envUrls = [];
+  if (typeof window !== "undefined") {
+    envUrls.push(...collectEnvUrls(window.__CELO_ENGAGE_RPC_URL || window.__CELO_RPC_URL));
+  }
+  if (typeof process !== "undefined" && process?.env) {
+    envUrls.push(
+      ...collectEnvUrls(
+        process.env.CELO_ENGAGE_RPC_URL ||
+          process.env.PUBLIC_CELO_RPC_URL ||
+          process.env.VITE_CELO_RPC_URL ||
+          process.env.NEXT_PUBLIC_CELO_RPC_URL
+      )
+    );
+  }
+
+  const networkKey = getActiveNetworkKey();
+  const network = NETWORKS[networkKey] || CURRENT_NETWORK;
+  const defaults = [network?.rpcUrl, ...(network?.fallbackRpcUrls || [])];
+  const globalFallbacks = NETWORK_FALLBACK_RPC_URLS?.[networkKey] || [];
+
+  const combined = [...envUrls, ...defaults, ...globalFallbacks].filter(Boolean);
+  return combined.length ? Array.from(new Set(combined)) : [];
+}
+
+function createStaticProvider(url) {
+  if (!url) return null;
+  try {
+    const provider = new ethers.providers.StaticJsonRpcProvider(
+      { url, timeout: READ_RPC_TIMEOUT },
+      { name: CURRENT_NETWORK.name, chainId: CURRENT_NETWORK.chainIdDecimal }
+    );
+    provider.polling = true;
+    provider.pollingInterval = DEFAULT_POLLING_INTERVAL;
+    provider.on?.("error", (error) => {
+      console.error(`❌ [Provider] RPC error from ${url}`, error);
+    });
+    return provider;
+  } catch (error) {
+    console.error(`❌ [Provider] Failed to create provider for ${url}`, error);
+    return null;
+  }
+}
+
+function createReadProvider() {
+  const urls = getRpcUrls();
+  if (!urls.length) {
+    console.error("❌ [Provider] No RPC URLs configured; defaulting to generic provider");
+    const fallback = new ethers.providers.JsonRpcProvider();
+    fallback.pollingInterval = DEFAULT_POLLING_INTERVAL;
+    return fallback;
+  }
+
+  if (urls.length === 1) {
+    const provider = createStaticProvider(urls[0]);
+    return provider;
+  }
+
+  const configs = urls
+    .map((url, index) => {
+      const provider = createStaticProvider(url);
+      if (!provider) return null;
+      return { provider, priority: index + 1, stallTimeout: 1500, weight: 1 };
+    })
+    .filter(Boolean);
+
+  if (!configs.length) {
+    console.error("❌ [Provider] Failed to build fallback configuration; using primary RPC");
+    const fallback = new ethers.providers.JsonRpcProvider(urls[0]);
+    fallback.pollingInterval = DEFAULT_POLLING_INTERVAL;
+    return fallback;
+  }
+
+  const fallbackProvider = new ethers.providers.FallbackProvider(configs, 1);
+  fallbackProvider.pollingInterval = DEFAULT_POLLING_INTERVAL;
+  fallbackProvider.on?.("error", (error) => {
+    console.error("❌ [Provider] Fallback provider error", error);
+  });
+  return fallbackProvider;
+}
+
+function getReadProvider() {
+  if (!readProvider) {
+    readProvider = createReadProvider();
+  }
+  return readProvider;
+}
+
+function getEventUrls() {
+  const urls = [];
+  if (typeof window !== "undefined") {
+    urls.push(...collectEnvUrls(window.__CELO_ENGAGE_WS_URL || window.__CELO_WS_URL));
+  }
+  if (typeof process !== "undefined" && process?.env) {
+    urls.push(
+      ...collectEnvUrls(
+        process.env.CELO_ENGAGE_WS_URL ||
+          process.env.PUBLIC_CELO_WS_URL ||
+          process.env.VITE_CELO_WS_URL ||
+          process.env.NEXT_PUBLIC_CELO_WS_URL
+      )
+    );
+  }
+  const networkKey = getActiveNetworkKey();
+  const network = NETWORKS[networkKey] || CURRENT_NETWORK;
+  const defaults = [network?.wsUrl];
+  return [...urls, ...defaults].filter(Boolean);
+}
+
+function createEventProvider() {
+  const urls = getEventUrls();
+  for (const url of urls) {
+    try {
+      const provider = new ethers.providers.WebSocketProvider(url, CURRENT_NETWORK.chainIdDecimal);
+      provider._websocket?.on?.("close", (code) => {
+        console.warn(`⚠️ [Provider] WebSocket closed (${code}). Attempting to recover…`);
+        if (eventProvider === provider) {
+          eventProvider = null;
+        }
+      });
+      provider._websocket?.on?.("error", (error) => {
+        console.error(`❌ [Provider] WebSocket error @ ${url}`, error);
+      });
+      return provider;
+    } catch (error) {
+      console.error(`❌ [Provider] Failed to initialize WebSocket provider ${url}`, error);
+    }
+  }
+  console.warn("⚠️ [Provider] Falling back to read provider for event subscriptions");
+  return getReadProvider();
+}
+
+function getEventProvider() {
+  if (!eventProvider) {
+    eventProvider = createEventProvider();
+  }
+  return eventProvider;
+}
+
 export function registerToastHandler(callback) {
   toastHandler = callback;
 }
@@ -39,10 +199,6 @@ function emitToast(type, message, txHash) {
   if (typeof toastHandler === "function") {
     toastHandler({ type, message, hash: txHash, explorer: txHash ? `${CURRENT_NETWORK.explorer}/tx/${txHash}` : null });
   }
-}
-
-function getActiveNetworkKey() {
-  return DEFAULT_NETWORK;
 }
 
 function resolveModuleAddress(key) {
@@ -77,11 +233,12 @@ function withSigner(contract) {
   return contract.connect(signer);
 }
 
-function createContract(address, abi, withWrite = false) {
+function createContract(address, abi, withWrite = false, providerOverride = null) {
   if (!address) {
     throw new Error("Kontrat adresi bulunamadı.");
   }
-  const base = new ethers.Contract(address, abi, readProvider);
+  const provider = providerOverride || getReadProvider();
+  const base = new ethers.Contract(address, abi, provider);
   return withWrite ? withSigner(base) : base;
 }
 
@@ -104,6 +261,10 @@ export function getDonate(withWrite = false) {
 
 export function getLink(withWrite = false) {
   return createContract(resolveModuleAddress("LINK"), MODULES.LINK.abi, withWrite);
+}
+
+export function getLinkEventContract() {
+  return createContract(resolveModuleAddress("LINK"), MODULES.LINK.abi, false, getEventProvider());
 }
 
 export function getGov(withWrite = false) {
@@ -140,80 +301,105 @@ function parseAmount(amount) {
 }
 
 export async function doGM(message = "") {
-  const { address } = requireSigner();
-  const gm = getGM(true);
-  const tx = await gm.sendGM(address, message || "");
-  emitToast("pending", "GM gönderiliyor...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    const { address } = requireSigner();
+    const gm = getGM(true);
+    const tx = await gm.sendGM(address, message || "");
+    emitToast("pending", "GM gönderiliyor...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [GM] Failed to send GM", error);
+    throw error;
+  }
 }
 
 export async function doDeploy(contractName) {
-  const { address } = requireSigner();
-  const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
-  const deployModule = getDeploy(true);
-  const tx = await deployModule.deployContract(address, deployName);
-  emitToast("pending", "Kontrat dağıtılıyor...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    const { address } = requireSigner();
+    const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
+    const deployModule = getDeploy(true);
+    const tx = await deployModule.deployContract(address, deployName);
+    emitToast("pending", "Kontrat dağıtılıyor...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Deploy] Contract deployment failed", error);
+    throw error;
+  }
 }
 
 export async function doDonateCELO(amount) {
-  ensureMinDonation(amount);
-  const { address } = requireSigner();
-  const donate = getDonate(true);
-  const value = ethers.utils.parseEther(amount.toString());
-  const tx = await donate.donateCELO(address, { value });
-  emitToast("pending", "CELO bağışı gönderiliyor...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    ensureMinDonation(amount);
+    const { address } = requireSigner();
+    const donate = getDonate(true);
+    const value = ethers.utils.parseEther(amount.toString());
+    const tx = await donate.donateCELO(address, { value });
+    emitToast("pending", "CELO bağışı gönderiliyor...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Donate] CELO donation failed", error);
+    throw error;
+  }
 }
 
 async function approveToken(symbol, amount) {
-  ensureMinDonation(amount);
-  const { signer } = requireSigner();
-  const spender = resolveModuleAddress("DONATE");
-  const tokenAddress = getTokenAddressBySymbol(symbol);
-  const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-  const value = parseAmount(amount);
-  const tx = await token.approve(spender, value);
-  emitToast("pending", `${symbol} onayı bekleniyor...`, tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    ensureMinDonation(amount);
+    const { signer } = requireSigner();
+    const spender = resolveModuleAddress("DONATE");
+    const tokenAddress = getTokenAddressBySymbol(symbol);
+    const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
+    const value = parseAmount(amount);
+    const tx = await token.approve(spender, value);
+    emitToast("pending", `${symbol} onayı bekleniyor...`, tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error(`❌ [Donate] ${symbol} approval failed`, error);
+    throw error;
+  }
 }
 
 async function donateToken(symbol, amount) {
-  ensureMinDonation(amount);
-  const { address, signer } = requireSigner();
-  const donateAddress = resolveModuleAddress("DONATE");
-  const tokenAddress = getTokenAddressBySymbol(symbol);
-  const value = parseAmount(amount);
-  const donateInterface = new ethers.Contract(donateAddress, DONATE_TOKEN_ABI, signer);
-
   try {
-    await donateInterface.callStatic.donateToken(tokenAddress, address, value);
-  } catch (staticError) {
-    const missingMethod = !staticError?.data || staticError?.data === "0x";
-    if (symbol === "cUSD" && missingMethod) {
-      const donate = getDonate(true);
-      const legacyTx = await donate.donateCUSD(address, value);
-      emitToast("pending", "cUSD bağışı gönderiliyor...", legacyTx.hash);
-      const legacyReceipt = await legacyTx.wait();
-      emitToast("success", UI_MESSAGES.success, legacyTx.hash);
-      return legacyReceipt;
-    }
-    throw staticError;
-  }
+    ensureMinDonation(amount);
+    const { address, signer } = requireSigner();
+    const donateAddress = resolveModuleAddress("DONATE");
+    const tokenAddress = getTokenAddressBySymbol(symbol);
+    const value = parseAmount(amount);
+    const donateInterface = new ethers.Contract(donateAddress, DONATE_TOKEN_ABI, signer);
 
-  const tx = await donateInterface.donateToken(tokenAddress, address, value);
-  emitToast("pending", `${symbol} bağışı gönderiliyor...`, tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+    try {
+      await donateInterface.callStatic.donateToken(tokenAddress, address, value);
+    } catch (staticError) {
+      const missingMethod = !staticError?.data || staticError?.data === "0x";
+      if (symbol === "cUSD" && missingMethod) {
+        const donate = getDonate(true);
+        const legacyTx = await donate.donateCUSD(address, value);
+        emitToast("pending", "cUSD bağışı gönderiliyor...", legacyTx.hash);
+        const legacyReceipt = await legacyTx.wait();
+        emitToast("success", UI_MESSAGES.success, legacyTx.hash);
+        return legacyReceipt;
+      }
+      throw staticError;
+    }
+
+    const tx = await donateInterface.donateToken(tokenAddress, address, value);
+    emitToast("pending", `${symbol} bağışı gönderiliyor...`, tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error(`❌ [Donate] ${symbol} donation failed`, error);
+    throw error;
+  }
 }
 
 export async function doApproveCUSD(amount) {
@@ -237,22 +423,32 @@ export async function withdrawDonations(token, amount) {
   if (address.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
     throw new Error(UI_MESSAGES.ownerOnly);
   }
-  const donate = getDonate(true);
-  const tx = await donate.withdraw(address);
-  emitToast("pending", `Çekim işlemi başlatıldı (${token} ${amount || ""})`, tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    const donate = getDonate(true);
+    const tx = await donate.withdraw(address);
+    emitToast("pending", `Çekim işlemi başlatıldı (${token} ${amount || ""})`, tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Donate] Withdrawal failed", error);
+    throw error;
+  }
 }
 
 export async function doShareLink(url) {
-  const { address } = requireSigner();
-  const linkModule = getLink(true);
-  const tx = await linkModule.shareLink(address, url);
-  emitToast("pending", "Link paylaşımı gönderildi...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", "Link successfully shared!", tx.hash);
-  return receipt;
+  try {
+    const { address } = requireSigner();
+    const linkModule = getLink(true);
+    const tx = await linkModule.shareLink(address, url);
+    emitToast("pending", "Link paylaşımı gönderildi...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", "Link successfully shared!", tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Link] Failed to share link", error);
+    throw error;
+  }
 }
 
 export async function govCreateProposal(title, description, link) {
@@ -260,41 +456,56 @@ export async function govCreateProposal(title, description, link) {
   if (address.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
     throw new Error(UI_MESSAGES.ownerOnly);
   }
-  const gov = getGov(true);
-  const tx = await gov.createProposal(title, description, link || "");
-  emitToast("pending", "Öneri oluşturuluyor...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    const gov = getGov(true);
+    const tx = await gov.createProposal(title, description, link || "");
+    emitToast("pending", "Öneri oluşturuluyor...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Governance] Proposal creation failed", error);
+    throw error;
+  }
 }
 
 export async function govVote(proposalId, support) {
-  const { address } = requireSigner();
-  const gov = getGov(true);
-  const tx = await gov.vote(address, proposalId, support);
-  emitToast("pending", "Oy gönderiliyor...", tx.hash);
-  const receipt = await tx.wait();
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
+  try {
+    const { address } = requireSigner();
+    const gov = getGov(true);
+    const tx = await gov.vote(address, proposalId, support);
+    emitToast("pending", "Oy gönderiliyor...", tx.hash);
+    const receipt = await tx.wait();
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Governance] Vote failed", error);
+    throw error;
+  }
 }
 
 export async function registerProfile(username) {
-  const { address } = requireSigner();
-  const profile = getProfile(true);
-  const tx = await profile.registerUser(address);
-  emitToast("pending", "Profil kaydediliyor...", tx.hash);
-  const receipt = await tx.wait();
-  if (username) {
-    try {
-      const updateTx = await profile.updateUsername(username);
-      emitToast("pending", "Kullanıcı adı güncelleniyor...", updateTx.hash);
-      await updateTx.wait();
-    } catch (error) {
-      console.warn("Username update failed", error);
+  try {
+    const { address } = requireSigner();
+    const profile = getProfile(true);
+    const tx = await profile.registerUser(address);
+    emitToast("pending", "Profil kaydediliyor...", tx.hash);
+    const receipt = await tx.wait();
+    if (username) {
+      try {
+        const updateTx = await profile.updateUsername(username);
+        emitToast("pending", "Kullanıcı adı güncelleniyor...", updateTx.hash);
+        await updateTx.wait();
+      } catch (error) {
+        console.warn("Username update failed", error);
+      }
     }
+    emitToast("success", UI_MESSAGES.success, tx.hash);
+    return receipt;
+  } catch (error) {
+    console.error("❌ [Profile] Registration failed", error);
+    throw error;
   }
-  emitToast("success", UI_MESSAGES.success, tx.hash);
-  return receipt;
 }
 
 function mapProfile(result, address) {
@@ -320,92 +531,146 @@ function mapProfile(result, address) {
 export async function loadProfile(address) {
   const target = address || getWalletDetails().address;
   if (!target) return null;
-  const profile = getProfile();
-  const data = await profile.getUserProfile(target);
-  return mapProfile(data, target);
+  try {
+    const profile = getProfile();
+    const data = await profile.getUserProfile(target);
+    return mapProfile(data, target);
+  } catch (error) {
+    console.error("❌ [Profile] Failed to load profile", error);
+    throw error;
+  }
 }
 
 export async function loadUserDeployments(address) {
   const target = address || getWalletDetails().address;
   if (!target) return [];
-  const deploy = getDeploy();
-  return deploy.getUserDeployedContracts(target).catch(() => []);
+  try {
+    const deploy = getDeploy();
+    return await deploy.getUserDeployedContracts(target);
+  } catch (error) {
+    console.error("❌ [Deploy] Failed to load deployments", error);
+    return [];
+  }
 }
 
 export async function loadRecentLinks(limit = 20) {
-  const linkContract = getLink();
-  const currentBlock = await readProvider.getBlockNumber();
-  const fromBlock = Math.max(currentBlock - 15000, 0);
-  const events = await linkContract.queryFilter(linkContract.filters.LinkShared(), fromBlock, "latest");
-  const sorted = events
-    .map((event) => ({
+  try {
+    const linkContract = getLink();
+    const provider = getReadProvider();
+    if (!linkContract?.filters?.LinkShared) {
+      return [];
+    }
+    const currentBlock = await provider.getBlockNumber();
+    const fromBlock = Math.max(currentBlock - 15000, 0);
+    const events = await linkContract.queryFilter(linkContract.filters.LinkShared(), fromBlock, "latest");
+
+    const unique = new Map();
+    events.forEach((event) => {
+      const key = (event.transactionHash || `${event.blockNumber}-${event.args?.link || ""}`).toLowerCase();
+      if (!unique.has(key)) {
+        unique.set(key, event);
+      }
+    });
+
+    const sortedEvents = Array.from(unique.values())
+      .sort((a, b) => b.blockNumber - a.blockNumber)
+      .slice(0, limit);
+
+    const blockNumbers = Array.from(
+      new Set(sortedEvents.map((event) => event.blockNumber).filter((value) => Number.isFinite(value)))
+    );
+    const blockTimestamps = new Map();
+
+    await Promise.allSettled(
+      blockNumbers.map((blockNumber) =>
+        provider
+          .getBlock(blockNumber)
+          .then((block) => {
+            if (block?.timestamp) {
+              blockTimestamps.set(blockNumber, Number(block.timestamp) * 1000);
+            }
+          })
+          .catch((error) => {
+            console.warn(`⚠️ [Link] Failed to fetch block ${blockNumber}`, error);
+          })
+      )
+    );
+
+    return sortedEvents.map((event) => ({
       user: event.args?.user,
       link: event.args?.link,
       blockNumber: event.blockNumber,
       transactionHash: event.transactionHash,
-    }))
-    .sort((a, b) => b.blockNumber - a.blockNumber)
-    .slice(0, limit);
-  return sorted;
+      addedAt: blockTimestamps.get(event.blockNumber) || Date.now(),
+    }));
+  } catch (error) {
+    console.error("❌ [Link] Failed to load recent links", error);
+    throw error;
+  }
 }
 
 export async function loadGlobalStats() {
-  const hub = getHub();
-  const donate = getDonate();
-  const badge = getBadge();
-  const gov = getGov();
+  try {
+    const hub = getHub();
+    const donate = getDonate();
+    const badge = getBadge();
+    const gov = getGov();
 
-  const defaultGlobalStats = [
-    ethers.constants.Zero,
-    ethers.constants.Zero,
-    ethers.constants.Zero,
-    ethers.constants.Zero,
-    ethers.constants.Zero,
-    ethers.constants.Zero,
-  ];
+    const defaultGlobalStats = [
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+      ethers.constants.Zero,
+    ];
 
-  const hasGlobalStatsFn = typeof hub?.getGlobalStats === "function";
-  if (!hasGlobalStatsFn) {
-    console.warn("getGlobalStats not found on hub contract");
+    const hasGlobalStatsFn = typeof hub?.getGlobalStats === "function";
+    if (!hasGlobalStatsFn) {
+      console.warn("getGlobalStats not found on hub contract");
+    }
+
+    const globalStatsPromise = hasGlobalStatsFn
+      ? hub
+          .getGlobalStats()
+          .catch((error) => {
+            console.warn("getGlobalStats call failed", error);
+            return defaultGlobalStats;
+          })
+      : Promise.resolve(defaultGlobalStats);
+
+    const [global, donationStats, totalDonated, totalDonors, badgeStats, governanceStats] = await Promise.all([
+      globalStatsPromise,
+      donate
+        .getDonateStats()
+        .catch(() => [ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]),
+      donate.totalDonated().catch(() => ethers.constants.Zero),
+      donate.totalDonators().catch(() => ethers.constants.Zero),
+      badge.getBadgeStats().catch(() => [ethers.constants.Zero]),
+      gov.getGovernanceStats().catch(() => [ethers.constants.Zero, ethers.constants.Zero]),
+    ]);
+
+    const [visitors, gm, deploy, links, votes, badges] = global;
+    const [totalDonatedValue, totalDonatorsCount, totalCeloDonated, totalCusdDonated] = donationStats;
+    const [totalProposals, totalVotes] = governanceStats;
+
+    return {
+      visitors: Number(visitors || 0),
+      gm: Number(gm || 0),
+      deploy: Number(deploy || 0),
+      links: Number(links || 0),
+      votes: Number(votes || 0),
+      badges: Number(badges || 0),
+      donors: Number(totalDonors || totalDonatorsCount || 0),
+      totalCelo: Number(ethers.utils.formatEther(totalCeloDonated || totalDonatedValue || totalDonated || 0)),
+      totalCusd: Number(ethers.utils.formatEther(totalCusdDonated || 0)),
+      totalProposals: Number(totalProposals || 0),
+      totalVotesOnChain: Number(totalVotes || 0),
+    };
+  } catch (error) {
+    console.error("❌ [Hub] Failed to load global stats", error);
+    throw error;
   }
-
-  const globalStatsPromise = hasGlobalStatsFn
-    ? hub
-        .getGlobalStats()
-        .catch((error) => {
-          console.warn("getGlobalStats call failed", error);
-          return defaultGlobalStats;
-        })
-    : Promise.resolve(defaultGlobalStats);
-
-  const [global, donationStats, totalDonated, totalDonors, badgeStats, governanceStats] = await Promise.all([
-    globalStatsPromise,
-    donate
-      .getDonateStats()
-      .catch(() => [ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero, ethers.constants.Zero]),
-    donate.totalDonated().catch(() => ethers.constants.Zero),
-    donate.totalDonators().catch(() => ethers.constants.Zero),
-    badge.getBadgeStats().catch(() => [ethers.constants.Zero]),
-    gov.getGovernanceStats().catch(() => [ethers.constants.Zero, ethers.constants.Zero]),
-  ]);
-
-  const [visitors, gm, deploy, links, votes, badges] = global;
-  const [totalDonatedValue, totalDonatorsCount, totalCeloDonated, totalCusdDonated] = donationStats;
-  const [totalProposals, totalVotes] = governanceStats;
-
-  return {
-    visitors: Number(visitors || 0),
-    gm: Number(gm || 0),
-    deploy: Number(deploy || 0),
-    links: Number(links || 0),
-    votes: Number(votes || 0),
-    badges: Number(badges || 0),
-    donors: Number(totalDonors || totalDonatorsCount || 0),
-    totalCelo: Number(ethers.utils.formatEther(totalCeloDonated || totalDonated || 0)),
-    totalCusd: Number(ethers.utils.formatEther(totalCusdDonated || 0)),
-    totalProposals: Number(totalProposals || 0),
-    totalVotesOnChain: Number(totalVotes || 0),
-  };
 }
 
 export async function loadGovernance() {
