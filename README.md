@@ -1,6 +1,6 @@
 # Celo Engage Hub
 
-Modüler Social - Fi deneyimi için tasarlanmış **Celo Engage Hub**, Celo Mainnet üzerinde canlı çalışan kontratlarla bütünleşik, oyunlaştırılmış bir etkileşim platformudur. Kullanıcılar GM gönderebilir, düşük maliyetli kontratlar dağıtabilir, CELO/cUSD bağışlayabilir, bağlantılarını paylaşabilir, yönetişim oylamalarına katılabilir ve tüm bu aksiyonlardan XP kazanarak seviye/tier yükseltebilir.
+Modüler Social - Fi  deneyimi için tasarlanmış **Celo Engage Hub**, Celo Mainnet üzerinde canlı çalışan kontratlarla bütünleşik, oyunlaştırılmış bir etkileşim platformudur. Kullanıcılar  GM gönderebilir, düşük maliyetli kontratlar dağıtabilir, CELO/cUSD bağışlayabilir, bağlantılarını paylaşabilir, yönetişim oylamalarına katılabilir ve tüm bu aksiyonlardan XP kazanarak seviye/tier yükseltebilir.
 
 ## Ağlar ve Adresler
 
