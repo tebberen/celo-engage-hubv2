@@ -1222,6 +1222,47 @@ textarea {
   gap: 24px;
 }
 
+.governance-create {
+  display: grid;
+  gap: 14px;
+}
+
+.governance-create__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.governance-create__helper {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+.governance-form {
+  display: grid;
+  gap: 10px;
+}
+
+.governance-form input,
+.governance-form textarea {
+  width: 100%;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-strong);
+}
+
 @media (min-width: 1024px) {
   .governance-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));

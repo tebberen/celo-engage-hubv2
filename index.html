@@ -308,18 +308,6 @@
                     <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeurBtn">Withdraw cEUR</button>
                   </form>
                 </div>
-                <div class="owner-section">
-                  <h4 data-i18n="donate.owner.proposalTitle">Create Proposal</h4>
-                  <form id="proposalForm">
-                    <label for="proposalTitle" data-i18n="donate.owner.proposalLabel">Title</label>
-                    <input id="proposalTitle" type="text" required maxlength="80" />
-                    <label for="proposalDescription" data-i18n="donate.owner.proposalDescription">Description</label>
-                    <textarea id="proposalDescription" required maxlength="280"></textarea>
-                    <label for="proposalLink" data-i18n="donate.owner.proposalLink">Link</label>
-                    <input id="proposalLink" type="url" placeholder="https://" />
-                    <button type="submit" class="primary-btn" data-i18n="donate.owner.proposalSubmit">Create Proposal</button>
-                  </form>
-                </div>
               </div>
             </section>
 
@@ -327,6 +315,29 @@
               <div class="section-header">
                 <h2 data-i18n="governance.title">Governance</h2>
                 <p data-i18n="governance.subtitle">Join the active and completed proposals.</p>
+              </div>
+              <div class="card governance-create" aria-live="polite">
+                <div class="governance-create__header">
+                  <div>
+                    <p class="eyebrow" data-i18n="governance.createEyebrow">Owner Action</p>
+                    <h3 data-i18n="governance.createTitle">Create Proposal</h3>
+                    <p id="proposalAccessMessage" class="governance-create__helper" data-i18n="governance.createHelper">
+                      Connect with the owner wallet to open a new proposal for the community.
+                    </p>
+                  </div>
+                  <span class="chip" data-i18n="governance.createChip">0x09d…0da5 only</span>
+                </div>
+                <div id="proposalFormWrapper">
+                  <form id="proposalForm" class="governance-form">
+                    <label for="proposalTitle" data-i18n="governance.proposalLabel">Title</label>
+                    <input id="proposalTitle" type="text" required maxlength="80" />
+                    <label for="proposalDescription" data-i18n="governance.proposalDescription">Description</label>
+                    <textarea id="proposalDescription" required maxlength="280"></textarea>
+                    <label for="proposalLink" data-i18n="governance.proposalLink">Link</label>
+                    <input id="proposalLink" type="url" placeholder="https://" />
+                    <button type="submit" class="primary-btn" data-i18n="governance.proposalSubmit">Create Proposal</button>
+                  </form>
+                </div>
               </div>
               <div class="governance-columns">
                 <div class="card">

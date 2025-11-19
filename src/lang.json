@@ -123,7 +123,17 @@
       "voteNo": "❌ Hayır",
       "voteYesShort": "Evet",
       "voteNoShort": "Hayır",
-      "detail": "Detay"
+      "detail": "Detay",
+      "createEyebrow": "Sahip Aksiyonu",
+      "createTitle": "Öneri Oluştur",
+      "createHelper": "Topluluk için yeni bir öneri açmak üzere sahip cüzdanıyla bağlan.",
+      "createHelperReady": "Sahip olarak bağlısın. Topluluk için yeni bir öneri gönder.",
+      "createHelperWrong": "Öneri oluşturma yalnızca sahip cüzdanı ({address}) ile yapılabilir.",
+      "createChip": "0x09d…0da5 sadece",
+      "proposalLabel": "Başlık",
+      "proposalDescription": "Açıklama",
+      "proposalLink": "Bağlantı",
+      "proposalSubmit": "Öneri Oluştur"
     },
     "talent": {
       "title": "Talent Profil",
@@ -348,7 +358,17 @@
       "voteNo": "❌ No",
       "voteYesShort": "Yes",
       "voteNoShort": "No",
-      "detail": "Details"
+      "detail": "Details",
+      "createEyebrow": "Owner Action",
+      "createTitle": "Create Proposal",
+      "createHelper": "Connect with the owner wallet to open a new proposal for the community.",
+      "createHelperReady": "Connected as owner. Submit a proposal for the community.",
+      "createHelperWrong": "Proposal creation is limited to the owner wallet ({address}).",
+      "createChip": "0x09d…0da5 only",
+      "proposalLabel": "Title",
+      "proposalDescription": "Description",
+      "proposalLink": "Link",
+      "proposalSubmit": "Create Proposal"
     },
     "talent": {
       "title": "Talent Profile",
