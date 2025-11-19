@@ -15,6 +15,7 @@ import {
   connectWalletConnect,
   disconnectWallet,
   getInjectedProvider,
+  getWalletDetails,
   onWalletEvent,
 } from "./services/walletService.js";
 import {
@@ -137,6 +138,8 @@ const elements = {
   approveCeurForm: document.getElementById("approveCeurForm"),
   donateCeurForm: document.getElementById("donateCeurForm"),
   proposalForm: document.getElementById("proposalForm"),
+  proposalFormWrapper: document.getElementById("proposalFormWrapper"),
+  proposalAccessMessage: document.getElementById("proposalAccessMessage"),
   activeProposals: document.getElementById("activeProposals"),
   pastProposals: document.getElementById("pastProposals"),
   badgeDetails: document.getElementById("badgeDetails"),
@@ -393,6 +396,8 @@ function init() {
   updateAnalyticsLinks();
   renderNetworkInfo(false);
   updateWalletUI();
+  renderOwnerPanel();
+  renderGovernanceAccess();
   loadInitialData();
   setupLinkLiveUpdates();
   initWalletListeners();
@@ -1961,7 +1966,12 @@ async function handleShareLinkSubmit(event) {
 
 async function handleProposalSubmit(event) {
   event.preventDefault();
-  if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
+  const { address } = getWalletDetails();
+  if (!address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  const isOwnerWallet = address.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  state.isOwner = isOwnerWallet;
+  renderGovernanceAccess();
+  if (!isOwnerWallet) return showToast("error", UI_MESSAGES.ownerOnly);
   const title = document.getElementById("proposalTitle").value.trim();
   const description = document.getElementById("proposalDescription").value.trim();
   const link = document.getElementById("proposalLink").value.trim();
@@ -2719,9 +2729,36 @@ function renderLeaderboardList(container, list) {
     .join("");
 }
 
+function renderGovernanceAccess() {
+  if (elements.proposalFormWrapper) {
+    elements.proposalFormWrapper.hidden = !state.isOwner;
+  }
+
+  if (elements.proposalAccessMessage) {
+    const ownerLabel = shorten(OWNER_ADDRESS);
+    if (state.isOwner) {
+      elements.proposalAccessMessage.textContent = t(
+        "governance.createHelperReady",
+        "Connected as owner. Submit a proposal for the community."
+      );
+    } else if (state.address) {
+      elements.proposalAccessMessage.textContent = t(
+        "governance.createHelperWrong",
+        "Proposal creation is limited to the owner wallet ({address})."
+      ).replace("{address}", ownerLabel);
+    } else {
+      elements.proposalAccessMessage.textContent = t(
+        "governance.createHelper",
+        "Connect with the owner wallet to open a new proposal for the community."
+      );
+    }
+  }
+}
+
 function renderOwnerPanel() {
   if (!elements.ownerPanel) return;
   elements.ownerPanel.hidden = !state.isOwner;
+  renderGovernanceAccess();
 }
 
 function formatNumber(value) {
