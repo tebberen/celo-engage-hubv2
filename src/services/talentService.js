@@ -5,12 +5,27 @@ import {
 } from "../utils/constants.js";
 
 const TALENT_PROFILE_ENDPOINT_TEMPLATE = "profiles/{username}";
+const TALENT_API_FALLBACK_BASES = [
+  "https://api.talentprotocol.com/api/v4/",
+  "https://app.talentprotocol.com/api/v4/",
+  "https://app.talentprotocol.com/api/v3/",
+];
 
-function buildUrl(path) {
-  const base = TALENT_PROTOCOL_API_BASE_URL.endsWith("/")
+function buildUrl(base, path) {
+  const normalizedBase = typeof base === "string" && base.trim().length ? base.trim() : "";
+  const sanitizedBase = normalizedBase.endsWith("/") ? normalizedBase : `${normalizedBase}/`;
+  const sanitizedPath = path.startsWith("/") ? path.slice(1) : path;
+  return `${sanitizedBase}${sanitizedPath}`;
+}
+
+function getApiBaseCandidates() {
+  const configured = Array.isArray(TALENT_PROTOCOL_API_BASE_URL)
     ? TALENT_PROTOCOL_API_BASE_URL
-    : `${TALENT_PROTOCOL_API_BASE_URL}/`;
-  return `${base}${path}`;
+    : [TALENT_PROTOCOL_API_BASE_URL];
+  return [...configured, ...TALENT_API_FALLBACK_BASES]
+    .map((base) => (typeof base === "string" ? base.trim() : ""))
+    .filter(Boolean)
+    .filter((value, index, array) => array.indexOf(value) === index);
 }
 
 function resolveConfiguredUsername() {
@@ -173,49 +188,89 @@ export async function fetchTalentProfile({ signal } = {}) {
   }
 
   const endpoint = TALENT_PROFILE_ENDPOINT_TEMPLATE.replace("{username}", encodeURIComponent(username));
-  const url = buildUrl(endpoint);
+  const attempts = [];
+  for (const base of getApiBaseCandidates()) {
+    try {
+      return await requestProfileFromBase(base, endpoint, { signal });
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw error;
+      }
+      attempts.push({ base, error });
+      console.warn(`⚠️ [Talent] Attempt via ${base} failed`, error);
+    }
+  }
+
+  const aggregateError = new Error(
+    attempts.length
+      ? `Talent Protocol request failed after ${attempts.length} attempts`
+      : "Talent Protocol request failed"
+  );
+  aggregateError.attempts = attempts;
+  throw aggregateError;
+}
+
+function appendApiKeyQuery(url) {
+  if (!TALENT_PROTOCOL_API_KEY) return url;
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.has("api_key")) {
+      parsed.searchParams.set("api_key", TALENT_PROTOCOL_API_KEY);
+    }
+    return parsed.toString();
+  } catch (error) {
+    return url;
+  }
+}
+
+function createTalentHeaders() {
   const headers = new Headers({
     Accept: "application/json",
+    "Cache-Control": "no-cache",
   });
-
   if (TALENT_PROTOCOL_API_KEY) {
     headers.set("Authorization", `Bearer ${TALENT_PROTOCOL_API_KEY}`);
+    headers.set("X-API-Key", TALENT_PROTOCOL_API_KEY);
+    headers.set("X-Api-Key", TALENT_PROTOCOL_API_KEY);
   } else {
     console.warn("Talent Protocol API key is missing. Requests may fail with 404/401 responses.");
   }
+  return headers;
+}
 
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
-      signal,
-      credentials: "omit",
-    });
+async function requestProfileFromBase(base, endpoint, { signal } = {}) {
+  if (!base) {
+    throw new Error("Talent Protocol API base URL is not configured");
+  }
+  const urlWithQuery = appendApiKeyQuery(buildUrl(base, endpoint));
+  const response = await fetch(urlWithQuery, {
+    method: "GET",
+    headers: createTalentHeaders(),
+    signal,
+    credentials: "omit",
+    mode: "cors",
+    cache: "no-store",
+  });
 
-    if (!response.ok) {
-      const error = new Error(`Talent Protocol request failed with status ${response.status}`);
-      error.status = response.status;
-      if (response.status === 404) {
-        error.userMessage = "Talent profile not found.";
-      }
-      throw error;
+  if (!response.ok) {
+    const error = new Error(`Talent Protocol request failed with status ${response.status}`);
+    error.status = response.status;
+    error.base = base;
+    if (response.status === 404) {
+      error.userMessage = "Talent profile not found.";
     }
-
-    const data = await response.json().catch(() => ({}));
-    const profile = normalizeProfile(data);
-
-    if (!profile) {
-      const error = new Error("Talent Protocol profile response was empty");
-      error.status = 422;
-      throw error;
-    }
-
-    return profile;
-  } catch (error) {
-    if (error.name === "AbortError") {
-      throw error;
-    }
-    console.error("❌ [Talent] Failed to fetch profile", error);
     throw error;
   }
+
+  const data = await response.json().catch(() => ({}));
+  const profile = normalizeProfile(data);
+
+  if (!profile) {
+    const error = new Error("Talent Protocol profile response was empty");
+    error.status = 422;
+    error.base = base;
+    throw error;
+  }
+
+  return profile;
 }

@@ -7,6 +7,8 @@ import {
   MODULES,
   MODULE_ADDRESS_BOOK,
   DEFAULT_NETWORK,
+  SELF_REFERRAL_LINK,
+  SELF_APP_DOWNLOAD_LINKS,
 } from "./utils/constants.js";
 import {
   connectWalletMetaMask,
@@ -171,6 +173,7 @@ const elements = {
   selfModal: document.getElementById("selfModal"),
   selfQrContainer: document.getElementById("selfQrContainer"),
   selfDeepLink: document.getElementById("selfDeepLink"),
+  selfReferralLink: document.getElementById("selfReferralLink"),
   selfStatusMessage: document.getElementById("selfStatusMessage"),
   donateQuickButtons: document.querySelectorAll("[data-donate-amount]"),
   duneLink: document.getElementById("duneLink"),
@@ -1383,6 +1386,30 @@ function updateSelfDeepLink(link) {
   }
 }
 
+function resolveSelfDownloadLink() {
+  const links = SELF_APP_DOWNLOAD_LINKS || {};
+  const fallback = links.default || SELF_REFERRAL_LINK || "#";
+  if (typeof navigator !== "undefined" && navigator.userAgent) {
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isAndroid = /android/.test(ua);
+    if (isIOS && links.ios) return links.ios;
+    if (isAndroid && links.android) return links.android;
+  }
+  return fallback;
+}
+
+function updateSelfReferralLink() {
+  if (!elements.selfReferralLink) return;
+  const target = resolveSelfDownloadLink();
+  if (target) {
+    elements.selfReferralLink.href = target;
+    elements.selfReferralLink.removeAttribute("hidden");
+  } else {
+    elements.selfReferralLink.href = SELF_REFERRAL_LINK || "#";
+  }
+}
+
 function openSelfVerificationModal(trigger) {
   if (!elements.selfModal) return;
   resetSelfVerificationModal();
@@ -1409,6 +1436,7 @@ function setupSelfVerificationModal() {
       closeSelfVerificationModal();
     });
   });
+  updateSelfReferralLink();
 }
 
 function setupIdentityVerification() {
