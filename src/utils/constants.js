@@ -59,6 +59,14 @@ export const WALLETCONNECT_PROJECT_ID = "8b020ffbb31e5aba14160c27ca26540b";
 export const MIN_DONATION = 0.1;
 export const MIN_DONATION_WEI = "100000000000000000";
 
+export const SELF_REFERRAL_LINK =
+  "https://referral.self.xyz/referral/0x5b035ef556f804fcd99503b5cD00c975c0673126";
+export const SELF_APP_DOWNLOAD_LINKS = {
+  ios: `${SELF_REFERRAL_LINK}?platform=ios`,
+  android: `${SELF_REFERRAL_LINK}?platform=android`,
+  default: SELF_REFERRAL_LINK,
+};
+
 export const THE_GRAPH_ENDPOINT = "https://api.studio.thegraph.com/query/YOUR_SUBGRAPH_ID/YOUR_VERSION";
 export const DUNE_DASHBOARD_URL = "https://dune.com/YOUR_HANDLE/celo-engage-hub";
 

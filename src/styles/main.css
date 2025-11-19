@@ -1568,6 +1568,9 @@ textarea {
 
 .self-deeplink {
   margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .self-deeplink__button {
@@ -1585,6 +1588,16 @@ textarea {
 
 .self-deeplink__button::before {
   content: "📱";
+}
+
+.self-deeplink__button--secondary {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(251, 204, 92, 0.4);
+  font-weight: 500;
+}
+
+.self-deeplink__button--secondary::before {
+  content: "⬇️";
 }
 
 .self-status {
