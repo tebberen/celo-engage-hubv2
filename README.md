@@ -1,6 +1,6 @@
 # Celo Engage Hub
 
-Celo Engage Hub, Modüler Social-Fi deneyimini CELO ekosistemine taşıyan oyunlaştırılmış bir etkileşim merkezidir. Uygulama, Celo Mainnet üzerindeki canlı kontratlarla bütünleşik çalışır, kullanıcıların sosyal aksiyonlarını zincir üstü ödüllerle teşvik eder ve topluluğun yönetişim süreçlerine katılımını kolaylaştırır.
+Celo Engage Hub, Modüler Social-Fi deneyimini CELO ekosistemine taşıyan oyunlaştırılmış bir etkileşim merkezidir. Uygulama, Celo Mainnet üzerindeki canlı kontratlarla bütünleşik çalışır, kullanıcıların sosyal aksiyonlarını zincir üstü ödüllerle teşvik eder ve topluluk yönetişimine katılımı kolaylaştırır. Bu doküman, kuruluma, çalıştırmaya ve katkıda bulunmaya dair güncel bir başvuru niteliğindedir.
 
 ## İçindekiler
 
@@ -21,7 +21,7 @@ Celo Engage Hub, Modüler Social-Fi deneyimini CELO ekosistemine taşıyan oyunl
 
 - **Amaç:** CELO topluluğunun etkileşimini artırmak, zincir üstü aksiyonları oyunlaştırmak ve topluluk içi ödüllendirme mekanizmalarını tek bir merkezde toplamak.
 - **Teknolojiler:** Vanilla JS tabanlı front-end, `ethers.js` ile kontrat etkileşimi, Self ID doğrulaması için Express tabanlı hafif bir backend.
-- **Durum:** Celo Mainnet üzerinde canlı kontratlar ile çalışır ve Sepolia/Alfajores test ağları desteklenir.
+- **Durum:** Celo Mainnet üzerinde canlı kontratlar ile çalışır; Sepolia/Alfajores test ağları geliştirme ve demo süreçlerini destekler.
 
 ## Ağlar ve Kontrat Adresleri
 
@@ -63,7 +63,7 @@ Sistem sahibinin adresi: **`0x09dFa0d77125978997dD9f94A0F870D3f2900DA5`**
 
 ### Geliştirme
 
-Ön uç statik varlıklar olarak servis edildiği için `index.html` dosyasını yerel bir sunucuda çalıştırmanız yeterlidir. Örnek olarak VS Code Live Server veya `http-server` kullanılabilir. RPC/WS adresleri ve diğer yapılandırmalar `.env` dosyasında yönetilir.
+Ön uç statik varlıklar olarak servis edildiği için `index.html` dosyasını yerel bir sunucuda çalıştırmanız yeterlidir. Örnek olarak VS Code Live Server veya `http-server` kullanılabilir. RPC/WS adresleri ve diğer yapılandırmalar `.env` dosyasında yönetilir. Celo Mainnet için varsayılan ayarlar sağlanır; test ağlarına geçiş için `.env` değişkenlerini güncellemeniz yeterlidir.
 
 ### Self ID Doğrulama Sunucusu
 
@@ -96,7 +96,7 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
 - **Bağış Sistemi:** CELO için direkt transfer, cUSD/cEUR için approve + donate akışı bulunur. Minimum bağış 0.1, toast’larda explorer linkleri gösterilir. Owner panelinden günlük limitli çekim yapılabilir.
 - **Link Paylaşımı:** `https://` ile başlayan linkler kabul edilir. Feed en yeni kayıtları üstte gösterir, paylaşım başına +2 XP verilir.
 - **Yönetişim:** Owner yeni öneriler oluşturabilir, tüm kullanıcılar 7 gün süren oylamalara katılabilir. Aktif/Tamamlanan listeleri, geri sayım ve oy istatistikleri UI’da yer alır.
-- **Liderlik Tablosu:** Link, GM, Deploy, CELO Donor, cUSD Donor, Vote ve Level metrikleri için filtrelenebilir listeler. On-chain okuma + feed verisi ile hazırlanır, The Graph entegrasyonu hazır.
+- **Liderlik Tablosu:** Link, GM, Deploy, CELO Donor, cUSD Donor, Vote ve Level metrikleri için filtrelenebilir listeler. On-chain okuma + feed verisi ile hazırlanır, The Graph entegrasyonu hazırdır.
 - **Çoklu Cüzdan Desteği:** MetaMask ve WalletConnect v2 (Project ID: `8b020ffbb31e5aba14160c27ca26540b`). Yanlış ağlarda kullanıcı bilgilendirilir.
 - **Tema & UX:** Koyu/açık mod, yerel dil yönetimi (Türkçe varsayılan), localStorage kalıcılığı. Tüm toast mesajlarında kısaltılmış explorer linkleri gösterilir.
 - **Gerçek Zamanlı Güncellemeler:** WebSocketProvider ile profil, GM, bağış, link, yönetişim ve rozet olayları dinlenir; kesinti durumunda üstel backoff ile yeniden bağlanır.
@@ -122,7 +122,7 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
   - *Leaderboard:* Sekmeli liderlik listeleri.
   - *Talent:* Talent Protocol profil kartı (opsiyonel).
 - **Owner Panel:** Sadece owner adresine görünür; bağış çekimi ve yeni öneri formlarını içerir.
-- **Footer:** Global sayaçlar ve analitik bağlantıları (The Graph, Dune placeholder).
+- **Footer:** Global sayaçlar ve analitik bağlantılar (The Graph, Dune placeholder).
 
 ## Güvenlik ve Guardrailler
 

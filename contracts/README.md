@@ -1,14 +1,14 @@
 # Contracts Folder
 
-On-chain components that back Celo Engage Hub.
+Celo Engage Hub’un zincir üstü bileşenlerini içerir.
 
-## File Overview
-- **CeloEngageHubSelf.sol**: Solidity contract extending `SelfVerificationRoot` to record wallet self-verification. It stores verified addresses in the `verifiedUsers` mapping, emits `SelfVerified`, and exposes `verifySelfProof`, `isVerified`, and a sample `gatedAction` protected by the `onlyVerified` modifier.
+## Dosya Özeti
+- **CeloEngageHubSelf.sol**: `SelfVerificationRoot` sözleşmesini genişleterek cüzdan self-doğrulamalarını kaydeder. `verifiedUsers` haritasını yönetir, `SelfVerified` etkinliğini yayar ve `verifySelfProof`, `isVerified` ile `onlyVerified` modifiyer’i tarafından korunan örnek `gatedAction` fonksiyonunu sunar.
 
-## Relationships
-- Relies on the `@selfxyz/contracts` package for zk-proof verification via `_verifySelfProof`.
-- Intended to complement the off-chain verification service in `server/index.js` and the identity UI in `src/services/identityService.js`.
+## İlişkiler
+- ZK-proof doğrulaması için `@selfxyz/contracts` paketine dayanır.
+- Off-chain doğrulama servisi (`server/index.js`) ve kimlik UI akışı (`src/services/identityService.js`) ile birlikte çalışacak şekilde tasarlanmıştır.
 
-## Contributor Notes
-- Add new modules as separate `.sol` files here and update ABI/address references in `src/utils/constants.js` if used by the front-end.
-- Keep access control consistent; reuse `onlyVerified` for actions that should require Self ID proof.
+## Katkıda Bulunma
+- Yeni modülleri ayrı `.sol` dosyaları olarak ekleyin ve front-end’in kullanması gerekiyorsa `src/utils/constants.js` içinde ABI/adres referanslarını güncelleyin.
+- Erişim kontrollerinde tutarlılık için gerekli işlemlerde `onlyVerified` veya benzer guard’ları kullanın.

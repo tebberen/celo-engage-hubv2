@@ -1,17 +1,17 @@
 # Server Folder
 
-Express-based backend used for Self ID signature verification.
+Self ID imza doğrulamasına odaklanan Express tabanlı backend.
 
-## File Overview
-- **index.js**: Boots an Express server with CORS and JSON parsing, exposes `/api/self/check` to query verification status and `/api/self/verify` to validate signed messages with `ethers.utils.verifyMessage`. Verified wallets are cached in-memory; `/api/self/health` returns a simple heartbeat.
+## Dosya Özeti
+- **index.js**: CORS ve JSON middleware’leriyle Express’i başlatır; `/api/self/check` ile doğrulama durumunu sorgular, `/api/self/verify` ile `ethers.utils.verifyMessage` kullanarak imzaları doğrular ve başarılı adresleri bellekte saklar. `/api/self/health` basit bir heartbeat döner.
 
-## Relationships
-- Works with the client identity flow in `src/services/identityService.js`, which calls the verify endpoint after Self QR flows.
-- Shares address normalization logic with the smart contract intent in `contracts/CeloEngageHubSelf.sol` by validating signatures before on-chain gating.
+## İlişkiler
+- `src/services/identityService.js` içindeki istemci akışı bu uç noktaları çağırır; Self QR süreci sonrası imza doğrulamasını tamamlar.
+- Zincir tarafında `contracts/CeloEngageHubSelf.sol` sözleşmesi, on-chain kısıtlamalar için benzer doğrulama mantığını paylaşır.
 
-## Running
-- Default port: `8787` (configurable via `PORT`). Start with `npm run start:server` from the repo root.
+## Çalıştırma
+- Varsayılan port: `8787` ( `PORT` ile değiştirilebilir). Kök dizinden `npm run start:server` komutu ile başlatılır.
 
-## Contributor Notes
-- Keep responses lightweight for the front-end polling in `src/main.js`.
-- Consider persisting `verifiedWallets` if durability is required; currently stored in-memory only.
+## Katkıda Bulunma
+- Ön uçtaki polling ihtiyacı nedeniyle yanıtları hafif tutun.
+- Kalıcılık gerekiyorsa `verifiedWallets` listesini bir veri deposuna taşıyın; mevcut hali bellek tabanlıdır.

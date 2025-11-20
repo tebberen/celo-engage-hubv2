@@ -1,14 +1,14 @@
 # Styles Folder
 
-Global styling for the Celo Engage Hub UI.
+Celo Engage Hub arayüzünün tema, tipografi ve layout kurallarını barındırır.
 
-## File Overview
-- **main.css**: Defines the golden/light theme tokens, typography, layout primitives, buttons, modals, feed cards, navigation elements, badges, and responsive tweaks used by `index.html` and components rendered from `main.js`.
+## Dosya Özeti
+- **main.css**: Marka renkleri, tipografi ölçekleri, butonlar, modallar, feed kartları, navigasyon, rozetler ve responsive düzenleri tanımlar; `index.html` ve `main.js` ile render edilen bileşenler tarafından paylaşılır.
 
-## Integration Notes
-- Loaded by `index.html` for all pages; CSS variables align with branding colors referenced in assets.
-- Classes are referenced directly in DOM elements managed by `main.js`, so renaming selectors requires coordinated JS updates.
+## Entegrasyon Notları
+- `index.html` tarafından yüklenir; CSS değişkenleri asetler ve tasarım diliyle uyumlu tutulmalıdır.
+- Sınıflar doğrudan `main.js` içindeki DOM manipülasyonlarında kullanıldığı için seçici adlarını değiştirirken JS güncellemelerini eşleştirin.
 
-## Contributor Notes
-- Prefer extending existing variables and utility classes instead of adding inline styles in JavaScript.
-- Keep accessibility in mind: maintain sufficient contrast and focus states when modifying components.
+## Katkıda Bulunma
+- Yeni stil ihtiyaçlarında mevcut değişken ve yardımcı sınıfları genişletmeye öncelik verin; JS içinde inline stil kullanımından kaçının.
+- Erişilebilirlik için kontrast, odak durumları ve klavye navigasyonunu koruyun.

@@ -1,19 +1,19 @@
 # Src Folder
 
-Front-end source for Celo Engage Hub built with vanilla JS, CSS, and CDN-loaded dependencies.
+Celo Engage Hub'un front-end kaynak kodu. Vanilla JS, CSS ve CDN’den yüklenen bağımlılıklarla çalışır ve doğrudan `index.html` üzerinden servis edilir.
 
-## Key Files
-- **main.js**: Primary UI controller handling wallet connections, module actions (GM, deploy, donate, link, governance), toast handling, real-time updates, identity verification prompts, analytics links, and Talent Protocol loading.
-- **lang.json**: Centralized translations for UI strings; language toggles read from this file.
+## Kilit Dosyalar
+- **main.js**: Cüzdan bağlantıları, modül aksiyonları (GM, deploy, donate, link, governance), toast akışı, gerçek zamanlı güncellemeler, kimlik doğrulama ve Talent Protocol entegrasyonunu yöneten ana UI denetleyicisi.
+- **lang.json**: Tüm UI metinleri için merkezî çeviri kaynağı; dil değişimleri buradan okunur.
 
-## Subfolders
-- **services/**: Interaction layer for blockchain, wallet connectors, identity verification, and third-party data.
-- **styles/**: CSS theme and layout rules for the app shell and components.
-- **utils/**: Shared constants, CDN shims, and formatting helpers referenced throughout `main.js` and service modules.
+## Alt Klasörler
+- **services/**: Blockchain, cüzdan bağlantıları, kimlik doğrulama ve üçüncü parti veri akışları için servis katmanı.
+- **styles/**: Uygulamanın tema ve layout kurallarını tutan CSS.
+- **utils/**: Sabitler, CDN modül köprüleri ve formatlama yardımcıları.
 
-## Integration Notes
-`index.html` imports `src/main.js` and links to `src/styles/main.css`. The constants in `utils/constants.js` provide addresses/ABIs consumed by `services/contractService.js` and the UI.
+## Entegrasyon Notları
+`index.html` dosyası `src/main.js` ve `src/styles/main.css` dosyalarını içe aktarır. Adres/ABI sabitleri `utils/constants.js` içinde toplanır ve hem servisler hem de UI tarafından tüketilir.
 
-## Contributor Notes
-- Update `lang.json` when adding new UI copy.
-- Keep new modules composable by extending the service helpers instead of embedding logic directly into `main.js`.
+## Katkıda Bulunma
+- Yeni UI metinleri eklerken `lang.json` dosyasını güncelleyin.
+- Yeni modülleri servis fonksiyonlarıyla bütünleştirip `main.js` içinde kompozisyonu koruyun.

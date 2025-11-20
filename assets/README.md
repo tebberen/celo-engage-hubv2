@@ -1,13 +1,13 @@
 # Assets Folder
 
-Static assets for the Celo Engage Hub front-end.
+Celo Engage Hub’un statik görsellerini barındırır.
 
-## File Overview
-- **logo-celo-engage-hub.png**: Primary logo used across the landing page and wallet UI.
+## Dosya Özeti
+- **logo-celo-engage-hub.png**: Ana logo; açılış sayfası, navigasyon ve cüzdan akışlarında kullanılır.
 
-## Usage
-Images are referenced by `index.html` and CSS to brand the application. Keep filenames stable to avoid broken links.
+## Kullanım
+Görseller `index.html` ve CSS tarafından referans alınır. Dosya adlarını sabit tutarak kırık bağlantı riskini azaltın.
 
-## Contributor Notes
-- Add new assets here and update references in `index.html` or `src/styles/main.css` as needed.
-- Prefer optimized PNG/SVG files to keep bundle size small.
+## Katkıda Bulunma
+- Yeni varlıkları buraya ekleyip `index.html` veya `src/styles/main.css` içindeki referansları güncelleyin.
+- Paket boyutunu düşük tutmak için optimize edilmiş PNG/SVG tercih edin.
