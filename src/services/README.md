@@ -1,18 +1,18 @@
 # Services Folder
 
-Helper modules that connect the UI to wallets, contracts, identity flows, referrals, and off-chain data.
+UI’yi zincir, cüzdan ve üçüncü parti veri kaynaklarına bağlayan yardımcı modüller.
 
-## File Overview
-- **contractService.js**: Builds RPC/WebSocket providers, wraps hub module ABIs, registers toast callbacks, handles GM/deploy/donate/link/governance calls, tracks profile/global stats, and exposes analytics/link helpers. Uses `utils/constants.js` for addresses, ABIs, and network metadata.
-- **walletService.js**: Manages MetaMask and WalletConnect connections, listens for account/network changes, and exposes signer/provider data used across the app.
-- **identityService.js**: Coordinates Self ID verification. Loads Self SDK modules, renders QR codes, calls the backend verify endpoint, and caches verified addresses in localStorage with helper getters/setters.
-- **talentService.js**: Fetches Talent Protocol profile data using the configured API key/username and surfaces loading/error states to `main.js`.
-- **divviReferral.js**: Adds Divvi referral tags to contract transactions when possible and submits referral metadata after sends; falls back gracefully if tagging fails.
+## Dosya Özeti
+- **contractService.js**: RPC/WebSocket sağlayıcılarını kurar, hub modül ABİ’lerini sarar, toast callback’lerini kaydeder, GM/deploy/donate/link/governance işlemlerini koordine eder, profil/global istatistikleri izler ve analytics/link yardımcılarını sunar. Adresler ve ağ metadatası için `utils/constants.js` değerlerini kullanır.
+- **walletService.js**: MetaMask ve WalletConnect bağlantılarını yönetir, hesap/ağ değişikliklerini dinler ve uygulama genelinde kullanılan signer/provider verisini döner.
+- **identityService.js**: Self ID doğrulama akışını yönetir; Self SDK modüllerini yükler, QR kodları üretir, backend doğrulama uç noktasını çağırır ve doğrulanmış adresleri localStorage’da cache’ler.
+- **talentService.js**: Talent Protocol profil verisini belirlenen API anahtarı/kullanıcı adıyla çeker; yükleme/hata durumlarını `main.js` ile paylaşır.
+- **divviReferral.js**: Mümkün olduğunda kontrat işlemlerine Divvi referral etiketleri ekler ve gönderim sonrası referral metadatasını iletir; başarısızlıkta zarifçe geri döner.
 
-## Integration Notes
-- `main.js` imports these helpers to keep UI code lean. Functions often expect constants such as `MODULE_ADDRESS_BOOK`, `MIN_DONATION`, and `OWNER_ADDRESS` defined in `utils/constants.js`.
-- Network providers created here reuse `ethers` from `utils/cdn-modules.js` to match the browser environment.
+## Entegrasyon Notları
+- `main.js` bu yardımcıları içe aktararak UI kodunu sade tutar. Fonksiyonlar sıklıkla `MODULE_ADDRESS_BOOK`, `MIN_DONATION` ve `OWNER_ADDRESS` gibi `utils/constants.js` sabitlerini bekler.
+- Sağlayıcılar, tarayıcı ortamıyla uyum için `utils/cdn-modules.js` içindeki `ethers` sürümünü kullanır.
 
-## Contributor Notes
-- When adding a new blockchain action, extend `contractService.js` and reuse `registerToastHandler` for consistent UX.
-- Keep wallet listeners centralized in `walletService.js` to avoid duplicated event handling.
+## Katkıda Bulunma
+- Yeni zincir aksiyonları için `contractService.js` dosyasını genişletin ve tutarlı UX için `registerToastHandler` kancasını kullanın.
+- Cüzdan dinleyicilerini `walletService.js` içinde merkezî tutarak olay tekrarlarını önleyin.
