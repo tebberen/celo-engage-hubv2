@@ -2851,7 +2851,7 @@ function subscribeToEvents() {
     { contract: "PROFILE", events: ["UserRegistered", "ProfileUpdated", "UsernameUpdated"] },
     { contract: "GM", events: ["GMSent"] },
     { contract: "DONATE", events: ["DonationMade", "Withdrawn"] },
-    { contract: "GOVERNANCE", events: ["ProposalCreated", "Voted", "Executed"] },
+    { contract: "GOVERNANCE", events: ["ProposalCreated", "Voted", "ProposalExecuted"] },
     { contract: "BADGE", events: ["BadgeEarned", "LevelUp"] },
   ];
 
