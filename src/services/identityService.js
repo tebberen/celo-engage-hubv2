@@ -2,6 +2,8 @@ const STORAGE_KEY = "celo-engage-verified-humans";
 const SELF_SCOPE = "celo-engage-hub";
 const SELF_VERSION = 2;
 const SELF_BACKEND_PATH = "/api/self/verify";
+const SELF_QR_URL = "https://cdn.jsdelivr.net/npm/@selfxyz/qrcode/+esm";
+const SELF_CORE_URL = "https://cdn.jsdelivr.net/npm/@selfxyz/core/+esm";
 const SELF_DISCLOSURES = {
   minimumAge: 18,
   excludedCountries: [],
@@ -70,16 +72,14 @@ async function loadSelfModules() {
   modulesPromise = Promise.all([
     importWithFallback(
       [
-        "https://cdn.jsdelivr.net/npm/@selfxyz/core@2/+esm",
-        "https://esm.sh/@selfxyz/core@2?bundle",
+        SELF_CORE_URL,
         "https://unpkg.com/@selfxyz/core@2/dist/index.mjs",
       ],
       "Self core",
     ),
     importWithFallback(
       [
-        "https://cdn.jsdelivr.net/npm/@selfxyz/qrcode@2/+esm",
-        "https://esm.sh/@selfxyz/qrcode@2?bundle",
+        SELF_QR_URL,
         "https://unpkg.com/@selfxyz/qrcode@2/dist/index.mjs",
       ],
       "Self QR code",
