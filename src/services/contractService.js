@@ -19,6 +19,7 @@ import {
   NETWORK_FALLBACK_RPC_URLS,
 } from "../utils/constants.js";
 import { getWalletDetails } from "./walletService.js";
+import { sendWithReferral } from "./divviReferral.js";
 
 const READ_RPC_TIMEOUT = 20000;
 const DEFAULT_POLLING_INTERVAL = 10000;
@@ -305,10 +306,14 @@ export async function doGM(message = "") {
   try {
     const { address } = requireSigner();
     const gm = getGM(true);
-    const tx = await gm.sendGM(address, message || "");
-    emitToast("pending", "GM gönderiliyor...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      gm,
+      "sendGM",
+      [address, message || ""]
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [GM] Failed to send GM", error);
@@ -321,10 +326,14 @@ export async function doDeploy(contractName) {
     const { address } = requireSigner();
     const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
     const deployModule = getDeploy(true);
-    const tx = await deployModule.deployContract(address, deployName);
-    emitToast("pending", "Kontrat dağıtılıyor...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      deployModule,
+      "deployContract",
+      [address, deployName]
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Deploy] Contract deployment failed", error);
@@ -338,10 +347,15 @@ export async function doDonateCELO(amount) {
     const { address } = requireSigner();
     const donate = getDonate(true);
     const value = ethers.utils.parseEther(amount.toString());
-    const tx = await donate.donateCELO(address, { value });
-    emitToast("pending", "CELO bağışı gönderiliyor...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      donate,
+      "donateCELO",
+      [address],
+      { value }
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Donate] CELO donation failed", error);
@@ -392,10 +406,13 @@ async function donateToken(symbol, amount) {
       throw staticError;
     }
 
-    const tx = await donateInterface.donateToken(tokenAddress, address, value);
-    emitToast("pending", `${symbol} bağışı gönderiliyor...`, tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+    const { sentTx, receipt } = await sendWithReferral(
+      donateInterface,
+      "donateToken",
+      [tokenAddress, address, value]
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error(`❌ [Donate] ${symbol} donation failed`, error);
@@ -441,10 +458,14 @@ export async function doShareLink(url) {
   try {
     const { address } = requireSigner();
     const linkModule = getLink(true);
-    const tx = await linkModule.shareLink(address, url);
-    emitToast("pending", "Link paylaşımı gönderildi...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", "Link successfully shared!", tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      linkModule,
+      "shareLink",
+      [address, url]
+    );
+
+    emitToast("success", "Link successfully shared!", sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Link] Failed to share link", error);
@@ -459,10 +480,14 @@ export async function govCreateProposal(title, description, link) {
   }
   try {
     const gov = getGov(true);
-    const tx = await gov.createProposal(address, title, description, link || "");
-    emitToast("pending", "Öneri oluşturuluyor...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      gov,
+      "createProposal",
+      [title, description, link || ""]
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Governance] Proposal creation failed", error);
@@ -474,10 +499,14 @@ export async function govVote(proposalId, support) {
   try {
     const { address } = requireSigner();
     const gov = getGov(true);
-    const tx = await gov.vote(address, proposalId, support);
-    emitToast("pending", "Oy gönderiliyor...", tx.hash);
-    const receipt = await tx.wait();
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+
+    const { sentTx, receipt } = await sendWithReferral(
+      gov,
+      "vote",
+      [address, proposalId, support]
+    );
+
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Governance] Vote failed", error);
@@ -489,9 +518,13 @@ export async function registerProfile(username) {
   try {
     const { address } = requireSigner();
     const profile = getProfile(true);
-    const tx = await profile.registerUser(address);
-    emitToast("pending", "Profil kaydediliyor...", tx.hash);
-    const receipt = await tx.wait();
+
+    const { sentTx, receipt } = await sendWithReferral(
+      profile,
+      "registerUser",
+      [address]
+    );
+
     if (username) {
       try {
         const updateTx = await profile.updateUsername(username);
@@ -501,7 +534,7 @@ export async function registerProfile(username) {
         console.warn("Username update failed", error);
       }
     }
-    emitToast("success", UI_MESSAGES.success, tx.hash);
+    emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
   } catch (error) {
     console.error("❌ [Profile] Registration failed", error);
