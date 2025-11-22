@@ -458,7 +458,7 @@ export async function govCreateProposal(title, description, link) {
   }
   try {
     const gov = getGov(true);
-    const tx = await gov.createProposal(title, description, link || "");
+    const tx = await gov.createProposal(address, title, description, link || "");
     emitToast("pending", "Öneri oluşturuluyor...", tx.hash);
     const receipt = await tx.wait();
     emitToast("success", UI_MESSAGES.success, tx.hash);
