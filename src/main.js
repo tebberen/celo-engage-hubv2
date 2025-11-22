@@ -49,6 +49,7 @@ import {
   closeSelfVerification,
 } from "./services/identityService.js";
 import { fetchTalentProfile } from "./services/talentService.js";
+import { loadSelfStatus } from "./services/selfService.js";
 
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
@@ -385,6 +386,7 @@ function init() {
   setupWalletButtons();
   setupWalletDropdown();
   setupIdentityVerification();
+  initSelfVerificationUI();
   setupProfileModal();
   setupShareModal();
   setupUsernameModal();
@@ -1501,6 +1503,71 @@ function renderVerificationState() {
   }
   updateVerificationBadge(elements.walletVerifiedBadge, verified, hasWallet);
   updateVerificationBadge(elements.profileVerifiedBadge, verified, hasWallet);
+}
+
+function setSelfStatusPending() {
+  const pill = document.getElementById("self-status-pill");
+  const details = document.getElementById("self-status-details");
+  if (!pill) return;
+
+  pill.textContent = "Checking…";
+  pill.classList.remove("status-verified", "status-unverified");
+  pill.classList.add("status-pending");
+  if (details) {
+    details.textContent = "";
+  }
+}
+
+function setSelfStatus(result) {
+  const pill = document.getElementById("self-status-pill");
+  const details = document.getElementById("self-status-details");
+  if (!pill) return;
+
+  if (result.isVerified) {
+    pill.textContent = "Verified via Self";
+    pill.classList.remove("status-pending", "status-unverified");
+    pill.classList.add("status-verified");
+
+    if (details) {
+      const ts = result.lastVerifiedHuman || "";
+      details.textContent = ts
+        ? `Last verified at: ${ts} (chainId ${result.selfChainId})`
+        : `Verification found on chainId ${result.selfChainId}`;
+    }
+  } else {
+    pill.textContent = "Not verified";
+    pill.classList.remove("status-pending", "status-verified");
+    pill.classList.add("status-unverified");
+    if (details) {
+      details.textContent = "No Self verification proof was found for this config.";
+    }
+  }
+}
+
+async function handleSelfCheckClick() {
+  try {
+    setSelfStatusPending();
+    const result = await loadSelfStatus();
+    setSelfStatus(result);
+  } catch (error) {
+    console.error("❌ [Self] UI check failed", error);
+    const pill = document.getElementById("self-status-pill");
+    if (pill) {
+      pill.textContent = "Error checking Self status";
+      pill.classList.remove("status-verified", "status-pending");
+      pill.classList.add("status-unverified");
+    }
+    const details = document.getElementById("self-status-details");
+    if (details) {
+      details.textContent = "Please check console for details.";
+    }
+  }
+}
+
+function initSelfVerificationUI() {
+  const btn = document.getElementById("self-check-btn");
+  if (!btn) return;
+  btn.addEventListener("click", handleSelfCheckClick);
 }
 
 async function handleVerifyHumanClick() {

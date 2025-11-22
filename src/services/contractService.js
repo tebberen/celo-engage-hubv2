@@ -17,6 +17,8 @@ import {
   CUSD_TOKEN_ADDRESS,
   CEUR_TOKEN_ADDRESS,
   NETWORK_FALLBACK_RPC_URLS,
+  SELF_GATE_ADDRESS,
+  SELF_GATE_ABI,
 } from "../utils/constants.js";
 import { getWalletDetails } from "./walletService.js";
 import { sendWithReferral } from "./divviReferral.js";
@@ -279,6 +281,34 @@ export function getProfile(withWrite = false) {
 
 export function getBadge(withWrite = false) {
   return createContract(resolveModuleAddress("BADGE"), MODULES.BADGE.abi, withWrite);
+}
+
+export function getSelfGate(withWrite = false) {
+  return createContract(SELF_GATE_ADDRESS, SELF_GATE_ABI, withWrite);
+}
+
+export async function checkSelfVerification() {
+  const { address } = getWalletDetails();
+  if (!address) {
+    throw new Error(UI_MESSAGES.walletNotConnected || "Wallet not connected");
+  }
+
+  try {
+    const selfGate = getSelfGate(true);
+    const [isVerified, lastVerifiedAt, selfChainId, selfProof] =
+      await selfGate.checkMyVerification();
+
+    return {
+      address,
+      isVerified: Boolean(isVerified),
+      lastVerifiedAt: lastVerifiedAt ? Number(lastVerifiedAt) : 0,
+      selfChainId: selfChainId ? Number(selfChainId) : 0,
+      selfProof,
+    };
+  } catch (error) {
+    console.error("❌ [Self] checkMyVerification failed", error);
+    throw error;
+  }
 }
 
 export function getBadgeVersions() {

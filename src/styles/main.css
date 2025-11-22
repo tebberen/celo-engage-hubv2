@@ -706,6 +706,55 @@ section {
   padding: clamp(20px, 2vw, 28px);
 }
 
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card-description {
+  color: var(--text-muted);
+  margin: 8px 0 16px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-muted);
+}
+
+.status-pill.status-verified {
+  background: #c6f0d9;
+  border-color: #9edfbf;
+  color: #0b5126;
+}
+
+.status-pill.status-unverified {
+  background: rgba(11, 11, 11, 0.06);
+  border-color: rgba(11, 11, 11, 0.12);
+  color: var(--text-muted);
+}
+
+.status-pill.status-pending {
+  background: rgba(251, 204, 92, 0.3);
+  border-color: var(--border-strong);
+  color: #5c3b05;
+}
+
+.self-card .small-text {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
 .primary-btn,
 .secondary-btn,
 .quick-donate,
