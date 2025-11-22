@@ -49,11 +49,41 @@ function getBackendEndpoint() {
   return `https://your-backend-domain.com${SELF_BACKEND_PATH}`;
 }
 
+async function importWithFallback(sources, label) {
+  let lastError;
+  // eslint-disable-next-line no-restricted-syntax
+  for (const source of sources) {
+    try {
+      const mod = await import(source);
+      if (mod) return mod;
+    } catch (error) {
+      lastError = error;
+      console.warn(`identityService: failed to import ${label} from ${source}`, error);
+    }
+  }
+  const failure = lastError || new Error(`identityService: unable to import ${label}`);
+  throw failure;
+}
+
 async function loadSelfModules() {
   if (modulesPromise) return modulesPromise;
   modulesPromise = Promise.all([
-    import("https://esm.sh/@selfxyz/core@2?bundle"),
-    import("https://esm.sh/@selfxyz/qrcode@2?bundle"),
+    importWithFallback(
+      [
+        "https://cdn.jsdelivr.net/npm/@selfxyz/core@2/+esm",
+        "https://esm.sh/@selfxyz/core@2?bundle",
+        "https://unpkg.com/@selfxyz/core@2/dist/index.mjs",
+      ],
+      "Self core",
+    ),
+    importWithFallback(
+      [
+        "https://cdn.jsdelivr.net/npm/@selfxyz/qrcode@2/+esm",
+        "https://esm.sh/@selfxyz/qrcode@2?bundle",
+        "https://unpkg.com/@selfxyz/qrcode@2/dist/index.mjs",
+      ],
+      "Self QR code",
+    ),
   ])
     .then(([core, qr]) => {
       const SelfAppBuilder = core?.SelfAppBuilder || core?.default?.SelfAppBuilder;
