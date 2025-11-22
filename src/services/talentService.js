@@ -7,9 +7,23 @@ import {
 const TALENT_PROFILE_ENDPOINT_TEMPLATE = "profiles/{username}";
 const TALENT_API_FALLBACK_BASES = [
   "https://api.talentprotocol.com/api/v4/",
-  "https://app.talentprotocol.com/api/v4/",
-  "https://app.talentprotocol.com/api/v3/",
+  "https://api.talentprotocol.com/api/v3/",
+  "https://api.talentprotocol.com/api/v2/",
 ];
+
+const TALENT_PROFILE_FALLBACK = {
+  username: TALENT_PROTOCOL_DEFAULT_USERNAME,
+  name: "Celo Community",
+  headline: "Talent Protocol profile bilgisi şu an alınamıyor.",
+  bio: "Profile data temporarily unavailable.",
+  profileImage: "",
+  profileUrl: "https://talentprotocol.com/",
+  supporters: 0,
+  badges: 0,
+  badgesList: [],
+  stats: { xp: 0, points: 0, supporters: 0, badges: 0, rank: null, streak: 0 },
+  source: "fallback",
+};
 
 function buildUrl(base, path) {
   const normalizedBase = typeof base === "string" && base.trim().length ? base.trim() : "";
@@ -201,13 +215,12 @@ export async function fetchTalentProfile({ signal } = {}) {
     }
   }
 
-  const aggregateError = new Error(
-    attempts.length
-      ? `Talent Protocol request failed after ${attempts.length} attempts`
-      : "Talent Protocol request failed"
+  const fallbackProfile = { ...TALENT_PROFILE_FALLBACK, username };
+  console.warn(
+    `⚠️ [Talent] All ${attempts.length || 0} attempts failed. Returning fallback profile for ${username}.`,
+    attempts
   );
-  aggregateError.attempts = attempts;
-  throw aggregateError;
+  return fallbackProfile;
 }
 
 function appendApiKeyQuery(url) {
