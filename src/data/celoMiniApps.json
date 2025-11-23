@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Celo Boosts",
+    "author": "by boostxyz",
+    "description": "Launch farcaster boosts that settle on Celo for faster, cheaper growth.",
+    "category": "Growth",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-boosts",
+    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-boosts.png"
+  },
+  {
+    "name": "Celo Poll",
+    "author": "by celo-vibes",
+    "description": "Create quick governance-style polls that cast directly inside Farcaster.",
+    "category": "Governance",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-poll",
+    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-poll.png"
+  },
+  {
+    "name": "Bank of Celo",
+    "author": "by impactmarket",
+    "description": "Track balances, send tips, and explore DeFi tools without leaving casts.",
+    "category": "DeFi",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/bank-of-celo",
+    "iconUrl": "https://storage.googleapis.com/ceibalancer/bank-of-celo.png"
+  },
+  {
+    "name": "FireBid Celo",
+    "author": "by firebid",
+    "description": "Bid and play with CELO-native auctions right from your Farcaster feed.",
+    "category": "Games",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/firebid-celo",
+    "iconUrl": "https://storage.googleapis.com/ceibalancer/firebid.png"
+  },
+  {
+    "name": "Celo Builders Toolkit",
+    "author": "by celo-devrel",
+    "description": "Curated tools for deploying, testing, and monitoring Celo smart contracts.",
+    "category": "Tools",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-builders-toolkit",
+    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-builders.png"
+  }
+]

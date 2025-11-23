@@ -37,8 +37,22 @@
       "close": "Ekosistem penceresini kapat"
     },
     "home": {
-      "title": "Bağlantı Merkezi",
-      "subtitle": "Bağlantını paylaş ve topluluk bağlantılarını keşfet."
+      "title": "Celo Mini Uygulamaları",
+      "subtitle": "Farcaster üzerindeki tüm Celo mini uygulamalarını keşfet.",
+      "searchLabel": "Ara",
+      "searchPlaceholder": "İsme veya açıklamaya göre ara",
+      "filterLabel": "Kategoriye göre filtrele",
+      "categories": {
+        "all": "Tümü",
+        "defi": "DeFi",
+        "growth": "Büyüme",
+        "governance": "Yönetim",
+        "tools": "Araçlar",
+        "games": "Oyunlar"
+      },
+      "empty": "Aramanızla eşleşen mini uygulama bulunamadı.",
+      "openButton": "Farcaster'da aç",
+      "error": "Mini uygulamalar yüklenemedi. Lütfen daha sonra tekrar deneyin."
     },
     "feed": {
       "empty": "Henüz bağlantı paylaşılmadı.",
@@ -272,8 +286,22 @@
       "close": "Close ecosystem modal"
     },
     "home": {
-      "title": "Link Hub",
-      "subtitle": "Share your project link and explore the community feed."
+      "title": "Celo Mini Apps",
+      "subtitle": "Explore every Farcaster mini app powered by Celo.",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by name or description",
+      "filterLabel": "Filter by category",
+      "categories": {
+        "all": "All",
+        "defi": "DeFi",
+        "growth": "Growth",
+        "governance": "Governance",
+        "tools": "Tools",
+        "games": "Games"
+      },
+      "empty": "No mini apps match your search yet.",
+      "openButton": "Open on Farcaster",
+      "error": "Mini apps could not be loaded. Try again later."
     },
     "feed": {
       "empty": "No links shared yet.",
