@@ -10,7 +10,6 @@
       "deploy": "Deploy",
       "donate": "Bağış",
       "governance": "Yönetim",
-      "talent": "Talent Profil",
       "badge": "Rozetler",
       "profile": "Profil"
     },
@@ -155,11 +154,6 @@
       "proposalLink": "Bağlantı",
       "proposalSubmit": "Öneri Oluştur"
     },
-    "talent": {
-      "title": "Talent Profil",
-      "subtitle": "On-chain builder gelişmelerini Celo Engage Hub üzerinden takip et.",
-      "placeholder": "Zincir üstü builder profil modülü yakında geliyor."
-    },
     "badge": {
       "title": "Rozetler & Tier",
       "subtitle": "XP → Level → Tier yolculuğunu takip et.",
@@ -250,7 +244,6 @@
       "deploy": "Deploy",
       "donate": "Donate",
       "governance": "Governance",
-      "talent": "Talent Profile",
       "badge": "Badges",
       "profile": "Profile"
     },
@@ -388,11 +381,6 @@
       "proposalDescription": "Description",
       "proposalLink": "Link",
       "proposalSubmit": "Create Proposal"
-    },
-    "talent": {
-      "title": "Talent Profile",
-      "subtitle": "Follow on-chain builders directly from Celo Engage Hub.",
-      "placeholder": "On-chain builder profile module coming soon."
     },
     "badge": {
       "title": "Badges & Tiers",
