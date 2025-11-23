@@ -88,7 +88,6 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
 - **Çoklu Cüzdan Desteği:** MetaMask ve WalletConnect v2 (Project ID: `8b020ffbb31e5aba14160c27ca26540b`). Yanlış ağlarda kullanıcı bilgilendirilir.
 - **Tema & UX:** Koyu/açık mod, yerel dil yönetimi (Türkçe varsayılan), localStorage kalıcılığı. Tüm toast mesajlarında kısaltılmış explorer linkleri gösterilir.
 - **Gerçek Zamanlı Güncellemeler:** WebSocketProvider ile profil, GM, bağış, link, yönetişim ve rozet olayları dinlenir; kesinti durumunda üstel backoff ile yeniden bağlanır.
-- **On-chain Builder Köprüsü:** Talent sekmesi, gelecekteki zincir üstü builder profili için yer tutucu gösterir.
 
 ## Mimari ve Teknik Notlar
 
@@ -108,7 +107,6 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
   - *Governance:* Aktif ve tamamlanan öneriler ile oy butonları.
   - *Badge:* XP kuralları, tier listesi, gelecekteki NFT basımı için placeholder.
   - *Leaderboard:* Sekmeli liderlik listeleri.
-  - *Talent:* On-chain builder profili için yer tutucu kartı.
 - **Owner Panel:** Sadece owner adresine görünür; bağış çekimi ve yeni öneri formlarını içerir.
 - **Footer:** Global sayaçlar ve analitik bağlantılar (The Graph, Dune placeholder).
 
@@ -137,8 +135,7 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
 8. Owner olmayan cüzdanda owner panelinin görünmediğini doğrulayın.
 9. Owner cüzdanıyla yeni öneri oluşturup farklı bir cüzdanla oy verin; oy sayılarının canlı güncellendiğini teyit edin.
 10. WebSocket bağlantısını kesip yeniden bağlanma davranışını gözlemleyin; olay sonrası UI’nin tazelendiğini doğrulayın.
-11. Talent sekmesinde yer tutucu metnin göründüğünü ve ağ hatası olmadan yüklediğini kontrol edin.
-12. Self doğrulama modülünü açarak QR kodu tarayın, imzayı tamamlayıp doğrulama rozetinin belirdiğini gözlemleyin.
+11. Self doğrulama modülünü açarak QR kodu tarayın, imzayı tamamlayıp doğrulama rozetinin belirdiğini gözlemleyin.
 
 ## Katkıda Bulunma
 
