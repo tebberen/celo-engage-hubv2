@@ -266,6 +266,14 @@ textarea:focus-visible {
   justify-content: flex-end;
 }
 
+.wallet-actions.is-connected .connect-btn {
+  display: none;
+}
+
+.wallet-actions.is-disconnected .wallet-pill {
+  display: none;
+}
+
 .header-actions__cluster:focus-within,
 .wallet-actions:focus-within .header-actions__cluster {
   box-shadow: var(--shadow-glow);
