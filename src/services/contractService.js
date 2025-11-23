@@ -299,9 +299,18 @@ export async function checkSelfVerification() {
   }
 
   try {
-    const selfGate = getSelfGate(true);
+    const selfGate = getSelfGate(false);
+    const callData = selfGate.interface.encodeFunctionData(
+      "checkMyVerification"
+    );
+    const rawResult = await selfGate.provider.call({
+      to: SELF_GATE_ADDRESS,
+      data: callData,
+      from: address,
+    });
+
     const [isVerified, lastVerifiedAt, selfChainId, selfProof] =
-      await selfGate.checkMyVerification();
+      selfGate.interface.decodeFunctionResult("checkMyVerification", rawResult);
 
     return {
       address,
