@@ -133,6 +133,13 @@ textarea:focus-visible {
   display: block;
 }
 
+.app-logo {
+  height: 40px;
+  width: auto;
+  margin-right: 12px;
+  display: block;
+}
+
 @media (max-width: 640px) {
   .nav-left {
     gap: 10px;
