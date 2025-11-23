@@ -1,15 +1,13 @@
-# Utils Folder
+# `src/utils/` – Shared Helpers
 
-Paylaşılan sabitler, biçimlendirme yardımcıları ve CDN’den sağlanan kütüphane köprüleri.
+Shared constants and helper functions that keep blockchain configuration and formatting consistent across the app.
 
-## Dosya Özeti
-- **constants.js**: Ağ metadatası, kontrat adresleri/ABI’leri, modül sürümleri, bağış eşikleri, UI mesajları ve üçüncü parti anahtarları (WalletConnect, Divvi) için merkezî yapılandırma. Servisler ve `main.js` tarafından kullanılır.
-- **cdn-modules.js**: Tarayıcıyla uyumlu ESM `ethers` ve WalletConnect sağlayıcısını CDN’den yeniden dışa aktarır.
-- **formatters.js**: CELO token değerleri ve genel sayılar için fallback’li, kompakt gösterim destekli formatlayıcılar sağlar.
+## Files
+- **`constants.js`** – Central source for network metadata, contract addresses/ABIs, module definitions, donation minimums, analytics links, and UI message templates. Imported by services and `main.js`.
+- **`cdn-modules.js`** – Re-exports browser-safe builds of `ethers` and WalletConnect from CDN endpoints so the app can run without a bundler.
+- **`formatters.js`** – Number/token formatting helpers with compact display and graceful fallbacks for CELO and stable assets.
 
-## Entegrasyon Notları
-Bu yardımcılar `src/services` ve `src/main.js` boyunca import edilir. Kontrat adresi veya ağ varsayılanlarını değiştirdiğinizde `constants.js` dosyasını güncelleyerek tüm katmanların senkron kalmasını sağlayın.
-
-## Katkıda Bulunma
-- Import ifadelerini deterministik bırakın; try/catch ile sarmalamayın.
-- ABI/adres güncellemelerini atomik tutun ve kök README’de belgelenen referanslarla uyumlu hale getirin.
+## Usage notes
+- Update `constants.js` when changing chain IDs, RPC endpoints, contract deployments, or module settings; it keeps UI and services in sync.
+- Avoid wrapping imports in `try/catch`—surface errors explicitly so debugging stays straightforward.
+- Keep helpers pure and side-effect-free where possible to simplify testing and reuse.

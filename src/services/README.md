@@ -1,17 +1,14 @@
-# Services Folder
+# `src/services/` – App & Web3 Services
 
-UI’yi zincir, cüzdan ve üçüncü parti veri kaynaklarına bağlayan yardımcı modüller.
+Service layer modules connect the UI to wallets, smart contracts, and referral metadata. They expose promise-based helpers consumed by `src/main.js`.
 
-## Dosya Özeti
-- **contractService.js**: RPC/WebSocket sağlayıcılarını kurar, hub modül ABİ’lerini sarar, toast callback’lerini kaydeder, GM/deploy/donate/link/governance işlemlerini koordine eder, profil/global istatistikleri izler ve analytics/link yardımcılarını sunar. Adresler ve ağ metadatası için `utils/constants.js` değerlerini kullanır.
-- **walletService.js**: MetaMask ve WalletConnect bağlantılarını yönetir, hesap/ağ değişikliklerini dinler ve uygulama genelinde kullanılan signer/provider verisini döner.
-- **identityService.js**: Doğrulanmış kullanıcı bilgilerini localStorage’da saklamak için yardımcı fonksiyonlar içerir.
-- **divviReferral.js**: Mümkün olduğunda kontrat işlemlerine Divvi referral etiketleri ekler ve gönderim sonrası referral metadatasını iletir; başarısızlıkta zarifçe geri döner.
+## Files
+- **`walletService.js`** – Manages MetaMask and WalletConnect sessions, listens for account/network changes, and returns provider/signer objects used throughout the app.
+- **`contractService.js`** – Loads contract instances from `utils/constants.js`, registers toast handlers, and orchestrates GM, Deploy, Donate (CELO/cUSD/cEUR), governance, leaderboard, and profile reads.
+- **`identityService.js`** – Lightweight helpers for storing and retrieving local identity/verification state.
+- **`divviReferral.js`** – Optionally tags transactions with Divvi referral metadata and safely ignores failures.
 
-## Entegrasyon Notları
-- `main.js` bu yardımcıları içe aktararak UI kodunu sade tutar. Fonksiyonlar sıklıkla `MODULE_ADDRESS_BOOK`, `MIN_DONATION` ve `OWNER_ADDRESS` gibi `utils/constants.js` sabitlerini bekler.
-- Sağlayıcılar, tarayıcı ortamıyla uyum için `utils/cdn-modules.js` içindeki `ethers` sürümünü kullanır.
-
-## Katkıda Bulunma
-- Yeni zincir aksiyonları için `contractService.js` dosyasını genişletin ve tutarlı UX için `registerToastHandler` kancasını kullanın.
-- Cüzdan dinleyicilerini `walletService.js` içinde merkezî tutarak olay tekrarlarını önleyin.
+## Extending services
+- Centralize new blockchain actions here so UI code stays declarative.
+- Reuse constants from `utils/constants.js` (addresses, ABIs, thresholds) instead of hardcoding values.
+- Keep wallet listeners in `walletService.js` single-sourced to avoid duplicate event handling.

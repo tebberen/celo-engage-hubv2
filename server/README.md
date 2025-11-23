@@ -1,17 +1,18 @@
-# Server Folder
+# `server/` – Optional Express Backend
 
-Self ID imza doğrulamasına odaklanan, şu anda varsayılan akışta kullanılmayan Express tabanlı backend.
+Lightweight Express service previously used for Self ID verification. The frontend ships fully static; this server is only required if you re-enable the verification flow.
 
-## Dosya Özeti
-- **index.js**: CORS ve JSON middleware’leriyle Express’i başlatır; `/api/self/check` ile doğrulama durumunu sorgular, `/api/self/verify` ile `ethers.utils.verifyMessage` kullanarak imzaları doğrular ve başarılı adresleri bellekte saklar. `/api/self/health` basit bir heartbeat döner.
+## Files
+- **`index.js`** – Boots Express with CORS and JSON middleware. Exposes `/api/self/health` for heartbeat checks, `/api/self/check` to query verified addresses, and `/api/self/verify` to validate signatures with `ethers.utils.verifyMessage` and store results in memory.
 
-## İlişkiler
-- Önceden `src/services/identityService.js` ile Self QR süreci sonrası imza doğrulaması için kullanılırdı; UI’deki Self entegrasyonu kaldırıldığı için istemci tarafında çağrı yapılmamaktadır.
-- Zincir tarafında `contracts/CeloEngageHubSelf.sol` sözleşmesi, Self doğrulama mantığını paylaşmaya devam eder ancak istemci tarafından tetiklenmez.
+## Usage
+- Start from the repository root:
+  ```bash
+  npm run start:server
+  ```
+- Defaults to port `8787` (override with `PORT`).
+- Designed to be stateless; if persistence is needed, swap the in-memory store for a database.
 
-## Çalıştırma
-- Varsayılan port: `8787` ( `PORT` ile değiştirilebilir). Kök dizinden `npm run start:server` komutu ile başlatılır.
-
-## Katkıda Bulunma
-- Ön uçtaki polling ihtiyacı nedeniyle yanıtları hafif tutun.
-- Kalıcılık gerekiyorsa `verifiedWallets` listesini bir veri deposuna taşıyın; mevcut hali bellek tabanlıdır.
+## Contributing
+- Keep responses minimal to support polling from the browser.
+- If you reintroduce frontend verification, coordinate request/response shapes with `src/services/identityService.js` and consider hardening rate limits/auth.

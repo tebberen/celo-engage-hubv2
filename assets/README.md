@@ -1,13 +1,12 @@
-# Assets Folder
+# `assets/` – Static Assets
 
-Celo Engage Hub’un statik görsellerini barındırır.
+Logos and static imagery referenced by `index.html`, CSS, and mini app cards.
 
-## Dosya Özeti
-- **logo-celo-engage-hub.png**: Ana logo; açılış sayfası, navigasyon ve cüzdan akışlarında kullanılır.
+## Contents
+- **`logo-celo-engage-hub.svg/png`** – Primary branding used in headers, favicons, and social previews.
+- Additional icons can be added alongside these files; mini app cards read icon paths from `src/data/celoMiniApps.json` and default to `./assets/miniapps/default.png` if none is specified.
 
-## Kullanım
-Görseller `index.html` ve CSS tarafından referans alınır. Dosya adlarını sabit tutarak kırık bağlantı riskini azaltın.
-
-## Katkıda Bulunma
-- Yeni varlıkları buraya ekleyip `index.html` veya `src/styles/main.css` içindeki referansları güncelleyin.
-- Paket boyutunu düşük tutmak için optimize edilmiş PNG/SVG tercih edin.
+## Guidelines
+- Keep filenames stable once referenced in markup or JSON to avoid broken links.
+- Optimize images (prefer SVG or compressed PNG) to minimize payload size for mobile users.
+- Store any new mini app icons under `assets/miniapps/` (create the folder if missing) and reference them via relative paths from the data file.

@@ -1,19 +1,21 @@
-# Src Folder
+# `src/` – Frontend Source
 
-Celo Engage Hub'un front-end kaynak kodu. Vanilla JS, CSS ve CDN’den yüklenen bağımlılıklarla çalışır ve doğrudan `index.html` üzerinden servis edilir.
+All browser-facing logic for Celo Engage Hub lives in this folder. The app is served from `index.html` and powered by vanilla JavaScript, CSS, and JSON data.
 
-## Kilit Dosyalar
-- **main.js**: Cüzdan bağlantıları, modül aksiyonları (GM, deploy, donate, link, governance), toast akışı, gerçek zamanlı güncellemeler ve kimlik doğrulama akışını yöneten ana UI denetleyicisi.
-- **lang.json**: Tüm UI metinleri için merkezî çeviri kaynağı; dil değişimleri buradan okunur.
+## Key entry points
+- **`main.js`** – Central controller that wires navigation (Home/GM/Deploy/Donate/Profile), handles wallet connection, triggers on-chain actions, renders mini app cards, and coordinates toasts, modals, and live updates.
+- **`lang.json`** – Translation map for UI labels and messages. The language toggle in the header reads from this file.
 
-## Alt Klasörler
-- **services/**: Blockchain, cüzdan bağlantıları, kimlik doğrulama ve üçüncü parti veri akışları için servis katmanı.
-- **styles/**: Uygulamanın tema ve layout kurallarını tutan CSS.
-- **utils/**: Sabitler, CDN modül köprüleri ve formatlama yardımcıları.
+## Subdirectories
+- **`services/`** – Wallet, contract, and referral helpers used by `main.js` for blockchain I/O.
+- **`utils/`** – Shared constants, CDN module bridges, and formatting helpers.
+- **`data/`** – Static JSON such as the Farcaster mini app directory.
+- **`styles/`** – Global CSS for layout, theming, and components.
 
-## Entegrasyon Notları
-`index.html` dosyası `src/main.js` ve `src/styles/main.css` dosyalarını içe aktarır. Adres/ABI sabitleri `utils/constants.js` içinde toplanır ve hem servisler hem de UI tarafından tüketilir.
+## Navigation model
+Sections are defined directly in `index.html` and toggled by `main.js` based on `.nav-btn` targets. The Home section exposes the mini app directory; GM/Deploy/Donate trigger on-chain flows; Profile shows wallet state, username registration, and recent activity.
 
-## Katkıda Bulunma
-- Yeni UI metinleri eklerken `lang.json` dosyasını güncelleyin.
-- Yeni modülleri servis fonksiyonlarıyla bütünleştirip `main.js` içinde kompozisyonu koruyun.
+## Contributing
+- Extend `main.js` with small, composable functions instead of duplicating DOM selectors.
+- Keep translations in `lang.json` synchronized with any new UI strings.
+- Align new styles with existing class names so JS-driven selectors remain stable.
