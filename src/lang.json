@@ -2,7 +2,7 @@
   "tr": {
     "brand": {
       "title": "Celo Engage Hub",
-      "subtitle": "Önce topluluğu destekle, sonra bağlantını bırak."
+      "subtitle": "Farcaster'daki Celo mini uygulamalarını keşfet."
     },
     "nav": {
       "home": "Ana Sayfa",
@@ -37,18 +37,24 @@
       "close": "Ekosistem penceresini kapat"
     },
     "home": {
-      "title": "Celo Mini Uygulamaları",
-      "subtitle": "Farcaster üzerindeki tüm Celo mini uygulamalarını keşfet.",
+      "title": "Farcaster'daki Celo Mini Uygulamaları",
+      "subtitle": "Farcaster için üretilmiş Celo deneyimlerinin küratörlü dizini.",
       "searchLabel": "Ara",
       "searchPlaceholder": "İsme veya açıklamaya göre ara",
       "filterLabel": "Kategoriye göre filtrele",
       "categories": {
         "all": "Tümü",
-        "defi": "DeFi",
         "growth": "Büyüme",
+        "games": "Oyunlar",
+        "identity": "Kimlik",
         "governance": "Yönetim",
+        "nfts": "NFT",
+        "finance": "Finans",
+        "wallet": "Cüzdan",
+        "rewards": "Ödüller",
         "tools": "Araçlar",
-        "games": "Oyunlar"
+        "messaging": "Mesajlaşma",
+        "ecosystem": "Ekosistem"
       },
       "empty": "Aramanızla eşleşen mini uygulama bulunamadı.",
       "openButton": "Farcaster'da aç",

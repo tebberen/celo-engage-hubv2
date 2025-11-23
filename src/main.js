@@ -62,8 +62,23 @@ const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
 const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
 const COMPLETION_THRESHOLD = 3;
 const MAX_COMPLETED_HISTORY = 50;
-const MINI_APP_CATEGORIES = ["all", "DeFi", "Growth", "Governance", "Tools", "Games"];
-const MINI_APP_ICON_FALLBACK = "./assets/logo-celo-engage-hub.png";
+const MINI_APP_CATEGORIES = [
+  "all",
+  "Growth",
+  "Games",
+  "Identity",
+  "Governance",
+  "NFTs",
+  "Finance",
+  "Wallet",
+  "Rewards",
+  "Tools",
+  "Messaging",
+  "Ecosystem",
+];
+const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
+const MINI_APP_ICON_FALLBACK =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23221f1f'/%3E%3Cpath fill='%23fbcc5c' d='M20 20h24v24H20z' opacity='0.18'/%3E%3Cpath fill='%23fbcc5c' d='M30 17a3 3 0 0 1 4 0l13 10.4a3 3 0 0 1 0 4.6L34 42a3 3 0 0 1-4 0L17 32a3 3 0 0 1 0-4.6z'/%3E%3C/svg%3E";
 
 const state = {
   address: null,
@@ -1157,7 +1172,8 @@ function setupMiniAppFilters() {
 }
 
 function setActiveMiniAppCategory(category) {
-  const normalized = MINI_APP_CATEGORIES.includes(category) ? category : "all";
+  const normalized =
+    MINI_APP_CATEGORIES.find((cat) => cat.toLowerCase() === String(category).toLowerCase()) || "all";
   if (elements.miniAppCategories) {
     const categoryButtons = elements.miniAppCategories.querySelectorAll("[data-category]");
     categoryButtons.forEach((button) => {
@@ -1198,8 +1214,15 @@ function sanitizeMiniApp(entry) {
   const description = typeof entry.description === "string" ? entry.description.trim() : "";
   const author = typeof entry.author === "string" ? entry.author.trim() : "";
   const farcasterUrl = typeof entry.farcasterUrl === "string" ? entry.farcasterUrl.trim() : "";
-  const category = MINI_APP_CATEGORIES.includes(entry.category) ? entry.category : "Tools";
-  const iconUrl = typeof entry.iconUrl === "string" && entry.iconUrl.trim() ? entry.iconUrl.trim() : MINI_APP_ICON_FALLBACK;
+  const rawCategory = typeof entry.category === "string" ? entry.category.trim() : "";
+  const categoryMatch = MINI_APP_CATEGORIES.find(
+    (cat) => cat.toLowerCase() === rawCategory.toLowerCase()
+  );
+  const category = categoryMatch || "Tools";
+  const iconUrl =
+    typeof entry.iconUrl === "string" && entry.iconUrl.trim()
+      ? entry.iconUrl.trim()
+      : MINI_APP_ICON_PLACEHOLDER;
   if (!name || !farcasterUrl) return null;
   return {
     name,
@@ -1214,7 +1237,8 @@ function sanitizeMiniApp(entry) {
 function applyMiniAppFilters() {
   const { search = "", category = "all" } = state.miniAppFilters || {};
   const query = search.trim().toLowerCase();
-  const selectedCategory = MINI_APP_CATEGORIES.includes(category) ? category : "all";
+  const selectedCategory =
+    MINI_APP_CATEGORIES.find((cat) => cat.toLowerCase() === String(category).toLowerCase()) || "all";
   const filtered = (state.miniApps || []).filter((app) => {
     if (!app) return false;
     const matchesCategory = selectedCategory === "all" || app.category === selectedCategory;
@@ -1252,17 +1276,24 @@ function renderMiniAppCard(app) {
   const author = escapeHtml(app.author || "");
   const description = escapeHtml(app.description || "");
   const category = escapeHtml(app.category || "");
-  const icon = escapeHtml(app.iconUrl || MINI_APP_ICON_FALLBACK);
+  const icon = escapeHtml(app.iconUrl || MINI_APP_ICON_PLACEHOLDER);
   const farcasterUrl = escapeHtml(app.farcasterUrl || "#");
   const ctaLabel = t("home.openButton", "Open on Farcaster");
 
   return `
     <article class="miniapp-card">
       <div class="miniapp-card__header">
-        <img class="miniapp-card__icon" src="${icon}" alt="${name} icon" loading="lazy" decoding="async" />
+        <img
+          class="miniapp-card__icon"
+          src="${icon}"
+          alt="${name} icon"
+          loading="lazy"
+          decoding="async"
+          onerror="this.onerror=null;this.src='${MINI_APP_ICON_FALLBACK}'"
+        />
         <div>
           <p class="miniapp-card__title">${name}</p>
-          <p class="miniapp-card__author">${author || ""}</p>
+          ${author ? `<p class="miniapp-card__author">${author}</p>` : ""}
         </div>
       </div>
       <p class="miniapp-card__description">${description}</p>
