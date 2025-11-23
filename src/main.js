@@ -7,8 +7,6 @@ import {
   MODULES,
   MODULE_ADDRESS_BOOK,
   DEFAULT_NETWORK,
-  SELF_REFERRAL_LINK,
-  SELF_APP_DOWNLOAD_LINKS,
 } from "./utils/constants.js";
 import {
   connectWalletMetaMask,
@@ -42,12 +40,7 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
-import {
-  openSelfVerification,
-  syncVerifiedFlag,
-  clearVerificationState,
-  closeSelfVerification,
-} from "./services/identityService.js";
+import { syncVerifiedFlag, clearVerificationState, setVerifiedHuman } from "./services/identityService.js";
 import { fetchTalentProfile } from "./services/talentService.js";
 import { loadSelfStatus } from "./services/selfService.js";
 
@@ -206,7 +199,6 @@ let wsProvider = null;
 let linkEventContract = null;
 
 let isVerifyingHuman = false;
-let activeSelfSession = null;
 let talentProfileAbortController = null;
 
 const FOCUSABLE_SELECTOR =
@@ -1339,118 +1331,10 @@ function setupWalletDropdown() {
   });
 }
 
-function resetSelfVerificationModal() {
-  if (elements.selfQrContainer) {
-    elements.selfQrContainer.innerHTML = "";
-  }
-  if (elements.selfStatusMessage) {
-    elements.selfStatusMessage.textContent = "Waiting for verification…";
-  }
-  if (elements.selfDeepLink) {
-    elements.selfDeepLink.setAttribute("hidden", "true");
-    elements.selfDeepLink.removeAttribute("href");
-  }
-}
-
-function updateSelfStatusMessage(status) {
-  if (!elements.selfStatusMessage) return;
-  let text = "Waiting for verification…";
-  const normalized = typeof status === "string" ? status : status?.type || status?.status;
-  switch (normalized) {
-    case "verified":
-      text = "Verification complete. You can close this window.";
-      break;
-    case "failed":
-    case "error":
-      text = "Verification failed. Try again.";
-      break;
-    case "scanned":
-      text = "Scan detected. Approve in the Self app.";
-      break;
-    case "pending":
-    case "started":
-    case "initiated":
-      text = "Waiting for verification…";
-      break;
-    default:
-      if (normalized) {
-        text = normalized;
-      } else if (status?.message) {
-        text = status.message;
-      }
-  }
-  elements.selfStatusMessage.textContent = text;
-}
-
-function updateSelfDeepLink(link) {
-  if (!elements.selfDeepLink) return;
-  if (link) {
-    elements.selfDeepLink.href = link;
-    elements.selfDeepLink.removeAttribute("hidden");
-  } else {
-    elements.selfDeepLink.setAttribute("hidden", "true");
-    elements.selfDeepLink.removeAttribute("href");
-  }
-}
-
-function resolveSelfDownloadLink() {
-  const links = SELF_APP_DOWNLOAD_LINKS || {};
-  const fallback = links.default || SELF_REFERRAL_LINK || "#";
-  if (typeof navigator !== "undefined" && navigator.userAgent) {
-    const ua = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(ua);
-    const isAndroid = /android/.test(ua);
-    if (isIOS && links.ios) return links.ios;
-    if (isAndroid && links.android) return links.android;
-  }
-  return fallback;
-}
-
-function updateSelfReferralLink() {
-  if (!elements.selfReferralLink) return;
-  const target = resolveSelfDownloadLink();
-  if (target) {
-    elements.selfReferralLink.href = target;
-    elements.selfReferralLink.removeAttribute("hidden");
-  } else {
-    elements.selfReferralLink.href = SELF_REFERRAL_LINK || "#";
-  }
-}
-
-function openSelfVerificationModal(trigger) {
-  if (!elements.selfModal) return;
-  resetSelfVerificationModal();
-  openModalEl(elements.selfModal, { trigger });
-}
-
-function closeSelfVerificationModal() {
-  if (!elements.selfModal) return;
-  closeModalEl(elements.selfModal);
-  resetSelfVerificationModal();
-  closeSelfVerification();
-  activeSelfSession = null;
-  if (isVerifyingHuman && !state.verifiedHuman) {
-    isVerifyingHuman = false;
-    renderVerificationState();
-  }
-}
-
-function setupSelfVerificationModal() {
-  if (!elements.selfModal) return;
-  const dismissButtons = elements.selfModal.querySelectorAll('[data-dismiss="selfModal"]');
-  dismissButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      closeSelfVerificationModal();
-    });
-  });
-  updateSelfReferralLink();
-}
-
 function setupIdentityVerification() {
   if (elements.verifyHumanButton) {
     elements.verifyHumanButton.addEventListener("click", handleVerifyHumanClick);
   }
-  setupSelfVerificationModal();
   renderVerificationState();
 }
 
@@ -1518,6 +1402,34 @@ function setSelfStatusPending() {
   }
 }
 
+function applySelfVerificationResult(result) {
+  setSelfStatus(result);
+  if (state.address) {
+    state.verifiedHuman = Boolean(result.isVerified);
+    setVerifiedHuman(state.address, result.isVerified);
+    renderVerificationState();
+  }
+}
+
+async function runSelfVerificationCheck(button = null) {
+  const performCheck = async () => {
+    setSelfStatusPending();
+    const result = await loadSelfStatus();
+    applySelfVerificationResult(result);
+    return result;
+  };
+
+  if (!button) {
+    return performCheck();
+  }
+
+  return withButtonLoading(
+    button,
+    { loadingText: getLoadingText("pending", "Checking…"), keepWidth: true },
+    performCheck,
+  );
+}
+
 function setSelfStatus(result) {
   const pill = document.getElementById("self-status-pill");
   const details = document.getElementById("self-status-details");
@@ -1544,11 +1456,14 @@ function setSelfStatus(result) {
   }
 }
 
+function closeSelfVerificationModal() {
+  if (!elements.selfModal) return;
+  closeModalEl(elements.selfModal);
+}
+
 async function handleSelfCheckClick() {
   try {
-    setSelfStatusPending();
-    const result = await loadSelfStatus();
-    setSelfStatus(result);
+    await runSelfVerificationCheck();
   } catch (error) {
     console.error("❌ [Self] UI check failed", error);
     const pill = document.getElementById("self-status-pill");
@@ -1572,58 +1487,24 @@ function initSelfVerificationUI() {
 
 async function handleVerifyHumanClick() {
   if (isVerifyingHuman) return;
-  if (state.verifiedHuman) return;
   if (!state.address) {
     showToast("error", WALLET_REQUIRED_MESSAGE);
     return;
   }
   isVerifyingHuman = true;
   renderVerificationState();
-  openSelfVerificationModal(elements.verifyHumanButton);
-  updateSelfStatusMessage("pending");
-  let errorHandled = false;
   try {
-    const session = await openSelfVerification({
-      address: state.address,
-      container: elements.selfQrContainer,
-      onVerified: () => {
-        isVerifyingHuman = false;
-        activeSelfSession = null;
-        syncCurrentVerification();
-        showToast("success", VERIFICATION_SUCCESS_MESSAGE);
-        closeSelfVerificationModal();
-      },
-      onError: (error) => {
-        if (error) {
-          errorHandled = true;
-          console.error("❌ [Self] Verification callback error", error);
-        }
-        isVerifyingHuman = false;
-        activeSelfSession = null;
-        updateSelfStatusMessage("failed");
-        showToast("error", VERIFICATION_FAILURE_MESSAGE);
-        closeSelfVerificationModal();
-        renderVerificationState();
-      },
-      onStatus: (status) => {
-        updateSelfStatusMessage(status);
-      },
-      onDeepLink: (link) => {
-        updateSelfDeepLink(link);
-      },
-    });
-    activeSelfSession = session;
-    if (!session?.deepLink) {
-      updateSelfDeepLink(null);
-    }
-  } catch (error) {
-    if (!errorHandled) {
-      console.error("❌ [Self] Verification initialization failed", error);
+    const result = await runSelfVerificationCheck(elements.verifyHumanButton);
+    if (result.isVerified) {
+      showToast("success", VERIFICATION_SUCCESS_MESSAGE);
+    } else {
       showToast("error", VERIFICATION_FAILURE_MESSAGE);
     }
+  } catch (error) {
+    console.error("❌ [Self] Verification check failed", error);
+    showToast("error", parseError(error) || VERIFICATION_FAILURE_MESSAGE);
+  } finally {
     isVerifyingHuman = false;
-    activeSelfSession = null;
-    closeSelfVerificationModal();
     renderVerificationState();
   }
 }
