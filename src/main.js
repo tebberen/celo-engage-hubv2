@@ -72,8 +72,6 @@ const MINI_APP_CATEGORIES = [
   "Ecosystem",
 ];
 const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
-const MINI_APP_ICON_FALLBACK =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' fill='%23221f1f'/%3E%3Cpath fill='%23fbcc5c' d='M20 20h24v24H20z' opacity='0.18'/%3E%3Cpath fill='%23fbcc5c' d='M30 17a3 3 0 0 1 4 0l13 10.4a3 3 0 0 1 0 4.6L34 42a3 3 0 0 1-4 0L17 32a3 3 0 0 1 0-4.6z'/%3E%3C/svg%3E";
 
 const state = {
   address: null,
@@ -1258,25 +1256,14 @@ function renderMiniAppCard(app) {
   const author = escapeHtml(app.author || "");
   const description = escapeHtml(app.description || "");
   const category = escapeHtml(app.category || "");
-  const icon = escapeHtml(app.iconUrl || MINI_APP_ICON_PLACEHOLDER);
   const farcasterUrl = escapeHtml(app.farcasterUrl || "#");
   const ctaLabel = t("home.openButton", "Open on Farcaster");
 
   return `
     <article class="miniapp-card">
       <div class="miniapp-card__header">
-        <img
-          class="miniapp-card__icon"
-          src="${icon}"
-          alt="${name} icon"
-          loading="lazy"
-          decoding="async"
-          onerror="this.onerror=null;this.src='${MINI_APP_ICON_FALLBACK}'"
-        />
-        <div>
-          <p class="miniapp-card__title">${name}</p>
-          ${author ? `<p class="miniapp-card__author">${author}</p>` : ""}
-        </div>
+        <p class="miniapp-card__title">${name}</p>
+        ${author ? `<p class="miniapp-card__author">${author}</p>` : ""}
       </div>
       <p class="miniapp-card__description">${description}</p>
       <div class="miniapp-card__meta">
@@ -1665,8 +1652,13 @@ function renderNetworkInfo(valid) {
 function updateWalletUI() {
   const connected = Boolean(state.address);
   if (elements.connectTrigger) {
-    elements.connectTrigger.toggleAttribute("hidden", connected);
+    elements.connectTrigger.hidden = connected;
     elements.connectTrigger.setAttribute("aria-hidden", connected ? "true" : "false");
+    if (connected) {
+      elements.connectTrigger.setAttribute("tabindex", "-1");
+    } else {
+      elements.connectTrigger.removeAttribute("tabindex");
+    }
   }
   if (elements.walletPill) {
     elements.walletPill.hidden = !connected;

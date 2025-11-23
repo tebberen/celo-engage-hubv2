@@ -157,6 +157,21 @@ textarea:focus-visible {
   padding: 4px 0;
 }
 
+.nav-surface {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: rgba(255, 216, 94, 0.2);
+  border: 1px solid rgba(186, 147, 34, 0.32);
+  box-shadow: 0 10px 22px -20px rgba(0, 0, 0, 0.22);
+}
+
+.nav-surface .app-nav {
+  padding: 0;
+}
+
 .nav-btn {
   position: relative;
   border: 1px solid rgba(186, 147, 34, 0.24);
@@ -875,17 +890,8 @@ textarea {
 
 .miniapp-card__header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.miniapp-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: var(--shadow-soft);
-  background: var(--surface-muted);
+  flex-direction: column;
+  gap: 6px;
 }
 
 .miniapp-card__title {
