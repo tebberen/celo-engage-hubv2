@@ -62,6 +62,8 @@ const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
 const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
 const COMPLETION_THRESHOLD = 3;
 const MAX_COMPLETED_HISTORY = 50;
+const MINI_APP_CATEGORIES = ["all", "DeFi", "Growth", "Governance", "Tools", "Games"];
+const MINI_APP_ICON_FALLBACK = "./assets/logo-celo-engage-hub.png";
 
 const state = {
   address: null,
@@ -84,6 +86,12 @@ const state = {
     status: "idle",
     data: null,
     error: null,
+  },
+  miniApps: [],
+  filteredMiniApps: [],
+  miniAppFilters: {
+    search: "",
+    category: "all",
   },
 };
 
@@ -192,6 +200,10 @@ const elements = {
   talentProfileLink: document.getElementById("talentProfileLink"),
   talentProfileImage: document.getElementById("talentProfileImage"),
   talentProfileErrorMessage: document.getElementById("talentProfileErrorMessage"),
+  miniAppGrid: document.getElementById("miniAppGrid"),
+  miniAppEmpty: document.getElementById("miniAppEmpty"),
+  miniAppSearch: document.getElementById("miniAppSearch"),
+  miniAppCategories: document.getElementById("miniAppCategories"),
 };
 
 let activeSectionId = null;
@@ -365,6 +377,7 @@ function init() {
   applyTheme();
   setupLanguage();
   setupNavigation();
+  setupMiniAppDirectory();
   const initialSection = document.querySelector(".section.active") || (elements.sections && elements.sections[0]);
   if (initialSection) {
     activeSectionId = initialSection.id || "home";
@@ -380,11 +393,8 @@ function init() {
   setupIdentityVerification();
   initSelfVerificationUI();
   setupProfileModal();
-  setupShareModal();
   setupUsernameModal();
   setupEcosystemModal();
-  initializeFeedState();
-  setupFeedInteractions();
   setupTalentProfile();
   setupToastBridge();
   updateAnalyticsLinks();
@@ -393,7 +403,6 @@ function init() {
   renderOwnerPanel();
   renderGovernanceAccess();
   loadInitialData();
-  setupLinkLiveUpdates();
   initWalletListeners();
   initWebsocket();
 }
@@ -464,7 +473,7 @@ function applyLanguage(lang) {
   renderTalentProfileState();
   renderGlobalCounters(state.global);
   renderNavigationAria();
-  updateLinkFeedView();
+  renderMiniApps();
   refreshBreadcrumb();
 }
 
@@ -1117,6 +1126,152 @@ function setupNavigation() {
       updateUrl: false,
     });
   }
+}
+
+function setupMiniAppDirectory() {
+  setupMiniAppFilters();
+  loadMiniAppsData();
+}
+
+function setupMiniAppFilters() {
+  if (elements.miniAppSearch) {
+    elements.miniAppSearch.addEventListener("input", (event) => {
+      state.miniAppFilters.search = event.target.value || "";
+      applyMiniAppFilters();
+    });
+  }
+
+  if (elements.miniAppCategories) {
+    const categoryButtons = elements.miniAppCategories.querySelectorAll("[data-category]");
+    categoryButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const category = button.dataset.category || "all";
+        state.miniAppFilters.category = category;
+        setActiveMiniAppCategory(category);
+        applyMiniAppFilters();
+      });
+    });
+  }
+
+  setActiveMiniAppCategory(state.miniAppFilters.category);
+}
+
+function setActiveMiniAppCategory(category) {
+  const normalized = MINI_APP_CATEGORIES.includes(category) ? category : "all";
+  if (elements.miniAppCategories) {
+    const categoryButtons = elements.miniAppCategories.querySelectorAll("[data-category]");
+    categoryButtons.forEach((button) => {
+      const isActive = button.dataset.category === normalized;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+    });
+  }
+  state.miniAppFilters.category = normalized;
+}
+
+async function loadMiniAppsData() {
+  if (!elements.miniAppGrid) return;
+  try {
+    const response = await fetch("./src/data/celoMiniApps.json");
+    if (!response.ok) {
+      throw new Error(`Failed to load mini app data: ${response.status}`);
+    }
+    const payload = await response.json();
+    const parsed = Array.isArray(payload) ? payload.map((item) => sanitizeMiniApp(item)).filter(Boolean) : [];
+    state.miniApps = parsed;
+    applyMiniAppFilters();
+  } catch (error) {
+    console.error("❌ [MiniApps] Failed to load directory", error);
+    state.miniApps = [];
+    state.filteredMiniApps = [];
+    renderMiniApps();
+    if (elements.miniAppEmpty) {
+      elements.miniAppEmpty.textContent = t("home.error", "Mini apps could not be loaded. Try again later.");
+      elements.miniAppEmpty.hidden = false;
+    }
+  }
+}
+
+function sanitizeMiniApp(entry) {
+  if (!entry) return null;
+  const name = typeof entry.name === "string" ? entry.name.trim() : "";
+  const description = typeof entry.description === "string" ? entry.description.trim() : "";
+  const author = typeof entry.author === "string" ? entry.author.trim() : "";
+  const farcasterUrl = typeof entry.farcasterUrl === "string" ? entry.farcasterUrl.trim() : "";
+  const category = MINI_APP_CATEGORIES.includes(entry.category) ? entry.category : "Tools";
+  const iconUrl = typeof entry.iconUrl === "string" && entry.iconUrl.trim() ? entry.iconUrl.trim() : MINI_APP_ICON_FALLBACK;
+  if (!name || !farcasterUrl) return null;
+  return {
+    name,
+    description,
+    author,
+    farcasterUrl,
+    category,
+    iconUrl,
+  };
+}
+
+function applyMiniAppFilters() {
+  const { search = "", category = "all" } = state.miniAppFilters || {};
+  const query = search.trim().toLowerCase();
+  const selectedCategory = MINI_APP_CATEGORIES.includes(category) ? category : "all";
+  const filtered = (state.miniApps || []).filter((app) => {
+    if (!app) return false;
+    const matchesCategory = selectedCategory === "all" || app.category === selectedCategory;
+    const searchable = `${app.name} ${app.description}`.toLowerCase();
+    const matchesSearch = !query || searchable.includes(query);
+    return matchesCategory && matchesSearch;
+  });
+  state.filteredMiniApps = filtered;
+  setActiveMiniAppCategory(selectedCategory);
+  renderMiniApps(filtered);
+}
+
+function renderMiniApps(list = state.filteredMiniApps || []) {
+  if (!elements.miniAppGrid) return;
+  if (!Array.isArray(list) || list.length === 0) {
+    elements.miniAppGrid.innerHTML = "";
+    if (elements.miniAppEmpty) {
+      elements.miniAppEmpty.textContent = t("home.empty", "No mini apps match your search yet.");
+      elements.miniAppEmpty.hidden = false;
+    }
+    return;
+  }
+
+  if (elements.miniAppEmpty) {
+    elements.miniAppEmpty.hidden = true;
+  }
+
+  const cards = list.map(renderMiniAppCard).join("");
+  elements.miniAppGrid.innerHTML = cards;
+}
+
+function renderMiniAppCard(app) {
+  if (!app) return "";
+  const name = escapeHtml(app.name);
+  const author = escapeHtml(app.author || "");
+  const description = escapeHtml(app.description || "");
+  const category = escapeHtml(app.category || "");
+  const icon = escapeHtml(app.iconUrl || MINI_APP_ICON_FALLBACK);
+  const farcasterUrl = escapeHtml(app.farcasterUrl || "#");
+  const ctaLabel = t("home.openButton", "Open on Farcaster");
+
+  return `
+    <article class="miniapp-card">
+      <div class="miniapp-card__header">
+        <img class="miniapp-card__icon" src="${icon}" alt="${name} icon" loading="lazy" decoding="async" />
+        <div>
+          <p class="miniapp-card__title">${name}</p>
+          <p class="miniapp-card__author">${author || ""}</p>
+        </div>
+      </div>
+      <p class="miniapp-card__description">${description}</p>
+      <div class="miniapp-card__meta">
+        <span class="miniapp-category-badge"># ${category}</span>
+        <a class="primary-btn" href="${farcasterUrl}" target="_blank" rel="noopener">${ctaLabel}</a>
+      </div>
+    </article>
+  `;
 }
 
 function setupTabs() {
@@ -2045,7 +2200,6 @@ function refreshAfterTransaction() {
     refreshGlobalStats(),
     refreshGovernance(),
     refreshLeaderboard(),
-    refreshFeed(),
     refreshTalentProfile({ keepPrevious: true }),
   ]);
 }
@@ -2774,10 +2928,10 @@ function closeUsernameModal() {
 async function loadInitialData() {
   await Promise.all([
     refreshGlobalStats(),
-    refreshFeed(),
     refreshGovernance(),
     refreshLeaderboard(),
     refreshTalentProfile({ keepPrevious: false }),
+    loadMiniAppsData(),
   ]);
 }
 

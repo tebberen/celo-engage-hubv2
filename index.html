@@ -164,56 +164,55 @@
             <div id="breadcrumb" class="breadcrumb">
               <span>🏠 Home</span>
               <span class="separator">/</span>
-              <span>Link Hub</span>
+              <span>Celo Mini Apps</span>
             </div>
 
-            <section id="home" class="section active" data-section-label="Link Hub">
+            <section id="home" class="section active" data-section-label="Celo Mini Apps">
               <div class="section-header">
-                <h2 data-i18n="home.title">Link Hub</h2>
-                <p data-i18n="home.subtitle">Share resources and explore community links.</p>
+                <h2 data-i18n="home.title">Celo Mini Apps</h2>
+                <p data-i18n="home.subtitle">Discover Farcaster-native mini apps built on Celo.</p>
               </div>
-              <div class="link-hub">
-                <article class="card share-card">
-                  <h3 data-i18n="sharePrompt.title">Share Your Link</h3>
-                  <p data-i18n="sharePrompt.subtitle">Keep the momentum going by adding your own link.</p>
-                  <form id="shareLinkForm" class="share-form" data-share-form>
-                    <label for="shareLinkInput" data-i18n="sharePrompt.label">URL</label>
+
+              <div class="card miniapp-controls">
+                <div class="miniapp-controls__search">
+                  <label for="miniAppSearch" data-i18n="home.searchLabel">Search</label>
+                  <div class="search-input__wrapper">
+                    <span aria-hidden="true">🔍</span>
                     <input
-                      id="shareLinkInput"
-                      data-share-input
-                      type="url"
-                      placeholder="https://"
-                      value="https://"
-                      required
-                      data-i18n-placeholder="sharePrompt.placeholder"
+                      id="miniAppSearch"
+                      type="search"
+                      placeholder="Search by name or description"
+                      data-i18n-placeholder="home.searchPlaceholder"
                     />
-                    <button type="submit" class="primary-btn" data-i18n="sharePrompt.submit">Submit Link</button>
-                  </form>
-                </article>
-                <div class="feed-stack">
-                  <section class="feed-section" aria-labelledby="communityFeedHeading">
-                    <div class="feed-section__header">
-                      <h3 id="communityFeedHeading" data-i18n="feed.communityTitle">Community Feed</h3>
-                      <span id="feedBadge" class="pill-badge" hidden>0</span>
-                      <div id="feedSpinner" class="loading-indicator" role="status" aria-hidden="true" hidden></div>
-                    </div>
-                    <div class="skeleton-group" id="feedSkeleton" aria-hidden="true" hidden>
-                      <div class="skeleton-card"></div>
-                      <div class="skeleton-card"></div>
-                      <div class="skeleton-card"></div>
-                    </div>
-                    <div id="linkFeed" class="feed-list" aria-live="polite"></div>
-                  </section>
-                  <section class="feed-section" aria-labelledby="completedFeedHeading">
-                    <div class="feed-section__header">
-                      <h3 id="completedFeedHeading" data-i18n="feed.completedTitle">✅ Completed Links</h3>
-                      <span id="completedBadge" class="pill-badge" hidden>0</span>
-                    </div>
-                    <div id="completedFeed" class="feed-list feed-list--completed" aria-live="polite"></div>
-                    <p id="completedCounter" class="completed-counter">✅ 0 Links Completed</p>
-                  </section>
+                  </div>
+                </div>
+                <div class="miniapp-controls__filters">
+                  <span class="filter-label" data-i18n="home.filterLabel">Filter by category</span>
+                  <div class="miniapp-category-tabs" id="miniAppCategories" role="tablist">
+                    <button class="tab-btn active" data-category="all" type="button" role="tab" aria-selected="true" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.all">All</span>
+                    </button>
+                    <button class="tab-btn" data-category="DeFi" type="button" role="tab" aria-selected="false" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.defi">DeFi</span>
+                    </button>
+                    <button class="tab-btn" data-category="Growth" type="button" role="tab" aria-selected="false" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.growth">Growth</span>
+                    </button>
+                    <button class="tab-btn" data-category="Governance" type="button" role="tab" aria-selected="false" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.governance">Governance</span>
+                    </button>
+                    <button class="tab-btn" data-category="Tools" type="button" role="tab" aria-selected="false" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.tools">Tools</span>
+                    </button>
+                    <button class="tab-btn" data-category="Games" type="button" role="tab" aria-selected="false" aria-controls="miniAppGrid">
+                      <span data-i18n="home.categories.games">Games</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              <div id="miniAppGrid" class="miniapp-grid" aria-live="polite"></div>
+              <p id="miniAppEmpty" class="miniapp-empty" hidden data-i18n="home.empty">No mini apps match your search yet.</p>
             </section>
 
             <section id="gm" class="section" data-section-label="GM" style="display: none;">
