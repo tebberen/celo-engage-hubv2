@@ -1,42 +1,130 @@
 [
   {
     "name": "Celo Boosts",
-    "author": "by boostxyz",
-    "description": "Launch farcaster boosts that settle on Celo for faster, cheaper growth.",
+    "author": "",
+    "description": "Campaign and incentive hub for exploring Celo mini apps on Farcaster.",
     "category": "Growth",
-    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-boosts",
-    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-boosts.png"
-  },
-  {
-    "name": "Celo Poll",
-    "author": "by celo-vibes",
-    "description": "Create quick governance-style polls that cast directly inside Farcaster.",
-    "category": "Governance",
-    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-poll",
-    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-poll.png"
-  },
-  {
-    "name": "Bank of Celo",
-    "author": "by impactmarket",
-    "description": "Track balances, send tips, and explore DeFi tools without leaving casts.",
-    "category": "DeFi",
-    "farcasterUrl": "https://farcaster.xyz/miniapps/bank-of-celo",
-    "iconUrl": "https://storage.googleapis.com/ceibalancer/bank-of-celo.png"
+    "farcasterUrl": "https://farcaster.xyz/miniapps/mk4XlaIDwZJA/celo-boosts",
+    "iconUrl": "./assets/miniapps/default.png"
   },
   {
     "name": "FireBid Celo",
-    "author": "by firebid",
-    "description": "Bid and play with CELO-native auctions right from your Farcaster feed.",
+    "author": "",
+    "description": "Onchain bidding and game mechanics built on Celo.",
     "category": "Games",
-    "farcasterUrl": "https://farcaster.xyz/miniapps/firebid-celo",
-    "iconUrl": "https://storage.googleapis.com/ceibalancer/firebid.png"
+    "farcasterUrl": "https://farcaster.xyz/miniapps/BXq8kwI6USdt/firebid-celo",
+    "iconUrl": "./assets/miniapps/default.png"
   },
   {
-    "name": "Celo Builders Toolkit",
-    "author": "by celo-devrel",
-    "description": "Curated tools for deploying, testing, and monitoring Celo smart contracts.",
+    "name": "The Carplet",
+    "author": "",
+    "description": "Visual identity experience that generates a unique Carplet on Celo.",
+    "category": "Identity",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/fItsBQ8BT9ow/the-carplet",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Poll",
+    "author": "",
+    "description": "Create and participate in polls for the Celo community.",
+    "category": "Governance",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/x3W2qlMP3MP4/celo-poll",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "x402rocks Mint Live",
+    "author": "",
+    "description": "Mint live drops and NFTs using the x402rocks Celo tools.",
+    "category": "NFTs",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/AqmkuW0oc7Fk/x402rocks-mint-live",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Bank of Celo",
+    "author": "",
+    "description": "Community-powered vault and simple banking experience on Celo.",
+    "category": "Finance",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/xCB9v4FLnqLg/bank-of-celo",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Identity Quiz",
+    "author": "",
+    "description": "Quiz experience that helps users discover their Celo personality.",
+    "category": "Identity",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/JGszGe8Yl7xw/celo-identity-quiz",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Lite",
+    "author": "",
+    "description": "Lightweight Celo wallet and tools experience inside Farcaster.",
+    "category": "Wallet",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/ma3mvR7DIRs3/celo-lite",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Builder Rewards",
+    "author": "",
+    "description": "Rewards hub for active Celo builders and contributors.",
+    "category": "Rewards",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/XhQmVJM8RIeD/celo-builder-rewards",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo NFT",
+    "author": "",
+    "description": "Simple NFT experience focused on Celo collections.",
+    "category": "NFTs",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/Tip8ngTAKnHC/celo-nft",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Sender",
+    "author": "",
+    "description": "Send Celo payments easily from within Farcaster.",
     "category": "Tools",
-    "farcasterUrl": "https://farcaster.xyz/miniapps/celo-builders-toolkit",
-    "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-builders.png"
+    "farcasterUrl": "https://farcaster.xyz/miniapps/lreV-hjQ2Gsg/celo-sender",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Esusu (Celo)",
+    "author": "",
+    "description": "Rotational savings and credit circles (esusu) powered by Celo.",
+    "category": "Finance",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Hub Chat (Celo)",
+    "author": "",
+    "description": "Group chat and coordination space focused on Celo topics.",
+    "category": "Messaging",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/7USxyPewQ2B8/hub-chat",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Daily Raffle",
+    "author": "",
+    "description": "Daily raffle experience for Celo users on Farcaster.",
+    "category": "Rewards",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/I8ah9X2SA5xT/celo-daily-raffle",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Karma Celo Community",
+    "author": "",
+    "description": "Community hub for Karma + Celo builders and supporters.",
+    "category": "Growth",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/fEVg6B21KEJN/karma-celo-community",
+    "iconUrl": "./assets/miniapps/default.png"
+  },
+  {
+    "name": "Celo Projects",
+    "author": "",
+    "description": "Directory and explorer for Celo ecosystem projects.",
+    "category": "Ecosystem",
+    "farcasterUrl": "https://farcaster.xyz/miniapps/i9MEQ3XFPr1G/celo-projects",
+    "iconUrl": "./assets/miniapps/default.png"
   }
 ]

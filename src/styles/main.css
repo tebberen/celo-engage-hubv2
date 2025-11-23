@@ -917,6 +917,8 @@ textarea {
   padding: 18px;
   border: 1px solid rgba(251, 204, 92, 0.35);
   box-shadow: var(--shadow-card);
+  background: linear-gradient(180deg, #fffef7 0%, #ffffff 65%);
+  border-radius: var(--radius-lg);
 }
 
 .miniapp-controls__search {
@@ -958,6 +960,8 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding-bottom: 4px;
+  overflow-x: auto;
 }
 
 .miniapp-category-tabs .tab-btn {
@@ -965,6 +969,7 @@ textarea {
   background: var(--surface-muted);
   color: var(--text-soft);
   transition: background var(--transition), color var(--transition), transform var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
 }
 
 .miniapp-category-tabs .tab-btn:hover,
@@ -1004,7 +1009,7 @@ textarea {
   gap: 12px;
   padding: 18px;
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: linear-gradient(180deg, #fffcf0 0%, #ffffff 60%);
   border: 1px solid rgba(251, 204, 92, 0.3);
   box-shadow: var(--shadow-card);
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
