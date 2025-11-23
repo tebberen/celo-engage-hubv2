@@ -3,7 +3,7 @@
 Paylaşılan sabitler, biçimlendirme yardımcıları ve CDN’den sağlanan kütüphane köprüleri.
 
 ## Dosya Özeti
-- **constants.js**: Ağ metadatası, kontrat adresleri/ABI’leri, modül sürümleri, bağış eşikleri, UI mesajları ve üçüncü parti anahtarları (WalletConnect, Talent Protocol, Divvi) için merkezî yapılandırma. Servisler ve `main.js` tarafından kullanılır.
+- **constants.js**: Ağ metadatası, kontrat adresleri/ABI’leri, modül sürümleri, bağış eşikleri, UI mesajları ve üçüncü parti anahtarları (WalletConnect, Divvi) için merkezî yapılandırma. Servisler ve `main.js` tarafından kullanılır.
 - **cdn-modules.js**: Tarayıcıyla uyumlu ESM `ethers` ve WalletConnect sağlayıcısını CDN’den yeniden dışa aktarır.
 - **formatters.js**: CELO token değerleri ve genel sayılar için fallback’li, kompakt gösterim destekli formatlayıcılar sağlar.
 

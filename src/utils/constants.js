@@ -48,10 +48,6 @@ export const NETWORK_FALLBACK_RPC_URLS = {
   alfajores: ["https://celo-alfajores.gateway.pokt.network/v1/lb/62b1e6fdae2f9c00398be3c8"],
 };
 
-export const TALENT_PROTOCOL_API_BASE_URL = "https://api.talentprotocol.com/api/v4/";
-export const TALENT_PROTOCOL_API_KEY = "68ce7d63b305518b0d82c21b67f549d4ea1024d0a96608e44ee65d82d978";
-export const TALENT_PROTOCOL_DEFAULT_USERNAME = "celo";
-
 export const OWNER_ADDRESS = "0x09dFa0d77125978997dD9f94A0F870D3f2900DA5";
 
 export const WALLETCONNECT_PROJECT_ID = "8b020ffbb31e5aba14160c27ca26540b";
