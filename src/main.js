@@ -104,6 +104,7 @@ const elements = {
   connectModal: document.getElementById("connectModal"),
   connectOptions: document.querySelectorAll("[data-connect-option]"),
   disconnectWallet: document.getElementById("disconnectWallet"),
+  navbarConnectButton: document.getElementById("navbarConnectButton"),
   walletPill: document.getElementById("walletPill"),
   walletPillButton: document.getElementById("walletPillButton"),
   walletDropdown: document.getElementById("walletDropdown"),
@@ -111,8 +112,6 @@ const elements = {
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
   profilePlaceholder: document.getElementById("profilePlaceholder"),
-  profileConnectActions: document.getElementById("profileConnectActions"),
-  profileConnectButton: document.getElementById("profileConnectButton"),
   profileAddressLabel: document.getElementById("profileAddressLabel"),
   profileAddressValue: document.getElementById("profileAddressValue"),
   feedSpinner: document.getElementById("feedSpinner"),
@@ -1320,6 +1319,11 @@ function updateConnectOptionAvailability() {
   });
 }
 
+function requestWalletConnection(trigger) {
+  updateConnectOptionAvailability();
+  openConnectModal(trigger);
+}
+
 async function startWalletConnection(trigger) {
   if (state.address) {
     toggleWalletDropdown(true);
@@ -1368,10 +1372,9 @@ function setupWalletButtons() {
     });
   });
 
-  if (elements.profileConnectButton) {
-    elements.profileConnectButton.addEventListener("click", () => {
-      updateConnectOptionAvailability();
-      openConnectModal(elements.profileConnectButton);
+  if (elements.navbarConnectButton) {
+    elements.navbarConnectButton.addEventListener("click", () => {
+      requestWalletConnection(elements.navbarConnectButton);
     });
   }
 
@@ -1405,10 +1408,7 @@ function setupWalletDropdown() {
   elements.walletPillButton.addEventListener("click", (event) => {
     event.stopPropagation();
     if (!state.address) {
-      showSection("profile", { labelOverride: getSectionLabel(document.getElementById("profile")) });
-      if (elements.profileConnectButton) {
-        elements.profileConnectButton.focus({ preventScroll: true });
-      }
+      requestWalletConnection(elements.walletPillButton);
       return;
     }
     toggleWalletDropdown();
@@ -1419,10 +1419,7 @@ function setupWalletDropdown() {
     if (isActivateKey) {
       event.preventDefault();
       if (!state.address) {
-        showSection("profile", { labelOverride: getSectionLabel(document.getElementById("profile")) });
-        if (elements.profileConnectButton) {
-          elements.profileConnectButton.focus({ preventScroll: true });
-        }
+        requestWalletConnection(elements.walletPillButton);
       } else {
         toggleWalletDropdown();
       }
@@ -1621,8 +1618,11 @@ function renderNetworkInfo(valid) {
 
 function updateWalletUI() {
   const connected = Boolean(state.address);
+  if (elements.navbarConnectButton) {
+    elements.navbarConnectButton.hidden = connected;
+  }
   if (elements.walletPill) {
-    elements.walletPill.hidden = false;
+    elements.walletPill.hidden = !connected;
   }
   if (elements.walletAddressLabel) {
     elements.walletAddressLabel.textContent = connected ? shorten(state.address) : t("wallet.statusIdle", "Wallet");
@@ -2092,9 +2092,6 @@ function renderProfile(profile) {
     if (elements.profilePlaceholder) {
       elements.profilePlaceholder.hidden = false;
     }
-    if (elements.profileConnectActions) {
-      elements.profileConnectActions.hidden = false;
-    }
     if (elements.profileAddressLabel) {
       elements.profileAddressLabel.hidden = true;
     }
@@ -2106,9 +2103,6 @@ function renderProfile(profile) {
 
   if (elements.profilePlaceholder) {
     elements.profilePlaceholder.hidden = true;
-  }
-  if (elements.profileConnectActions) {
-    elements.profileConnectActions.hidden = true;
   }
   if (elements.profileAddressLabel) {
     elements.profileAddressLabel.hidden = false;
