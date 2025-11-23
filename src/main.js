@@ -40,8 +40,6 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
-import { fetchTalentProfile } from "./services/talentService.js";
-
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
   deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
@@ -89,11 +87,6 @@ const state = {
   sharePromptLink: null,
   deviceId,
   feedEntries: [],
-  talentProfile: {
-    status: "idle",
-    data: null,
-    error: null,
-  },
   miniApps: [],
   filteredMiniApps: [],
   miniAppFilters: {
@@ -118,16 +111,9 @@ const elements = {
   walletStatusIcon: document.querySelector(".wallet-pill__status"),
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
-  profileStats: document.getElementById("profileStats"),
-  badgeStack: document.getElementById("badgeStack"),
-  xpProgress: document.getElementById("xpProgress"),
-  profileCopyButton: document.getElementById("profileCopyButton"),
-  profileLevelLabel: document.getElementById("profileLevelLabel"),
-  profileTierLabel: document.getElementById("profileTierLabel"),
-  profileUsername: document.getElementById("profileUsername"),
-  profileAddress: document.getElementById("profileAddress"),
-  publicProfileLink: document.getElementById("publicProfileLink"),
-  profileMetrics: document.getElementById("profileMetrics"),
+  profilePlaceholder: document.getElementById("profilePlaceholder"),
+  profileAddressLabel: document.getElementById("profileAddressLabel"),
+  profileAddressValue: document.getElementById("profileAddressValue"),
   feedSpinner: document.getElementById("feedSpinner"),
   feedBadge: document.getElementById("feedBadge"),
   linkFeed: document.getElementById("linkFeed"),
@@ -185,20 +171,6 @@ const elements = {
   deployedContracts: document.getElementById("deployedContracts"),
   feedSkeleton: document.getElementById("feedSkeleton"),
   governanceSkeleton: document.getElementById("governanceSkeleton"),
-  talentSection: document.getElementById("talent"),
-  talentProfileCard: document.getElementById("talentProfileCard"),
-  talentProfileContent: document.getElementById("talentProfileContent"),
-  talentProfileLoading: document.getElementById("talentProfileLoading"),
-  talentProfileError: document.getElementById("talentProfileError"),
-  talentProfileRetry: document.getElementById("talentProfileRetry"),
-  talentProfileName: document.getElementById("talentProfileName"),
-  talentProfileUsername: document.getElementById("talentProfileUsername"),
-  talentProfileBio: document.getElementById("talentProfileBio"),
-  talentProfileSupporters: document.getElementById("talentProfileSupporters"),
-  talentProfileBadges: document.getElementById("talentProfileBadges"),
-  talentProfileLink: document.getElementById("talentProfileLink"),
-  talentProfileImage: document.getElementById("talentProfileImage"),
-  talentProfileErrorMessage: document.getElementById("talentProfileErrorMessage"),
   miniAppGrid: document.getElementById("miniAppGrid"),
   miniAppEmpty: document.getElementById("miniAppEmpty"),
   miniAppSearch: document.getElementById("miniAppSearch"),
@@ -208,15 +180,11 @@ const elements = {
 let activeSectionId = null;
 let wsProvider = null;
 let linkEventContract = null;
-let talentProfileAbortController = null;
-
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
 const modalFocusState = new WeakMap();
 const modalStack = [];
 let walletDropdownFocusCleanup = null;
-
-const TALENT_AVATAR_FALLBACK = "https://storage.googleapis.com/ceibalancer/celo-icon.png";
 
 const LOADING_TEXT = {
   connecting: "Connecting…",
@@ -390,7 +358,6 @@ function init() {
   setupProfileModal();
   setupUsernameModal();
   setupEcosystemModal();
-  setupTalentProfile();
   setupToastBridge();
   updateAnalyticsLinks();
   renderNetworkInfo(false);
@@ -465,7 +432,6 @@ function applyLanguage(lang) {
   translateDocument();
   renderProfile(state.profile);
   renderBadgeDetails(state.profile);
-  renderTalentProfileState();
   renderGlobalCounters(state.global);
   renderNavigationAria();
   renderMiniApps();
@@ -504,10 +470,6 @@ function renderNavigationAria() {
 }
 
 function setupProfileModal() {
-  if (elements.profileCopyButton) {
-    elements.profileCopyButton.addEventListener("click", handleProfileAddressCopy);
-  }
-
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (modalStack.length) {
@@ -585,23 +547,6 @@ function setupFeedInteractions() {
   if (elements.linkFeed) {
     elements.linkFeed.addEventListener("click", handleFeedSupportClick);
   }
-}
-
-function setupTalentProfile() {
-  if (!elements.talentProfileCard) return;
-
-  if (elements.talentProfileRetry) {
-    elements.talentProfileRetry.addEventListener("click", () => {
-      refreshTalentProfile({ keepPrevious: false });
-    });
-  }
-
-  state.talentProfile = {
-    status: "loading",
-    data: null,
-    error: null,
-  };
-  renderTalentProfileState();
 }
 
 function handleFeedSupportClick(event) {
@@ -1962,60 +1907,12 @@ async function handleRegisterSubmit(event) {
   }
 }
 
-async function refreshTalentProfile({ keepPrevious = true } = {}) {
-  if (!elements.talentProfileCard) return;
-
-  if (talentProfileAbortController) {
-    talentProfileAbortController.abort();
-  }
-
-  const controller = new AbortController();
-  talentProfileAbortController = controller;
-  const previousData = keepPrevious ? state.talentProfile?.data : null;
-
-  state.talentProfile = {
-    status: "loading",
-    data: previousData,
-    error: null,
-  };
-  renderTalentProfileState();
-
-  try {
-    const profile = await fetchTalentProfile({ signal: controller.signal });
-    if (talentProfileAbortController !== controller) {
-      return;
-    }
-    state.talentProfile = {
-      status: "success",
-      data: profile,
-      error: null,
-    };
-  } catch (error) {
-    if (controller.signal.aborted) {
-      return;
-    }
-    console.error("❌ [Talent] Profile fetch failed", error);
-    showToast("error", t("talent.errorToast", "Talent data unavailable. Check API key."));
-    state.talentProfile = {
-      status: "error",
-      data: previousData,
-      error,
-    };
-  } finally {
-    if (talentProfileAbortController === controller) {
-      talentProfileAbortController = null;
-    }
-    renderTalentProfileState();
-  }
-}
-
 function refreshAfterTransaction() {
   return Promise.all([
     refreshProfile(),
     refreshGlobalStats(),
     refreshGovernance(),
     refreshLeaderboard(),
-    refreshTalentProfile({ keepPrevious: true }),
   ]);
 }
 
@@ -2040,7 +1937,8 @@ async function refreshProfile() {
     }
   } catch (error) {
     console.error("❌ [Profile] Failed to refresh profile", error);
-    renderProfile(null);
+    state.profile = { address: state.address };
+    renderProfile(state.profile);
   }
 }
 
@@ -2171,295 +2069,30 @@ async function refreshLeaderboard() {
   }
 }
 
-async function handleProfileAddressCopy() {
-  const address = state.profile?.address;
-  if (!address) return;
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(address);
-    } else {
-      const temp = document.createElement("textarea");
-      temp.value = address;
-      temp.setAttribute("readonly", "true");
-      temp.style.position = "absolute";
-      temp.style.left = "-9999px";
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand("copy");
-      temp.remove();
-    }
-    const successMessage = t("profile.copySuccess", "Address copied!");
-    showToast("success", successMessage);
-  } catch (error) {
-    console.error("❌ [Profile] Copy address failed", error);
-    showToast("error", UI_MESSAGES.error);
-  }
-}
-
-function renderTalentProfileState() {
-  if (!elements.talentProfileCard) return;
-
-  const { status = "idle", data = null, error = null } = state.talentProfile || {};
-  const isLoading = status === "loading";
-  const hasError = status === "error";
-  const hasData = Boolean(data);
-
-  if (isLoading) {
-    elements.talentProfileCard.setAttribute("aria-busy", "true");
-  } else {
-    elements.talentProfileCard.removeAttribute("aria-busy");
-  }
-
-  if (elements.talentProfileLoading) {
-    elements.talentProfileLoading.hidden = !isLoading;
-    elements.talentProfileLoading.setAttribute("aria-hidden", String(!isLoading));
-  }
-
-  if (elements.talentProfileError) {
-    elements.talentProfileError.hidden = !hasError;
-  }
-
-  if (elements.talentProfileRetry) {
-    elements.talentProfileRetry.disabled = isLoading;
-  }
-
-  if (elements.talentProfileContent) {
-    elements.talentProfileContent.hidden = !hasData;
-  }
-
-  if (hasError && elements.talentProfileErrorMessage) {
-    const base = t("talent.error", "We couldn't load the profile right now. Please try again soon.");
-    const detail = error?.status ? ` (${error.status})` : "";
-    elements.talentProfileErrorMessage.textContent = `${base}${detail}`;
-  }
-
-  if (!hasData) {
-    return;
-  }
-
-  const { name, username, bio, profileImage, supporters, badges, profileUrl } = data;
-  const safeProfileUrl = typeof profileUrl === "string" && profileUrl.trim().startsWith("http") ? profileUrl.trim() : null;
-
-  if (elements.talentProfileName) {
-    elements.talentProfileName.textContent = name || "—";
-  }
-
-  if (elements.talentProfileUsername) {
-    if (username) {
-      elements.talentProfileUsername.textContent = `@${username}`;
-      elements.talentProfileUsername.removeAttribute("hidden");
-    } else {
-      elements.talentProfileUsername.textContent = "";
-      elements.talentProfileUsername.setAttribute("hidden", "true");
-    }
-  }
-
-  if (elements.talentProfileBio) {
-    const trimmedBio = (bio || "").trim();
-    const fallbackBio = t("talent.bioEmpty", "No bio added yet.");
-    elements.talentProfileBio.textContent = trimmedBio || fallbackBio;
-    elements.talentProfileBio.classList.toggle("is-empty", !trimmedBio);
-  }
-
-  if (elements.talentProfileSupporters) {
-    elements.talentProfileSupporters.textContent = formatNumber(supporters || 0);
-  }
-
-  if (elements.talentProfileImage) {
-    const source = profileImage || TALENT_AVATAR_FALLBACK;
-    if (elements.talentProfileImage.src !== source) {
-      elements.talentProfileImage.src = source;
-    }
-    const altTemplate = t("talent.avatarAlt", "{name}'s Talent Protocol profile photo");
-    const altName = name || username || "Talent";
-    elements.talentProfileImage.alt = altTemplate.replace("{name}", altName);
-  }
-
-  if (elements.talentProfileBadges) {
-    renderTalentBadges(Array.isArray(badges) ? badges : []);
-  }
-
-  if (elements.talentProfileLink) {
-    if (safeProfileUrl) {
-      elements.talentProfileLink.href = safeProfileUrl;
-      elements.talentProfileLink.classList.remove("is-disabled");
-      elements.talentProfileLink.removeAttribute("aria-disabled");
-    } else {
-      elements.talentProfileLink.href = "#";
-      elements.talentProfileLink.classList.add("is-disabled");
-      elements.talentProfileLink.setAttribute("aria-disabled", "true");
-    }
-  }
-}
-
-function renderTalentBadges(badges) {
-  if (!elements.talentProfileBadges) return;
-
-  if (!Array.isArray(badges) || badges.length === 0) {
-    elements.talentProfileBadges.innerHTML = `<span class="talent-badge-empty">${t("talent.badgesEmpty", "No badges yet.")}</span>`;
-    return;
-  }
-
-  const visibleBadges = badges.slice(0, 6);
-  elements.talentProfileBadges.innerHTML = visibleBadges
-    .map((badge) => {
-      if (!badge) return "";
-      const name = escapeHtml(badge.name || "");
-      const description = escapeHtml(badge.description || badge.name || "");
-      const iconUrl = typeof badge.icon === "string" && badge.icon.trim().startsWith("http") ? badge.icon.trim() : "";
-      const icon = iconUrl
-        ? `<span class="talent-badge-icon"><img src="${escapeHtml(iconUrl)}" alt="" loading="lazy" decoding="async" /></span>`
-        : "";
-      return `<span class="badge-chip" title="${description}">${icon}${name}</span>`;
-    })
-    .join("");
-}
-
 function renderProfile(profile) {
   if (!profile) {
-    elements.profileUsername.textContent = "—";
-    elements.profileAddress.textContent = "—";
-    elements.profileAddress.removeAttribute("title");
-    elements.profileStats.innerHTML = "";
-    if (elements.profileMetrics) {
-      elements.profileMetrics.innerHTML = "";
+    if (elements.profilePlaceholder) {
+      elements.profilePlaceholder.hidden = false;
     }
-    elements.badgeStack.innerHTML = "";
-    elements.xpProgress.innerHTML = "";
-    if (elements.profileCopyButton) {
-      elements.profileCopyButton.disabled = true;
-      elements.profileCopyButton.removeAttribute("data-tooltip");
-      elements.profileCopyButton.removeAttribute("title");
+    if (elements.profileAddressLabel) {
+      elements.profileAddressLabel.hidden = true;
     }
-    if (elements.profileLevelLabel) {
-      elements.profileLevelLabel.textContent = `${t("profile.stats.level", "Level")} —`;
+    if (elements.profileAddressValue) {
+      elements.profileAddressValue.textContent = "—";
     }
-    if (elements.profileTierLabel) {
-      elements.profileTierLabel.textContent = `${t("profile.stats.tier", "Tier")} —`;
-    }
-    elements.publicProfileLink.removeAttribute("href");
-    renderBadgeDetails(null);
     return;
   }
 
-  elements.profileUsername.textContent = profile.username || t("profile.newUser", "Yeni Kullanıcı");
-  elements.profileAddress.textContent = shorten(profile.address);
-  elements.profileAddress.title = profile.address;
-  if (elements.profileCopyButton) {
-    elements.profileCopyButton.disabled = false;
-    const copyTooltip = t("profile.copyAddress", "Copy wallet address");
-    elements.profileCopyButton.setAttribute("data-tooltip", copyTooltip);
-    elements.profileCopyButton.setAttribute("title", copyTooltip);
+  if (elements.profilePlaceholder) {
+    elements.profilePlaceholder.hidden = true;
   }
-  elements.publicProfileLink.href = `/profile?addr=${profile.address}`;
-
-  const summaryStats = [
-    { label: t("profile.metrics.gm", "GM"), value: profile.gmCount },
-    { label: t("profile.metrics.deploy", "Deploy"), value: profile.deployCount },
-    { label: t("profile.metrics.donate", "Donate"), value: profile.donateCount },
-    { label: t("profile.metrics.link", "Link"), value: profile.linkCount },
-    { label: t("profile.metrics.vote", "Vote"), value: profile.voteCount },
-    { label: t("profile.stats.xp", "XP"), value: profile.totalXP },
-  ];
-
-  elements.profileStats.innerHTML = summaryStats
-    .map(
-      (stat) => `
-        <div class="stat-card">
-          <span>${stat.label}</span>
-          <strong>${formatNumber(stat.value)}</strong>
-        </div>
-      `
-    )
-    .join("");
-
-  if (elements.profileLevelLabel) {
-    elements.profileLevelLabel.textContent = `${t("profile.stats.level", "Level")} ${formatNumber(profile.level)}`;
+  if (elements.profileAddressLabel) {
+    elements.profileAddressLabel.hidden = false;
   }
-
-  if (elements.profileTierLabel) {
-    const tierLabel = t("profile.tierBadgeLabel", "Tier {value} Badge").replace("{value}", formatNumber(profile.tier));
-    elements.profileTierLabel.textContent = tierLabel;
+  if (elements.profileAddressValue) {
+    elements.profileAddressValue.textContent = shorten(profile.address);
+    elements.profileAddressValue.title = profile.address;
   }
-
-  if (elements.profileMetrics) {
-    const metrics = [
-      { label: t("profile.metrics.link", "Link"), value: profile.linkCount },
-      { label: t("profile.metrics.deploy", "Deploy"), value: profile.deployCount },
-      { label: t("profile.metrics.gm", "GM"), value: profile.gmCount },
-      { label: t("profile.metrics.vote", "Vote"), value: profile.voteCount },
-      { label: t("profile.metrics.donate", "Donate"), value: profile.donateCount },
-    ];
-    elements.profileMetrics.innerHTML = metrics
-      .map((metric) => `<li><span>${metric.label}</span><strong>${formatNumber(metric.value)}</strong></li>`)
-      .join("");
-  }
-
-  elements.badgeStack.innerHTML = renderTierBadges(profile);
-  elements.xpProgress.innerHTML = renderXpProgress(profile);
-  renderBadgeDetails(profile);
-}
-
-function renderTierBadges(profile) {
-  const tiers = [1, 2, 3, 4, 5];
-  return tiers
-    .map((tier) => {
-      const active = profile.tier >= tier ? "active" : "";
-      return `<span class="badge-chip ${active}">${t("profile.badge", "Tier")} ${tier}</span>`;
-    })
-    .join("");
-}
-
-function calculateLevelProgress(profile) {
-  if (!profile) return { percent: 0, isMaxLevel: false };
-  const maxLevel = Number(profile.maxLevel || 5);
-  const isMaxLevel = Number.isFinite(maxLevel) && maxLevel > 0 ? profile.level >= maxLevel : false;
-  const normalized =
-    typeof profile.progressToNextLevel === "number"
-      ? profile.progressToNextLevel
-      : typeof profile.levelProgress === "number"
-      ? profile.levelProgress
-      : null;
-  if (normalized !== null) {
-    const normalizedValue = Number(normalized);
-    if (Number.isFinite(normalizedValue)) {
-      const clamped = Math.max(0, Math.min(1, normalizedValue));
-      const percent = Math.round(clamped * 100);
-      return { percent, isMaxLevel: isMaxLevel || percent >= 100 };
-    }
-  }
-
-  const xpPerLevel = Number(
-    profile.xpForNextLevel || profile.nextLevelXP || profile.nextLevelXp || profile.xpPerLevel || 20
-  );
-  if (!Number.isFinite(xpPerLevel) || xpPerLevel <= 0) {
-    return { percent: isMaxLevel ? 100 : 0, isMaxLevel };
-  }
-  const totalXp = Number(profile.totalXP || 0);
-  if (!Number.isFinite(totalXp)) {
-    return { percent: isMaxLevel ? 100 : 0, isMaxLevel };
-  }
-  const remainder = totalXp % xpPerLevel;
-  const percent = isMaxLevel ? 100 : Math.round((remainder / xpPerLevel) * 100);
-  return { percent: Math.max(0, Math.min(100, percent)), isMaxLevel };
-}
-
-function renderXpProgress(profile) {
-  const { percent, isMaxLevel } = calculateLevelProgress(profile);
-  const tooltipRaw = isMaxLevel
-    ? t("profile.xpTooltipMax", "Max level reached")
-    : t("profile.xpTooltip", "XP {value}% to next level").replace("{value}", percent);
-  const tooltip = escapeHtml(tooltipRaw);
-  const width = isMaxLevel ? 100 : percent;
-  const ariaValue = Math.max(0, Math.min(100, width));
-  return `
-    <div class="xp-progress-visual" data-tooltip="${tooltip}">
-      <div class="xp-progress-container" role="progressbar" aria-valuenow="${ariaValue}" aria-valuemin="0" aria-valuemax="100" aria-valuetext="${tooltip}">
-        <div class="xp-progress-fill" style="width:${width}%"></div>
-      </div>
-    </div>
-    <div class="xp-label">${tooltip}</div>
-  `;
 }
 
 function renderBadgeDetails(profile = state.profile) {
@@ -2743,7 +2376,6 @@ async function loadInitialData() {
     refreshGlobalStats(),
     refreshGovernance(),
     refreshLeaderboard(),
-    refreshTalentProfile({ keepPrevious: false }),
     loadMiniAppsData(),
   ]);
 }

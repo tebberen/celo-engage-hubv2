@@ -157,17 +157,8 @@
     },
     "talent": {
       "title": "Talent Profil",
-      "subtitle": "Talent Protocol yolculuğumu Celo Engage Hub içinde takip et.",
-      "loading": "Talent Protocol profili yükleniyor…",
-      "error": "Profil şu anda yüklenemedi. Lütfen daha sonra tekrar deneyin.",
-      "errorToast": "Talent verilerine erişilemedi. Lütfen API anahtarını kontrol et.",
-      "retry": "Tekrar dene",
-      "supporters": "Destekçiler",
-      "badges": "Rozetler",
-      "badgesEmpty": "Henüz rozet yok.",
-      "bioEmpty": "Henüz bio eklenmedi.",
-      "avatarAlt": "{name} için Talent Protocol profil fotoğrafı",
-      "cta": "Talent Protocol'de Görüntüle"
+      "subtitle": "On-chain builder gelişmelerini Celo Engage Hub üzerinden takip et.",
+      "placeholder": "Zincir üstü builder profil modülü yakında geliyor."
     },
     "badge": {
       "title": "Rozetler & Tier",
@@ -202,17 +193,10 @@
     },
     "profile": {
       "title": "Profil",
-      "subtitle": "XP ve rozetlerin burada.",
-      "close": "Profil penceresini kapat",
-      "viewProfile": "Profili görüntüle",
-      "metricsTitle": "Etkinlik İstatistikleri",
+      "subtitle": "Bağlı cüzdan detayları.",
+      "connectPrompt": "Profil adresini görmek için cüzdanını bağla.",
+      "connected": "Bağlı cüzdan:",
       "empty": "Profil bilgisi bulunamadı.",
-      "newUser": "Yeni Kaşif",
-      "copyAddress": "Cüzdan adresini kopyala",
-      "copySuccess": "Adres kopyalandı!",
-      "xpTooltip": "XP {value}% sonraki seviyeye",
-      "xpTooltipMax": "Maksimum seviyeye ulaşıldı",
-      "tierBadgeLabel": "Tier {value} Rozeti",
       "stats": {
         "xp": "XP",
         "level": "Seviye",
@@ -407,17 +391,8 @@
     },
     "talent": {
       "title": "Talent Profile",
-      "subtitle": "Follow my Talent Protocol story directly inside Celo Engage Hub.",
-      "loading": "Loading Talent Protocol profile…",
-      "error": "We couldn't load the profile right now. Please try again soon.",
-      "errorToast": "Talent data unavailable. Check API key.",
-      "retry": "Retry",
-      "supporters": "Supporters",
-      "badges": "Badges",
-      "badgesEmpty": "No badges yet.",
-      "bioEmpty": "No bio added yet.",
-      "avatarAlt": "{name}'s Talent Protocol profile photo",
-      "cta": "View on Talent Protocol"
+      "subtitle": "Follow on-chain builders directly from Celo Engage Hub.",
+      "placeholder": "On-chain builder profile module coming soon."
     },
     "badge": {
       "title": "Badges & Tiers",
@@ -452,17 +427,10 @@
     },
     "profile": {
       "title": "Profile",
-      "subtitle": "Your XP and badges.",
-      "close": "Close profile",
-      "viewProfile": "View profile",
-      "metricsTitle": "Activity Stats",
+      "subtitle": "Connected wallet details.",
+      "connectPrompt": "Connect your wallet to view your profile address.",
+      "connected": "Connected wallet:",
       "empty": "Profile information not found.",
-      "newUser": "New Explorer",
-      "copyAddress": "Copy wallet address",
-      "copySuccess": "Address copied!",
-      "xpTooltip": "XP {value}% to next level",
-      "xpTooltipMax": "Max level reached",
-      "tierBadgeLabel": "Tier {value} Badge",
       "stats": {
         "xp": "XP",
         "level": "Level",

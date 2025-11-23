@@ -3,7 +3,7 @@
 Celo Engage Hub'un front-end kaynak kodu. Vanilla JS, CSS ve CDN’den yüklenen bağımlılıklarla çalışır ve doğrudan `index.html` üzerinden servis edilir.
 
 ## Kilit Dosyalar
-- **main.js**: Cüzdan bağlantıları, modül aksiyonları (GM, deploy, donate, link, governance), toast akışı, gerçek zamanlı güncellemeler, kimlik doğrulama ve Talent Protocol entegrasyonunu yöneten ana UI denetleyicisi.
+- **main.js**: Cüzdan bağlantıları, modül aksiyonları (GM, deploy, donate, link, governance), toast akışı, gerçek zamanlı güncellemeler ve kimlik doğrulama akışını yöneten ana UI denetleyicisi.
 - **lang.json**: Tüm UI metinleri için merkezî çeviri kaynağı; dil değişimleri buradan okunur.
 
 ## Alt Klasörler

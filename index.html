@@ -372,51 +372,10 @@
             <section id="talent" class="section" data-section-label="Talent Profile" style="display: none;">
               <div class="section-header">
                 <h2 data-i18n="talent.title">Talent Profile</h2>
-                <p data-i18n="talent.subtitle">Track my Talent Protocol journey from inside Celo Engage Hub.</p>
+                <p data-i18n="talent.subtitle">Follow on-chain builders right from Celo Engage Hub.</p>
               </div>
-              <article class="card talent-card" id="talentProfileCard" aria-live="polite">
-                <div class="talent-loading" id="talentProfileLoading">
-                  <span class="talent-spinner" aria-hidden="true"></span>
-                  <span data-i18n="talent.loading">Loading Talent Protocol profile…</span>
-                </div>
-                <div class="talent-error" id="talentProfileError" hidden>
-                  <p id="talentProfileErrorMessage" data-i18n="talent.error">
-                    Unable to load the profile right now. Please try again shortly.
-                  </p>
-                  <button type="button" class="secondary-btn" id="talentProfileRetry" data-i18n="talent.retry">Retry</button>
-                </div>
-                <div class="talent-content" id="talentProfileContent" hidden>
-                  <header class="talent-hero">
-                    <div class="talent-avatar">
-                      <img id="talentProfileImage" src="" alt="" loading="lazy" decoding="async" />
-                    </div>
-                    <div class="talent-heading">
-                      <h3 id="talentProfileName" class="talent-name">—</h3>
-                      <p id="talentProfileUsername" class="talent-username">—</p>
-                    </div>
-                  </header>
-                  <p id="talentProfileBio" class="talent-bio">—</p>
-                  <div class="talent-metrics">
-                    <div class="talent-metric">
-                      <span class="talent-metric__label" data-i18n="talent.supporters">Supporters</span>
-                      <strong id="talentProfileSupporters">0</strong>
-                    </div>
-                    <div class="talent-metric">
-                      <span class="talent-metric__label" data-i18n="talent.badges">Badges</span>
-                      <div id="talentProfileBadges" class="talent-badges"></div>
-                    </div>
-                  </div>
-                  <a
-                    id="talentProfileLink"
-                    class="primary-btn talent-profile-link"
-                    href="#"
-                    target="_blank"
-                    rel="noopener"
-                    data-i18n="talent.cta"
-                  >
-                    View on Talent Protocol
-                  </a>
-                </div>
+              <article class="card talent-card" aria-live="polite">
+                <p data-i18n="talent.placeholder">On-chain builder profile module coming soon.</p>
               </article>
             </section>
 
@@ -478,38 +437,16 @@
             <section id="profile" class="section" data-section-label="Profile" style="display: none;">
               <div class="section-header">
                 <h2 data-i18n="profile.title">Profile</h2>
-                <p data-i18n="profile.subtitle">Your XP and badges.</p>
+                <p data-i18n="profile.subtitle">Connected wallet details.</p>
               </div>
               <div class="card profile-card">
-                <div class="profile-card__identity">
-                  <div>
-                    <p id="profileUsername" class="profile-username">—</p>
-                  </div>
-                  <button
-                    id="profileCopyButton"
-                  type="button"
-                  class="copy-address-btn"
-                  aria-label="Copy wallet address"
-                  data-i18n-aria-label="profile.copyAddress"
-                >
-                  📋
-                </button>
-              </div>
-                <span id="profileAddress" class="profile-address">—</span>
-                <div id="profileStats" class="stats-grid"></div>
-                <div class="level-tier" id="profileLevelTier">
-                  <span id="profileLevelLabel">Level —</span>
-                  <span id="profileTierLabel">Tier —</span>
-                </div>
-                <div class="badge-stack" id="badgeStack"></div>
-                <div id="xpProgress" class="xp-progress-wrap"></div>
-                <div class="profile-links">
-                  <a id="publicProfileLink" target="_blank" rel="noopener" data-i18n="profile.viewProfile">View profile</a>
-                </div>
-                <div class="profile-metrics">
-                  <h3 data-i18n="profile.metricsTitle">Activity Stats</h3>
-                  <ul id="profileMetrics"></ul>
-                </div>
+                <p id="profilePlaceholder" class="profile-placeholder" data-i18n="profile.connectPrompt">
+                  Connect your wallet to view your profile address.
+                </p>
+                <p id="profileAddressLabel" class="profile-address" hidden>
+                  <span data-i18n="profile.connected">Connected wallet:</span>
+                  <strong id="profileAddressValue">—</strong>
+                </p>
               </div>
             </section>
           </div>
