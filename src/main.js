@@ -101,6 +101,7 @@ const elements = {
   sections: document.querySelectorAll(".section"),
   breadcrumb: document.getElementById("breadcrumb"),
   navLanguageButton: document.getElementById("navLanguageButton"),
+  walletActions: document.querySelector(".wallet-actions"),
   connectModal: document.getElementById("connectModal"),
   connectOptions: document.querySelectorAll("[data-connect-option]"),
   disconnectWallet: document.getElementById("disconnectWallet"),
@@ -1618,11 +1619,17 @@ function renderNetworkInfo(valid) {
 
 function updateWalletUI() {
   const connected = Boolean(state.address);
+  if (elements.walletActions) {
+    elements.walletActions.classList.toggle("is-connected", connected);
+    elements.walletActions.classList.toggle("is-disconnected", !connected);
+  }
   if (elements.navbarConnectButton) {
     elements.navbarConnectButton.hidden = connected;
+    elements.navbarConnectButton.setAttribute("aria-hidden", connected ? "true" : "false");
   }
   if (elements.walletPill) {
     elements.walletPill.hidden = !connected;
+    elements.walletPill.setAttribute("aria-hidden", connected ? "false" : "true");
   }
   if (elements.walletAddressLabel) {
     elements.walletAddressLabel.textContent = connected ? shorten(state.address) : t("wallet.statusIdle", "Wallet");
