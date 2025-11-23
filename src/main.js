@@ -1665,7 +1665,8 @@ function renderNetworkInfo(valid) {
 function updateWalletUI() {
   const connected = Boolean(state.address);
   if (elements.connectTrigger) {
-    elements.connectTrigger.hidden = connected;
+    elements.connectTrigger.toggleAttribute("hidden", connected);
+    elements.connectTrigger.setAttribute("aria-hidden", connected ? "true" : "false");
   }
   if (elements.walletPill) {
     elements.walletPill.hidden = !connected;

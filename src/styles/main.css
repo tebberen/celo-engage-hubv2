@@ -154,24 +154,20 @@ textarea:focus-visible {
   justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
-  background: rgba(255, 250, 229, 0.95);
-  padding: 10px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(186, 147, 34, 0.2);
-  box-shadow: 0 12px 32px -22px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(4px);
+  padding: 4px 0;
 }
 
 .nav-btn {
   position: relative;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid rgba(186, 147, 34, 0.24);
+  background: rgba(255, 239, 188, 0.6);
   color: var(--nav-button-text);
   font-weight: 600;
   padding: 10px 14px;
   border-radius: 12px;
   min-height: 42px;
   transition: background var(--transition), box-shadow var(--transition), border-color var(--transition), color var(--transition);
+  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.2);
 }
 
 .nav-btn::after {
@@ -215,9 +211,9 @@ textarea:focus-visible {
   gap: 10px;
   padding: 8px 12px;
   border-radius: 16px;
-  background: rgba(255, 250, 229, 0.9);
-  border: 1px solid rgba(186, 147, 34, 0.2);
-  box-shadow: 0 10px 28px -20px rgba(0, 0, 0, 0.28);
+  background: rgba(255, 216, 94, 0.2);
+  border: 1px solid rgba(186, 147, 34, 0.32);
+  box-shadow: 0 10px 22px -20px rgba(0, 0, 0, 0.22);
   flex-wrap: wrap;
 }
 
@@ -247,7 +243,7 @@ textarea:focus-visible {
   height: 42px;
   border-radius: 12px;
   border: 1px solid rgba(186, 147, 34, 0.32);
-  background: rgba(255, 250, 229, 0.95);
+  background: rgba(255, 239, 188, 0.7);
   display: grid;
   place-items: center;
   color: #1c1206;
@@ -270,7 +266,7 @@ textarea:focus-visible {
   padding: 10px 18px;
   border-radius: 12px;
   border: 1px solid rgba(186, 147, 34, 0.3);
-  background: rgba(255, 250, 229, 0.95);
+  background: rgba(255, 239, 188, 0.75);
   color: #1b1206;
   font-weight: 600;
   box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.2);
@@ -285,7 +281,7 @@ textarea:focus-visible {
 .wallet-actions .connect-btn,
 .wallet-pill__button {
   min-width: 44px;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
 }
 
 .wallet-pill {
@@ -304,7 +300,7 @@ textarea:focus-visible {
   padding: 10px 18px;
   border-radius: 12px;
   border: 1px solid rgba(186, 147, 34, 0.3);
-  background: rgba(255, 250, 229, 0.95);
+  background: rgba(255, 239, 188, 0.78);
   font-weight: 600;
   color: #1b1206;
   box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.2);
