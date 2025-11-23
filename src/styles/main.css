@@ -301,11 +301,11 @@ textarea:focus-visible {
 
 .wallet-pill {
   position: relative;
-  display: none;
+  display: flex;
 }
 
-.wallet-pill:not([hidden]) {
-  display: flex;
+.wallet-pill[hidden] {
+  display: none;
 }
 
 .wallet-pill__button {
@@ -324,6 +324,14 @@ textarea:focus-visible {
 .wallet-pill__button:hover,
 .wallet-pill__button:focus-visible {
   box-shadow: 0 0 0 1px rgba(251, 204, 92, 0.4), 0 12px 26px -18px rgba(0, 0, 0, 0.22);
+}
+
+.wallet-pill__button.is-disconnected {
+  cursor: pointer;
+}
+
+.wallet-pill__button.is-disconnected .wallet-pill__chevron {
+  display: none;
 }
 
 .wallet-pill__status {

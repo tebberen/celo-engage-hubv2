@@ -101,7 +101,6 @@ const elements = {
   sections: document.querySelectorAll(".section"),
   breadcrumb: document.getElementById("breadcrumb"),
   navLanguageButton: document.getElementById("navLanguageButton"),
-  connectTrigger: document.getElementById("connectTrigger"),
   connectModal: document.getElementById("connectModal"),
   connectOptions: document.querySelectorAll("[data-connect-option]"),
   disconnectWallet: document.getElementById("disconnectWallet"),
@@ -1319,40 +1318,38 @@ function updateConnectOptionAvailability() {
   });
 }
 
+async function startWalletConnection(trigger) {
+  if (state.address) {
+    toggleWalletDropdown(true);
+    return;
+  }
+  const injectedConnector = getInjectedWalletConnector();
+  if (injectedConnector) {
+    let connected = false;
+    try {
+      await withButtonLoading(
+        trigger,
+        { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+        async () => {
+          await connectWallet(injectedConnector);
+          connected = Boolean(state.address);
+        }
+      );
+    } catch (error) {
+      console.error("❌ [Wallet] Direct connect failed", error);
+    }
+    if (connected) {
+      return;
+    }
+  }
+  openConnectModal(trigger);
+}
+
 function setupWalletButtons() {
   updateConnectOptionAvailability();
   if (typeof window !== "undefined") {
     window.addEventListener("ethereum#initialized", updateConnectOptionAvailability, { once: true });
     setTimeout(updateConnectOptionAvailability, 1000);
-  }
-
-  if (elements.connectTrigger) {
-    elements.connectTrigger.addEventListener("click", async () => {
-      if (state.address) {
-        toggleWalletDropdown(true);
-        return;
-      }
-      const injectedConnector = getInjectedWalletConnector();
-      if (injectedConnector) {
-        let connected = false;
-        try {
-          await withButtonLoading(
-            elements.connectTrigger,
-            { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
-            async () => {
-              await connectWallet(injectedConnector);
-              connected = Boolean(state.address);
-            }
-          );
-        } catch (error) {
-          console.error("❌ [Wallet] Direct connect failed", error);
-        }
-        if (connected) {
-          return;
-        }
-      }
-      openConnectModal(elements.connectTrigger);
-    });
   }
 
   elements.connectOptions.forEach((option) => {
@@ -1398,15 +1395,24 @@ function setupWalletDropdown() {
   elements.walletDropdown.setAttribute("aria-hidden", "true");
   elements.walletPillButton.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (!state.address) {
+      startWalletConnection(elements.walletPillButton);
+      return;
+    }
     toggleWalletDropdown();
   });
 
   elements.walletPillButton.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space") {
+    const isActivateKey = event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space";
+    if (isActivateKey) {
       event.preventDefault();
-      toggleWalletDropdown();
+      if (!state.address) {
+        startWalletConnection(elements.walletPillButton);
+      } else {
+        toggleWalletDropdown();
+      }
     }
-    if (event.key === "ArrowDown" && !elements.walletDropdown.classList.contains("open")) {
+    if (state.address && event.key === "ArrowDown" && !elements.walletDropdown.classList.contains("open")) {
       event.preventDefault();
       openWalletDropdown();
     }
@@ -1596,24 +1602,17 @@ function renderNetworkInfo(valid) {
 
 function updateWalletUI() {
   const connected = Boolean(state.address);
-  if (elements.connectTrigger) {
-    elements.connectTrigger.hidden = connected;
-    elements.connectTrigger.setAttribute("aria-hidden", connected ? "true" : "false");
-    if (connected) {
-      elements.connectTrigger.setAttribute("tabindex", "-1");
-    } else {
-      elements.connectTrigger.removeAttribute("tabindex");
-    }
-  }
   if (elements.walletPill) {
-    elements.walletPill.hidden = !connected;
+    elements.walletPill.hidden = false;
   }
   if (elements.walletAddressLabel) {
-    elements.walletAddressLabel.textContent = connected ? shorten(state.address) : "—";
+    elements.walletAddressLabel.textContent = connected ? shorten(state.address) : t("wallet.statusIdle", "Wallet");
   }
   if (elements.walletPillButton) {
-    const expanded = elements.walletDropdown?.classList.contains("open") ? "true" : "false";
+    const expanded = connected && elements.walletDropdown?.classList.contains("open") ? "true" : "false";
     elements.walletPillButton.setAttribute("aria-expanded", expanded);
+    elements.walletPillButton.setAttribute("aria-haspopup", connected ? "true" : "dialog");
+    elements.walletPillButton.classList.toggle("is-disconnected", !connected);
   }
   if (!connected) {
     closeWalletDropdown();
