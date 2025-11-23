@@ -1528,8 +1528,12 @@ function setupToastBridge() {
 
 function updateAnalyticsLinks() {
   const analytics = getAnalyticsConfig();
-  elements.duneLink.href = analytics.dune;
-  elements.graphLink.href = analytics.graph;
+  if (elements.duneLink) {
+    elements.duneLink.href = analytics.dune;
+  }
+  if (elements.graphLink) {
+    elements.graphLink.href = analytics.graph;
+  }
 }
 
 async function connectWallet(connector) {

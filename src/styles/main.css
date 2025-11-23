@@ -1447,53 +1447,6 @@ textarea {
   box-shadow: var(--shadow-soft);
 }
 
-.app-footer {
-  padding: clamp(24px, 4vw, 48px);
-  background: #fff8e1;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.global-counters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-}
-
-.counter-card {
-  padding: 14px 16px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  text-align: center;
-  display: grid;
-  gap: 8px;
-}
-
-.counter-card strong {
-  font-size: 20px;
-}
-
-.footer-links {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.footer-links a {
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-strong);
-}
-
-.footer-links a:hover,
-.footer-links a:focus-visible {
-  box-shadow: var(--shadow-soft);
-}
-
 .toast-container {
   position: fixed;
   right: 16px;
@@ -1546,21 +1499,6 @@ textarea {
   .share-modal__dialog {
     animation: none !important;
   }
-}
-
-.miniapp-floating-label {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: rgba(251, 204, 92, 0.9);
-  color: var(--text-strong);
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: var(--shadow-glow);
-  z-index: 70;
-  pointer-events: none;
 }
 
 .modal-layer,
@@ -2182,13 +2120,6 @@ textarea {
   .share-modal__dialog {
     margin: 64px 12px;
     max-width: 100%;
-  }
-
-  .miniapp-floating-label {
-    right: 12px;
-    bottom: 12px;
-    font-size: 12px;
-    padding: 8px 14px;
   }
 }
 
