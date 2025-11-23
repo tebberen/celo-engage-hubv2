@@ -17,10 +17,8 @@ import {
   CUSD_TOKEN_ADDRESS,
   CEUR_TOKEN_ADDRESS,
   NETWORK_FALLBACK_RPC_URLS,
-  SELF_GATE_ADDRESS,
-  SELF_GATE_ABI,
 } from "../utils/constants.js";
-import { checkCurrentNetwork, getWalletDetails } from "./walletService.js";
+import { getWalletDetails } from "./walletService.js";
 import { sendWithReferral } from "./divviReferral.js";
 
 const READ_RPC_TIMEOUT = 20000;
@@ -281,48 +279,6 @@ export function getProfile(withWrite = false) {
 
 export function getBadge(withWrite = false) {
   return createContract(resolveModuleAddress("BADGE"), MODULES.BADGE.abi, withWrite);
-}
-
-export function getSelfGate(withWrite = false) {
-  return createContract(SELF_GATE_ADDRESS, SELF_GATE_ABI, withWrite);
-}
-
-export async function checkSelfVerification() {
-  const { address, provider } = getWalletDetails();
-  if (!address) {
-    throw new Error(UI_MESSAGES.walletNotConnected || "Wallet not connected");
-  }
-
-  const onExpectedNetwork = await checkCurrentNetwork(provider);
-  if (!onExpectedNetwork) {
-    throw new Error(UI_MESSAGES.wrongNetwork || "Wrong network");
-  }
-
-  try {
-    const selfGate = getSelfGate(false);
-    const callData = selfGate.interface.encodeFunctionData(
-      "checkMyVerification"
-    );
-    const rawResult = await selfGate.provider.call({
-      to: SELF_GATE_ADDRESS,
-      data: callData,
-      from: address,
-    });
-
-    const [isVerified, lastVerifiedAt, selfChainId, selfProof] =
-      selfGate.interface.decodeFunctionResult("checkMyVerification", rawResult);
-
-    return {
-      address,
-      isVerified: Boolean(isVerified),
-      lastVerifiedAt: lastVerifiedAt ? Number(lastVerifiedAt) : 0,
-      selfChainId: selfChainId ? Number(selfChainId) : 0,
-      selfProof,
-    };
-  } catch (error) {
-    console.error("❌ [Self] checkMyVerification failed", error);
-    throw error;
-  }
 }
 
 export function getBadgeVersions() {

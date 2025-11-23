@@ -20,7 +20,7 @@ Celo Engage Hub, Modüler Social-Fi deneyimini CELO ekosistemine taşıyan oyunl
 ## Genel Bakış
 
 - **Amaç:** CELO topluluğunun etkileşimini artırmak, zincir üstü aksiyonları oyunlaştırmak ve topluluk içi ödüllendirme mekanizmalarını tek bir merkezde toplamak.
-- **Teknolojiler:** Vanilla JS tabanlı front-end, `ethers.js` ile kontrat etkileşimi, Self ID doğrulaması için Express tabanlı hafif bir backend.
+- **Teknolojiler:** Vanilla JS tabanlı front-end, `ethers.js` ile kontrat etkileşimi, opsiyonel (varsayılan akışta devre dışı) Self ID doğrulaması için Express tabanlı hafif bir backend.
 - **Durum:** Celo Mainnet üzerinde canlı kontratlar ile çalışır; Sepolia/Alfajores test ağları geliştirme ve demo süreçlerini destekler.
 
 ## Ağlar ve Kontrat Adresleri
@@ -65,16 +65,6 @@ Sistem sahibinin adresi: **`0x09dFa0d77125978997dD9f94A0F870D3f2900DA5`**
 
 Ön uç statik varlıklar olarak servis edildiği için `index.html` dosyasını yerel bir sunucuda çalıştırmanız yeterlidir. Örnek olarak VS Code Live Server veya `http-server` kullanılabilir. RPC/WS adresleri ve diğer yapılandırmalar `.env` dosyasında yönetilir. Celo Mainnet için varsayılan ayarlar sağlanır; test ağlarına geçiş için `.env` değişkenlerini güncellemeniz yeterlidir.
 
-### Self ID Doğrulama Sunucusu
-
-Self ID doğrulaması için Express tabanlı küçük bir servis bulunur.
-
-```bash
-npm run start:server
-```
-
-Varsayılan olarak `8787` portunu dinler. Çevresel değişkenler ile port değiştirilebilir (`PORT`). Uygulama front-end tarafında `SELF_BACKEND_URL` değişkenini kullanarak bu servise bağlanır.
-
 ## Çevresel Değişkenler
 
 `.env` dosyası oluşturarak aşağıdaki değişkenleri tanımlayabilirsiniz. Değerler tanımlanmazsa varsayılan fallback’ler kullanılır.
@@ -83,7 +73,6 @@ Varsayılan olarak `8787` portunu dinler. Çevresel değişkenler ile port deği
 | --- | --- | --- |
 | `CELO_ENGAGE_RPC_URL` | Öncelikli RPC uç noktası | Celo Forno RPC’leri |
 | `CELO_ENGAGE_WS_URL` | WebSocket sağlayıcısı | Celo Forno WS’leri |
-| `SELF_BACKEND_URL` | Self doğrulama servisi adresi | `http://localhost:8787` |
 | `TALENT_PROTOCOL_USERNAME` | Talent Protocol entegrasyonu için kullanıcı adı | `null` (özellik devre dışı) |
 
 Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif değişkenler de otomatik olarak desteklenir.
@@ -105,10 +94,10 @@ Ayrıca `PUBLIC_`, `VITE_` veya `NEXT_PUBLIC_` prefix’lerine sahip alternatif 
 ## Mimari ve Teknik Notlar
 
 - **Tek Kaynaklı Sabitler:** Adresler, ABI referansları ve yapılandırmalar `src/utils/constants.js` dosyasında tutulur.
-- **Servis Katmanı:** Zincir etkileşimleri `src/services/contractService.js`, cüzdan bağlantısı `src/services/walletService.js`, kimlik doğrulama `src/services/identityService.js` üzerinden yönetilir.
+- **Servis Katmanı:** Zincir etkileşimleri `src/services/contractService.js`, cüzdan bağlantısı `src/services/walletService.js` üzerinden yönetilir; `identityService.js` doğrulama durumu için yalnızca yerel yardımcılar içerir.
 - **Dil Dosyası:** Tüm UI metinleri `src/lang.json` içerisinde yer alır. Yeni dil desteği eklemek için bu dosyada ilgili çevirileri tanımlamak yeterlidir.
 - **CDN Modülleri:** `ethers.js` 5.7.2 ESM sürümü CDN’den import edilir (`src/utils/cdn-modules.js`).
-- **Kimlik Doğrulama Sunucusu:** `server/index.js` dosyası Self ID doğrulamasını gerçekleştirir, imza doğrulaması için `ethers.utils.verifyMessage` kullanır ve hafızada doğrulanmış cüzdanları tutar.
+- **Kimlik Doğrulama Sunucusu:** Önceden Self ID doğrulaması için kullanılan `server/index.js` artık varsayılan akışta devre dışıdır.
 
 ## UI Haritası
 

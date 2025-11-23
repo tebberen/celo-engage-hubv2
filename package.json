@@ -8,8 +8,6 @@
     "start:server": "node server/index.js"
   },
   "dependencies": {
-    "@selfxyz/core": "^2.0.0",
-    "@selfxyz/qrcode": "^2.0.0",
     "@walletconnect/web3-provider": "^1.8.0",
     "cors": "^2.8.5",
     "ethers": "^5.7.2",

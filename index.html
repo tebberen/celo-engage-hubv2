@@ -64,7 +64,6 @@
               decoding="async"
             />
           </picture>
-          <span class="nav-left__slogan">If you want support, support first.</span>
         </div>
         <nav class="app-nav" aria-label="Ana gezinme">
           <button class="nav-btn active" data-target="home" data-i18n="nav.home">Home</button>
@@ -84,12 +83,7 @@
               data-i18n-aria-label="actions.languageToggle"
             >🌐</button>
             <div class="wallet-actions">
-              <div class="identity-connect-pill" id="identityConnectPill">
-                <button id="verifyHumanButton" type="button" class="verify-btn">Verify with Self ID</button>
-                <span class="identity-connect-pill__divider" aria-hidden="true"></span>
-                <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
-                <span id="walletVerifiedBadge" class="status-badge status-badge--unverified">Not verified</span>
-              </div>
+              <button id="connectTrigger" class="connect-btn" data-i18n="wallet.connect">Connect</button>
               <div id="walletPill" class="wallet-pill" hidden>
                 <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
                   <span id="walletAddressLabel">—</span>
@@ -145,18 +139,6 @@
               <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
                 More Ecosystem Tools →
               </button>
-            </section>
-
-            <section class="card self-card" id="self-verification-card">
-              <div class="card-header-row">
-                <h3>Self Verification</h3>
-                <span id="self-status-pill" class="status-pill status-pending">Not checked</span>
-              </div>
-              <p class="card-description">
-                Check if your address has an active Self Protocol verification for this app’s config.
-              </p>
-              <button id="self-check-btn" class="primary-btn">Check Self verification</button>
-              <p id="self-status-details" class="muted small-text"></p>
             </section>
           </aside>
 
@@ -494,24 +476,23 @@
             <section id="profile" class="section" data-section-label="Profile" style="display: none;">
               <div class="section-header">
                 <h2 data-i18n="profile.title">Profile</h2>
-                <p data-i18n="profile.subtitle">Your XP, badges, and verification status.</p>
+                <p data-i18n="profile.subtitle">Your XP and badges.</p>
               </div>
               <div class="card profile-card">
                 <div class="profile-card__identity">
                   <div>
                     <p id="profileUsername" class="profile-username">—</p>
-                    <span id="profileVerifiedBadge" class="status-badge status-badge--unverified">Not verified</span>
                   </div>
                   <button
                     id="profileCopyButton"
-                    type="button"
-                    class="copy-address-btn"
-                    aria-label="Copy wallet address"
-                    data-i18n-aria-label="profile.copyAddress"
-                  >
-                    📋
-                  </button>
-                </div>
+                  type="button"
+                  class="copy-address-btn"
+                  aria-label="Copy wallet address"
+                  data-i18n-aria-label="profile.copyAddress"
+                >
+                  📋
+                </button>
+              </div>
                 <span id="profileAddress" class="profile-address">—</span>
                 <div id="profileStats" class="stats-grid"></div>
                 <div class="level-tier" id="profileLevelTier">
@@ -567,33 +548,6 @@
               </div>
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="selfModal" class="modal-layer self-modal" aria-hidden="true">
-      <div class="modal-backdrop" data-dismiss="selfModal"></div>
-      <div class="modal-dialog" role="dialog" aria-modal="true">
-        <button class="modal-close" data-dismiss="selfModal" aria-label="Close Self verification">
-          ✕
-        </button>
-        <div class="modal-body">
-          <h2>Verify with Self ID</h2>
-          <p>Scan the QR code with the Self mobile app to complete verification.</p>
-          <div id="selfQrContainer" class="self-qr-container" aria-live="polite"></div>
-          <div class="self-deeplink">
-            <a id="selfDeepLink" class="self-deeplink__button" href="#" target="_blank" rel="noopener" hidden>Open in Self App</a>
-            <a
-              id="selfReferralLink"
-              class="self-deeplink__button self-deeplink__button--secondary"
-              href="https://referral.self.xyz/referral/0x5b035ef556f804fcd99503b5cD00c975c0673126"
-              target="_blank"
-              rel="noopener"
-            >
-              Download Self App
-            </a>
-          </div>
-          <p id="selfStatusMessage" class="self-status" aria-live="polite">Waiting for verification…</p>
         </div>
       </div>
     </div>

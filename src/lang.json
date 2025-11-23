@@ -202,6 +202,7 @@
     },
     "profile": {
       "title": "Profil",
+      "subtitle": "XP ve rozetlerin burada.",
       "close": "Profil penceresini kapat",
       "viewProfile": "Profili görüntüle",
       "metricsTitle": "Etkinlik İstatistikleri",
@@ -451,6 +452,7 @@
     },
     "profile": {
       "title": "Profile",
+      "subtitle": "Your XP and badges.",
       "close": "Close profile",
       "viewProfile": "View profile",
       "metricsTitle": "Activity Stats",
