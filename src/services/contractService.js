@@ -20,7 +20,7 @@ import {
   SELF_GATE_ADDRESS,
   SELF_GATE_ABI,
 } from "../utils/constants.js";
-import { getWalletDetails } from "./walletService.js";
+import { checkCurrentNetwork, getWalletDetails } from "./walletService.js";
 import { sendWithReferral } from "./divviReferral.js";
 
 const READ_RPC_TIMEOUT = 20000;
@@ -288,9 +288,14 @@ export function getSelfGate(withWrite = false) {
 }
 
 export async function checkSelfVerification() {
-  const { address } = getWalletDetails();
+  const { address, provider } = getWalletDetails();
   if (!address) {
     throw new Error(UI_MESSAGES.walletNotConnected || "Wallet not connected");
+  }
+
+  const onExpectedNetwork = await checkCurrentNetwork(provider);
+  if (!onExpectedNetwork) {
+    throw new Error(UI_MESSAGES.wrongNetwork || "Wrong network");
   }
 
   try {
