@@ -68,7 +68,15 @@
               data-i18n-aria-label="actions.languageToggle"
             >🌐</button>
             <div class="wallet-actions">
-              <div id="walletPill" class="wallet-pill">
+              <button
+                id="navbarConnectButton"
+                class="connect-btn"
+                type="button"
+                data-i18n="wallet.title"
+              >
+                Connect Wallet
+              </button>
+              <div id="walletPill" class="wallet-pill" hidden>
                 <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
                   <span id="walletAddressLabel">—</span>
                   <span class="wallet-pill__status" aria-hidden="true">•</span>
@@ -414,16 +422,6 @@
                 <p id="profilePlaceholder" class="profile-placeholder" data-i18n="profile.connectPrompt">
                   Connect your wallet to view your profile address.
                 </p>
-                <div id="profileConnectActions" class="profile-connect" hidden>
-                  <button
-                    id="profileConnectButton"
-                    class="primary-btn"
-                    type="button"
-                    data-i18n="wallet.title"
-                  >
-                    Connect Wallet
-                  </button>
-                </div>
                 <p id="profileAddressLabel" class="profile-address" hidden>
                   <span data-i18n="profile.connected">Connected wallet:</span>
                   <strong id="profileAddressValue">—</strong>
