@@ -40,9 +40,7 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
-import { syncVerifiedFlag, clearVerificationState, setVerifiedHuman } from "./services/identityService.js";
 import { fetchTalentProfile } from "./services/talentService.js";
-import { loadSelfStatus } from "./services/selfService.js";
 
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
@@ -57,9 +55,6 @@ const storedCompletedLinks = safeParseStorage(localStorage.getItem(COMPLETED_STO
 const newLinkHighlights = new Set();
 const liveLinkCache = new Set();
 
-const VERIFICATION_SUCCESS_MESSAGE = "✅ Verified with Self ID successfully.";
-const VERIFICATION_FAILURE_MESSAGE = "⚠️ Verification failed. Try again.";
-const WALLET_REQUIRED_MESSAGE = "Connect wallet to verify identity.";
 const COMPLETION_THRESHOLD = 3;
 const MAX_COMPLETED_HISTORY = 50;
 const MINI_APP_CATEGORIES = [
@@ -96,7 +91,6 @@ const state = {
   sharePromptLink: null,
   deviceId,
   feedEntries: [],
-  verifiedHuman: false,
   talentProfile: {
     status: "idle",
     data: null,
@@ -126,8 +120,6 @@ const elements = {
   walletStatusIcon: document.querySelector(".wallet-pill__status"),
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
-  verifyHumanButton: document.getElementById("verifyHumanButton"),
-  walletVerifiedBadge: document.getElementById("walletVerifiedBadge"),
   profileStats: document.getElementById("profileStats"),
   badgeStack: document.getElementById("badgeStack"),
   xpProgress: document.getElementById("xpProgress"),
@@ -137,7 +129,6 @@ const elements = {
   profileUsername: document.getElementById("profileUsername"),
   profileAddress: document.getElementById("profileAddress"),
   publicProfileLink: document.getElementById("publicProfileLink"),
-  profileVerifiedBadge: document.getElementById("profileVerifiedBadge"),
   profileMetrics: document.getElementById("profileMetrics"),
   feedSpinner: document.getElementById("feedSpinner"),
   feedBadge: document.getElementById("feedBadge"),
@@ -190,11 +181,6 @@ const elements = {
   sharePromptLink: document.getElementById("sharePromptLink"),
   sharePromptForm: document.getElementById("sharePromptForm"),
   sharePromptInput: document.getElementById("sharePromptInput"),
-  selfModal: document.getElementById("selfModal"),
-  selfQrContainer: document.getElementById("selfQrContainer"),
-  selfDeepLink: document.getElementById("selfDeepLink"),
-  selfReferralLink: document.getElementById("selfReferralLink"),
-  selfStatusMessage: document.getElementById("selfStatusMessage"),
   donateQuickButtons: document.querySelectorAll("[data-donate-amount]"),
   duneLink: document.getElementById("duneLink"),
   graphLink: document.getElementById("graphLink"),
@@ -224,8 +210,6 @@ const elements = {
 let activeSectionId = null;
 let wsProvider = null;
 let linkEventContract = null;
-
-let isVerifyingHuman = false;
 let talentProfileAbortController = null;
 
 const FOCUSABLE_SELECTOR =
@@ -405,8 +389,6 @@ function init() {
   setupConnectModal();
   setupWalletButtons();
   setupWalletDropdown();
-  setupIdentityVerification();
-  initSelfVerificationUI();
   setupProfileModal();
   setupUsernameModal();
   setupEcosystemModal();
@@ -1458,7 +1440,6 @@ function setupWalletButtons() {
   if (elements.disconnectWallet) {
     elements.disconnectWallet.addEventListener("click", async () => {
       const button = elements.disconnectWallet;
-      const previousAddress = state.address;
       try {
         await withButtonLoading(button, { loadingText: getLoadingText("pending", "Pending…") }, async () => {
           await disconnectWallet();
@@ -1466,15 +1447,11 @@ function setupWalletButtons() {
         state.address = null;
         state.profile = null;
         state.isOwner = false;
-        state.verifiedHuman = false;
-        clearVerificationState(previousAddress);
-        closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
         updateWalletUI();
         renderNetworkInfo(false);
-        renderVerificationState();
         showToast("success", "Cüzdan bağlantısı kesildi.");
       } catch (error) {
         console.error("❌ [Wallet] Disconnect failed", error);
@@ -1515,184 +1492,6 @@ function setupWalletDropdown() {
     if (event.target.closest("#walletPill")) return;
     closeWalletDropdown();
   });
-}
-
-function setupIdentityVerification() {
-  if (elements.verifyHumanButton) {
-    elements.verifyHumanButton.addEventListener("click", handleVerifyHumanClick);
-  }
-  renderVerificationState();
-}
-
-function syncCurrentVerification() {
-  isVerifyingHuman = false;
-  if (!state.address) {
-    state.verifiedHuman = false;
-    renderVerificationState();
-    return;
-  }
-  const verified = syncVerifiedFlag(state.address);
-  state.verifiedHuman = verified;
-  renderVerificationState();
-}
-
-function updateVerificationBadge(element, verified, hasWallet) {
-  if (!element) return;
-  if (verified) {
-    element.textContent = "Verified with Self";
-    element.classList.add("status-badge--verified");
-    element.classList.remove("status-badge--unverified");
-    element.removeAttribute("hidden");
-  } else {
-    element.textContent = "Not verified";
-    element.classList.remove("status-badge--verified");
-    element.classList.add("status-badge--unverified");
-    if (hasWallet) {
-      element.removeAttribute("hidden");
-    } else {
-      element.setAttribute("hidden", "true");
-    }
-  }
-}
-
-function renderVerificationState() {
-  const hasWallet = Boolean(state.address);
-  const verified = Boolean(hasWallet && state.verifiedHuman);
-  if (elements.verifyHumanButton) {
-    if (isVerifyingHuman && !verified) {
-      elements.verifyHumanButton.textContent = "Verifying…";
-      elements.verifyHumanButton.disabled = true;
-      elements.verifyHumanButton.setAttribute("aria-busy", "true");
-      elements.verifyHumanButton.classList.add("is-loading");
-    } else {
-      elements.verifyHumanButton.textContent = verified ? "Verified with Self" : "Verify with Self ID";
-      elements.verifyHumanButton.disabled = verified;
-      elements.verifyHumanButton.removeAttribute("aria-busy");
-      elements.verifyHumanButton.classList.remove("is-loading");
-    }
-  }
-  updateVerificationBadge(elements.walletVerifiedBadge, verified, hasWallet);
-  updateVerificationBadge(elements.profileVerifiedBadge, verified, hasWallet);
-}
-
-function setSelfStatusPending() {
-  const pill = document.getElementById("self-status-pill");
-  const details = document.getElementById("self-status-details");
-  if (!pill) return;
-
-  pill.textContent = "Checking…";
-  pill.classList.remove("status-verified", "status-unverified");
-  pill.classList.add("status-pending");
-  if (details) {
-    details.textContent = "";
-  }
-}
-
-function applySelfVerificationResult(result) {
-  setSelfStatus(result);
-  if (state.address) {
-    state.verifiedHuman = Boolean(result.isVerified);
-    setVerifiedHuman(state.address, result.isVerified);
-    renderVerificationState();
-  }
-}
-
-async function runSelfVerificationCheck(button = null) {
-  const performCheck = async () => {
-    setSelfStatusPending();
-    const result = await loadSelfStatus();
-    applySelfVerificationResult(result);
-    return result;
-  };
-
-  if (!button) {
-    return performCheck();
-  }
-
-  return withButtonLoading(
-    button,
-    { loadingText: getLoadingText("pending", "Checking…"), keepWidth: true },
-    performCheck,
-  );
-}
-
-function setSelfStatus(result) {
-  const pill = document.getElementById("self-status-pill");
-  const details = document.getElementById("self-status-details");
-  if (!pill) return;
-
-  if (result.isVerified) {
-    pill.textContent = "Verified via Self";
-    pill.classList.remove("status-pending", "status-unverified");
-    pill.classList.add("status-verified");
-
-    if (details) {
-      const ts = result.lastVerifiedHuman || "";
-      details.textContent = ts
-        ? `Last verified at: ${ts} (chainId ${result.selfChainId})`
-        : `Verification found on chainId ${result.selfChainId}`;
-    }
-  } else {
-    pill.textContent = "Not verified";
-    pill.classList.remove("status-pending", "status-verified");
-    pill.classList.add("status-unverified");
-    if (details) {
-      details.textContent = "No Self verification proof was found for this config.";
-    }
-  }
-}
-
-function closeSelfVerificationModal() {
-  if (!elements.selfModal) return;
-  closeModalEl(elements.selfModal);
-}
-
-async function handleSelfCheckClick() {
-  try {
-    await runSelfVerificationCheck();
-  } catch (error) {
-    console.error("❌ [Self] UI check failed", error);
-    const pill = document.getElementById("self-status-pill");
-    if (pill) {
-      pill.textContent = "Error checking Self status";
-      pill.classList.remove("status-verified", "status-pending");
-      pill.classList.add("status-unverified");
-    }
-    const details = document.getElementById("self-status-details");
-    if (details) {
-      details.textContent = "Please check console for details.";
-    }
-  }
-}
-
-function initSelfVerificationUI() {
-  const btn = document.getElementById("self-check-btn");
-  if (!btn) return;
-  btn.addEventListener("click", handleSelfCheckClick);
-}
-
-async function handleVerifyHumanClick() {
-  if (isVerifyingHuman) return;
-  if (!state.address) {
-    showToast("error", WALLET_REQUIRED_MESSAGE);
-    return;
-  }
-  isVerifyingHuman = true;
-  renderVerificationState();
-  try {
-    const result = await runSelfVerificationCheck(elements.verifyHumanButton);
-    if (result.isVerified) {
-      showToast("success", VERIFICATION_SUCCESS_MESSAGE);
-    } else {
-      showToast("error", VERIFICATION_FAILURE_MESSAGE);
-    }
-  } catch (error) {
-    console.error("❌ [Self] Verification check failed", error);
-    showToast("error", parseError(error) || VERIFICATION_FAILURE_MESSAGE);
-  } finally {
-    isVerifyingHuman = false;
-    renderVerificationState();
-  }
 }
 
 function openWalletDropdown() {
@@ -1785,7 +1584,6 @@ async function connectWallet(connector) {
     const details = await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-    syncCurrentVerification();
     updateWalletUI();
     renderNetworkInfo(true);
     closeConnectModal();
@@ -1812,7 +1610,6 @@ function initWalletListeners() {
       case "connected":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-        syncCurrentVerification();
         updateWalletUI();
         renderNetworkInfo(true);
         closeConnectModal();
@@ -1821,9 +1618,7 @@ function initWalletListeners() {
       case "accountsChanged":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-        syncCurrentVerification();
         updateWalletUI();
-        closeSelfVerificationModal();
         await afterWalletConnected();
         break;
       case "disconnected": {
@@ -1831,15 +1626,11 @@ function initWalletListeners() {
         state.address = null;
         state.profile = null;
         state.isOwner = false;
-        state.verifiedHuman = false;
-        clearVerificationState(previousAddress);
-        closeSelfVerificationModal();
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
         updateWalletUI();
         renderNetworkInfo(false);
-        renderVerificationState();
         break;
       }
       case "networkChanged":
@@ -2555,7 +2346,6 @@ function renderProfile(profile) {
     }
     elements.publicProfileLink.removeAttribute("href");
     renderBadgeDetails(null);
-    renderVerificationState();
     return;
   }
 
@@ -2615,7 +2405,6 @@ function renderProfile(profile) {
   elements.badgeStack.innerHTML = renderTierBadges(profile);
   elements.xpProgress.innerHTML = renderXpProgress(profile);
   renderBadgeDetails(profile);
-  renderVerificationState();
 }
 
 function renderTierBadges(profile) {

@@ -115,7 +115,7 @@ textarea:focus-visible {
 .brand-area {
   display: flex;
   align-items: center;
-  gap: clamp(10px, 1.6vw, 16px);
+  gap: clamp(8px, 1.2vw, 12px);
 }
 
 .nav-left__logo {
@@ -133,14 +133,6 @@ textarea:focus-visible {
   display: block;
 }
 
-.nav-left__slogan {
-  font-family: inherit;
-  font-weight: 600;
-  color: #201103;
-  font-size: 16px;
-  line-height: 1.2;
-}
-
 @media (max-width: 640px) {
   .nav-left {
     gap: 10px;
@@ -153,10 +145,6 @@ textarea:focus-visible {
 
   .nav-left__logo img {
     height: 100%;
-  }
-
-  .nav-left__slogan {
-    font-size: 14px;
   }
 }
 
@@ -249,69 +237,6 @@ textarea:focus-visible {
   box-shadow: var(--shadow-glow);
 }
 
-.verify-btn {
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(251, 204, 92, 0.8);
-  background: linear-gradient(135deg, rgba(255, 245, 212, 0.95), rgba(251, 204, 92, 0.85));
-  color: #1f1404;
-  font-weight: 600;
-  box-shadow: var(--shadow-soft);
-  white-space: nowrap;
-}
-
-.verify-btn:hover,
-.verify-btn:focus-visible {
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
-}
-
-.verify-btn[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  border: 1px solid transparent;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-.status-badge--verified {
-  background: rgba(4, 125, 80, 0.12);
-  color: #075c3a;
-  border-color: rgba(4, 125, 80, 0.4);
-  box-shadow: 0 0 0 1px rgba(251, 204, 92, 0.35);
-}
-
-.status-badge--verified::before {
-  content: "✅";
-}
-
-.status-badge--unverified {
-  background: rgba(120, 120, 120, 0.12);
-  color: #5b5b5b;
-  border-color: rgba(90, 90, 90, 0.25);
-}
-
-.status-badge--unverified::before {
-  content: "❌";
-}
-
-.status-badge[hidden] {
-  display: none;
-}
-
-
 .icon-btn {
   width: 44px;
   height: 44px;
@@ -401,42 +326,6 @@ textarea:focus-visible {
 .wallet-pill__status[data-status="offline"] {
   color: var(--text-soft);
   opacity: 0.7;
-}
-
-.identity-connect-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(251, 204, 92, 0.8);
-  box-shadow: var(--shadow-soft);
-}
-
-.identity-connect-pill .connect-btn,
-.identity-connect-pill .verify-btn {
-  border-radius: 999px;
-}
-
-.identity-connect-pill__divider {
-  width: 1px;
-  height: 28px;
-  background: rgba(251, 204, 92, 0.6);
-}
-
-.identity-connect-pill .verified-badge {
-  margin-left: 4px;
-  white-space: nowrap;
-}
-
-.identity-connect-pill:has(#connectTrigger[hidden]) .identity-connect-pill__divider {
-  display: none;
-}
-
-.identity-connect-pill:has(#connectTrigger[hidden]) {
-  gap: 8px;
-  padding-right: 16px;
 }
 
 .wallet-pill__chevron {
@@ -719,47 +608,10 @@ section {
   margin: 8px 0 16px;
 }
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--text-muted);
-}
-
-.status-pill.status-verified {
-  background: #c6f0d9;
-  border-color: #9edfbf;
-  color: #0b5126;
-}
-
-.status-pill.status-unverified {
-  background: rgba(11, 11, 11, 0.06);
-  border-color: rgba(11, 11, 11, 0.12);
-  color: var(--text-muted);
-}
-
-.status-pill.status-pending {
-  background: rgba(251, 204, 92, 0.3);
-  border-color: var(--border-strong);
-  color: #5c3b05;
-}
-
-.self-card .small-text {
-  font-size: 13px;
-  margin-top: 8px;
-}
-
 .primary-btn,
 .secondary-btn,
 .quick-donate,
-.connect-btn,
-.verify-btn {
+.connect-btn {
   border-radius: 8px;
   padding: 12px 20px;
   font-weight: 600;
@@ -795,8 +647,7 @@ section {
 .primary-btn:active,
 .secondary-btn:active,
 .quick-donate:active,
-.connect-btn:active,
-.verify-btn:active {
+.connect-btn:active {
   transform: translateY(1px) scale(0.99);
   box-shadow: none;
 }
@@ -805,7 +656,6 @@ section {
 .secondary-btn.is-loading,
 .quick-donate.is-loading,
 .connect-btn.is-loading,
-.verify-btn.is-loading,
 .wallet-option.is-loading {
   position: relative;
 }
@@ -814,7 +664,6 @@ section {
 .secondary-btn.is-loading::after,
 .quick-donate.is-loading::after,
 .connect-btn.is-loading::after,
-.verify-btn.is-loading::after,
 .wallet-option.is-loading::after {
   content: "";
   position: absolute;
@@ -1788,69 +1637,6 @@ textarea {
   font-size: 28px;
 }
 
-.self-modal .modal-dialog {
-  max-width: 360px;
-  text-align: center;
-}
-
-.self-qr-container {
-  display: grid;
-  place-items: center;
-  min-height: 240px;
-  margin: 24px auto;
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  border: 2px dashed rgba(251, 204, 92, 0.6);
-  background: rgba(255, 249, 232, 0.85);
-}
-
-.self-qr-container canvas,
-.self-qr-container img {
-  max-width: 220px;
-  width: 100%;
-  height: auto;
-}
-
-.self-deeplink {
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.self-deeplink__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(251, 204, 92, 0.8);
-  background: linear-gradient(135deg, rgba(251, 204, 92, 0.2), rgba(251, 204, 92, 0.45));
-  color: #0b0b0b;
-  font-weight: 600;
-}
-
-.self-deeplink__button::before {
-  content: "📱";
-}
-
-.self-deeplink__button--secondary {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: rgba(251, 204, 92, 0.4);
-  font-weight: 500;
-}
-
-.self-deeplink__button--secondary::before {
-  content: "⬇️";
-}
-
-.self-status {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin: 0;
-}
-
 .share-modal__content {
   display: grid;
   gap: 16px;
@@ -2565,10 +2351,6 @@ textarea {
     width: 100%;
   }
 
-  .nav-left__slogan {
-    font-size: 13px;
-  }
-
   .header-actions {
     width: 100%;
     justify-content: stretch;
@@ -2587,24 +2369,7 @@ textarea {
     gap: 10px;
   }
 
-  .identity-connect-pill {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .identity-connect-pill .verify-btn,
-  .identity-connect-pill .connect-btn {
-    flex: 1 1 120px;
-    min-width: 0;
-    padding-inline: 12px;
-  }
-
-  .wallet-pill,
-  #identityConnectPill {
+  .wallet-pill {
     flex: 1 1 100%;
   }
 
