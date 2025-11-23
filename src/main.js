@@ -111,6 +111,8 @@ const elements = {
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
   profilePlaceholder: document.getElementById("profilePlaceholder"),
+  profileConnectActions: document.getElementById("profileConnectActions"),
+  profileConnectButton: document.getElementById("profileConnectButton"),
   profileAddressLabel: document.getElementById("profileAddressLabel"),
   profileAddressValue: document.getElementById("profileAddressValue"),
   feedSpinner: document.getElementById("feedSpinner"),
@@ -1366,6 +1368,13 @@ function setupWalletButtons() {
     });
   });
 
+  if (elements.profileConnectButton) {
+    elements.profileConnectButton.addEventListener("click", () => {
+      updateConnectOptionAvailability();
+      openConnectModal(elements.profileConnectButton);
+    });
+  }
+
   if (elements.disconnectWallet) {
     elements.disconnectWallet.addEventListener("click", async () => {
       const button = elements.disconnectWallet;
@@ -1396,7 +1405,10 @@ function setupWalletDropdown() {
   elements.walletPillButton.addEventListener("click", (event) => {
     event.stopPropagation();
     if (!state.address) {
-      startWalletConnection(elements.walletPillButton);
+      showSection("profile", { labelOverride: getSectionLabel(document.getElementById("profile")) });
+      if (elements.profileConnectButton) {
+        elements.profileConnectButton.focus({ preventScroll: true });
+      }
       return;
     }
     toggleWalletDropdown();
@@ -1407,7 +1419,10 @@ function setupWalletDropdown() {
     if (isActivateKey) {
       event.preventDefault();
       if (!state.address) {
-        startWalletConnection(elements.walletPillButton);
+        showSection("profile", { labelOverride: getSectionLabel(document.getElementById("profile")) });
+        if (elements.profileConnectButton) {
+          elements.profileConnectButton.focus({ preventScroll: true });
+        }
       } else {
         toggleWalletDropdown();
       }
@@ -2073,6 +2088,9 @@ function renderProfile(profile) {
     if (elements.profilePlaceholder) {
       elements.profilePlaceholder.hidden = false;
     }
+    if (elements.profileConnectActions) {
+      elements.profileConnectActions.hidden = false;
+    }
     if (elements.profileAddressLabel) {
       elements.profileAddressLabel.hidden = true;
     }
@@ -2084,6 +2102,9 @@ function renderProfile(profile) {
 
   if (elements.profilePlaceholder) {
     elements.profilePlaceholder.hidden = true;
+  }
+  if (elements.profileConnectActions) {
+    elements.profileConnectActions.hidden = true;
   }
   if (elements.profileAddressLabel) {
     elements.profileAddressLabel.hidden = false;

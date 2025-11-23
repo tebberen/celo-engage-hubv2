@@ -1682,6 +1682,11 @@ textarea {
   background: rgba(251, 204, 92, 0.12);
 }
 
+.profile-connect {
+  display: flex;
+  justify-content: center;
+}
+
 .badge-stack {
   display: flex;
   flex-wrap: wrap;
