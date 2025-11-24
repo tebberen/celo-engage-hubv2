@@ -187,19 +187,66 @@ const CELO_ECOSYSTEM_MODULES = {
     description: "Decentralized exchanges and liquidity venues on Celo.",
     items: [
       {
+        label: "Mento",
+        description:
+          "Native AMM and FX DEX on Celo used to swap CELO and Celo stable assets like cUSD, cEUR and cREAL.",
+        url: "https://mento.org/",
+        actionLabel: "Open",
+      },
+      {
         label: "Ubeswap",
-        url: "https://app.ubeswap.org/#/swap",
-        description: "Swap tokens and provide liquidity natively on Celo.",
+        description:
+          "Mobile-first AMM DEX built for Celo assets, long-time core exchange in the Celo ecosystem.",
+        url: "https://ubeswap.org/",
+        actionLabel: "Open",
       },
       {
-        label: "Uniswap on Celo",
-        url: "https://app.uniswap.org/swap?chain=celo",
-        description: "Trade with deep liquidity and a familiar interface.",
+        label: "Mobius Money",
+        description:
+          "Stableswap AMM optimized for low-slippage swaps between stablecoins and other pegged assets on Celo.",
+        url: "https://mobius.money/",
+        actionLabel: "Open",
       },
       {
-        label: "Curve on Celo",
-        url: "https://curve.fi/#/celo/swap",
-        description: "Efficient stablecoin swaps and pools.",
+        label: "Symmetric (Celo)",
+        description:
+          "Balancer-style multi-token AMM on Celo with weighted index pools and liquidity mining opportunities.",
+        url: "https://app.symmetric.finance/#/swap?chain=celo",
+        actionLabel: "Open",
+      },
+      {
+        label: "CeloDex",
+        description: "Automated market maker DEX launched on Celo, offering token swaps and yield farming pools.",
+        url: "https://celodex.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Uniswap v3 (Celo)",
+        description:
+          "Concentrated-liquidity Uniswap v3 deployment on Celo, routing a large share of CELO and stablecoin volume.",
+        url: "https://app.uniswap.org/explore/tokens/celo",
+        actionLabel: "Open",
+      },
+      {
+        label: "Curve Finance (Celo)",
+        description:
+          "Curve’s stable-swap DEX deployed on Celo, focusing on efficient swaps between stablecoins and correlated assets.",
+        url: "https://curve.fi/#/celo/pools",
+        actionLabel: "Open",
+      },
+      {
+        label: "SushiSwap (Celo)",
+        description:
+          "Multichain AMM and DeFi hub deployed on Celo as part of DeFi for the People, supporting a variety of token pairs.",
+        url: "https://app.sushi.com/swap?chainId=42220",
+        actionLabel: "Open",
+      },
+      {
+        label: "Velodrome Slipstream (Celo)",
+        description:
+          "Slipstream-style concentrated-liquidity DEX deployment on Celo from the Velodrome ecosystem.",
+        url: "https://velodrome.finance/swap?chain=celo",
+        actionLabel: "Open",
       },
     ],
   },
