@@ -659,6 +659,107 @@ section {
   margin: 8px 0 16px;
 }
 
+.home-onboarding,
+.home-audience,
+.home-value {
+  display: grid;
+  gap: 16px;
+}
+
+.step-grid,
+.audience-grid,
+.value-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.step-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.audience-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.value-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.step-card,
+.audience-card,
+.value-card {
+  background: linear-gradient(135deg, rgba(255, 250, 230, 0.95), rgba(251, 204, 92, 0.78));
+  border: 1px solid rgba(251, 204, 92, 0.85);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.step-card:hover,
+.step-card:focus-within,
+.audience-card:hover,
+.audience-card:focus-within,
+.value-card:hover,
+.value-card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+  border-color: var(--celo-yellow-strong);
+}
+
+.step-card__label,
+.audience-card__label,
+.value-card__label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff7dd;
+  color: #5c3c00;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.step-card__title,
+.audience-card__title,
+.value-card__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.step-card__description,
+.value-card__description {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.audience-list {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--text-strong);
+}
+
+.audience-list li {
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .step-grid,
+  .audience-grid,
+  .value-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .primary-btn,
 .secondary-btn,
 .quick-donate,
