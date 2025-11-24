@@ -38,6 +38,9 @@
     "home": {
       "title": "Farcaster'daki Celo Mini Uygulamaları",
       "subtitle": "Farcaster için üretilmiş Celo deneyimlerinin küratörlü dizini.",
+      "discoverLabel": "Keşfet",
+      "discoverTitle": "Celo Ekosistemi",
+      "discoverSubtitle": "Önemli Celo kaynaklarına, dApp'lere ve sosyal kanallara hızlı erişim.",
       "searchLabel": "Ara",
       "searchPlaceholder": "İsme veya açıklamaya göre ara",
       "filterLabel": "Kategoriye göre filtrele",
@@ -272,6 +275,9 @@
     "home": {
       "title": "Celo Mini Apps",
       "subtitle": "Explore every Farcaster mini app powered by Celo.",
+      "discoverLabel": "Discover",
+      "discoverTitle": "Celo Ecosystem",
+      "discoverSubtitle": "Quick access to key Celo resources, dApps, and social channels.",
       "searchLabel": "Search",
       "searchPlaceholder": "Search by name or description",
       "filterLabel": "Filter by category",
