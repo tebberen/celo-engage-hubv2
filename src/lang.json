@@ -31,7 +31,7 @@
     },
     "ecosystem": {
       "title": "Celo Ekosistemi",
-      "more": "Daha Fazla Ekosistem Aracı →",
+      "more": "Daha Fazla Ekosistem Aracı",
       "moreTitle": "Diğer Ekosistem Araçları",
       "close": "Ekosistem penceresini kapat"
     },
@@ -265,7 +265,7 @@
     },
     "ecosystem": {
       "title": "Celo Ecosystem",
-      "more": "More Ecosystem Tools →",
+      "more": "More Ecosystem Tools",
       "moreTitle": "More Ecosystem Tools",
       "close": "Close ecosystem modal"
     },
