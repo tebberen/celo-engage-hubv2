@@ -1191,6 +1191,8 @@ textarea {
   gap: 14px;
   background: linear-gradient(180deg, #fffdf4 0%, #ffffff 60%);
   border: 1px solid rgba(251, 204, 92, 0.6);
+  max-height: 70vh;
+  overflow: hidden;
 }
 
 .ecosystem-detail__header {
@@ -1207,6 +1209,9 @@ textarea {
 .ecosystem-link-list {
   display: grid;
   gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .ecosystem-link {
