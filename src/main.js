@@ -7,6 +7,7 @@ import {
   MODULES,
   MODULE_ADDRESS_BOOK,
   DEFAULT_NETWORK,
+  CELO_ECOSYSTEM_LINKS,
 } from "./utils/constants.js";
 import {
   connectWalletMetaMask,
@@ -71,6 +72,172 @@ const MINI_APP_CATEGORIES = [
 ];
 const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
 
+function getEcosystemUrl(match) {
+  if (!match) return match;
+  const normalized = String(match).toLowerCase();
+  const entry = (CELO_ECOSYSTEM_LINKS || []).find(({ url = "", name = "" }) => {
+    return url.toLowerCase().includes(normalized) || name.toLowerCase().includes(normalized);
+  });
+  return entry?.url || match;
+}
+
+const CELO_ECOSYSTEM_MODULES = {
+  official: {
+    key: "official",
+    label: "OFFICIAL",
+    title: "Celo Official Links",
+    description: "Core Celo sites like Foundation, Docs, Explorer, and governance.",
+    items: [
+      {
+        label: "Celo Foundation",
+        url: getEcosystemUrl("https://celo.org"),
+        description: "Mission, roadmap, and programs.",
+      },
+      {
+        label: "Celo Docs",
+        url: getEcosystemUrl("https://docs.celo.org"),
+        description: "Build with guides and references.",
+      },
+      {
+        label: "Celo Explorer",
+        url: getEcosystemUrl("https://explorer.celo.org"),
+        description: "Track blocks, contracts, and addresses.",
+      },
+      {
+        label: "Celo Forum",
+        url: getEcosystemUrl("https://forum.celo.org"),
+        description: "Join governance discussions.",
+      },
+      {
+        label: "Celo Governance",
+        url: getEcosystemUrl("https://celo.stake.id/#/proposal"),
+        description: "Submit and vote on proposals.",
+      },
+      {
+        label: "Developer Portal",
+        url: getEcosystemUrl("https://developers.celo.org"),
+        description: "Starter kits and tooling for teams.",
+      },
+    ],
+  },
+  dex: {
+    key: "dex",
+    label: "DEX",
+    title: "Celo DEX",
+    description: "Decentralized exchanges and liquidity venues on Celo.",
+    items: [
+      {
+        label: "Ubeswap",
+        url: "https://app.ubeswap.org/#/swap",
+        description: "Swap tokens and provide liquidity natively on Celo.",
+      },
+      {
+        label: "Uniswap on Celo",
+        url: "https://app.uniswap.org/swap?chain=celo",
+        description: "Trade with deep liquidity and a familiar interface.",
+      },
+      {
+        label: "Curve on Celo",
+        url: "https://curve.fi/#/celo/swap",
+        description: "Efficient stablecoin swaps and pools.",
+      },
+    ],
+  },
+  cex: {
+    key: "cex",
+    label: "CEX",
+    title: "Celo CEX",
+    description: "Centralized exchanges where users can trade CELO or cUSD.",
+    items: [
+      {
+        label: "Coinbase (CELO)",
+        url: "https://www.coinbase.com/price/celo",
+        description: "Buy or sell CELO pairs securely.",
+      },
+      {
+        label: "Binance (CELO)",
+        url: "https://www.binance.com/en/price/celo",
+        description: "Access CELO spot markets and liquidity.",
+      },
+      {
+        label: "Kraken (CELO)",
+        url: "https://www.kraken.com/prices/celo-celo-price-chart",
+        description: "Trade CELO with fiat and crypto pairs.",
+      },
+    ],
+  },
+  bridge: {
+    key: "bridge",
+    label: "BRIDGE",
+    title: "Celo Bridge",
+    description: "Cross-chain bridges to move assets to and from Celo.",
+    items: [
+      {
+        label: "Portal Bridge",
+        url: "https://www.portalbridge.com/#/transfer?source=CELO",
+        description: "Bridge with Wormhole liquidity across chains.",
+      },
+      {
+        label: "cBridge",
+        url: "https://cbridge.celer.network/#/transfer?sourceChain=CELO",
+        description: "Fast transfers powered by Celer Network.",
+      },
+      {
+        label: "Squid Router",
+        url: "https://app.squidrouter.com/?toChain=celo",
+        description: "Cross-chain swaps that settle into Celo.",
+      },
+    ],
+  },
+  miniApps: {
+    key: "miniApps",
+    label: "FARCASTER",
+    title: "Celo Farcaster Mini Apps",
+    description: "Farcaster mini apps powered by Celo.",
+    items: [
+      {
+        label: "Celo on Farcaster",
+        url: "https://warpcast.com/~/channel/celo",
+        description: "Discover community mini app launches and casts.",
+        actionLabel: "Open channel",
+      },
+    ],
+  },
+  social: {
+    key: "social",
+    label: "SOCIAL",
+    title: "Celo Social Media",
+    description: "Official Celo community and social channels.",
+    items: [
+      {
+        label: "Celo on X (Twitter)",
+        url: getEcosystemUrl("https://x.com/Celo"),
+        description: "Follow announcements and highlights.",
+      },
+      {
+        label: "Celo Discord",
+        url: getEcosystemUrl("https://chat.celo.org"),
+        description: "Chat with builders and contributors.",
+      },
+      {
+        label: "Celo Forum",
+        url: getEcosystemUrl("https://forum.celo.org"),
+        description: "Long-form discussions and proposals.",
+      },
+      {
+        label: "Celo Blog",
+        url: getEcosystemUrl("https://blog.celo.org"),
+        description: "Stories, updates, and ecosystem news.",
+      },
+      {
+        label: "Celo YouTube",
+        url: getEcosystemUrl("https://www.youtube.com/@CeloOrg"),
+        description: "Workshops, AMAs, and replays.",
+      },
+    ],
+  },
+};
+
 const state = {
   address: null,
   profile: null,
@@ -93,6 +260,7 @@ const state = {
     search: "",
     category: "all",
   },
+  activeEcosystemModule: "official",
 };
 
 const elements = {
@@ -176,6 +344,12 @@ const elements = {
   miniAppEmpty: document.getElementById("miniAppEmpty"),
   miniAppSearch: document.getElementById("miniAppSearch"),
   miniAppCategories: document.getElementById("miniAppCategories"),
+  ecosystemModuleGrid: document.getElementById("ecosystemModuleGrid"),
+  ecosystemDetail: document.getElementById("ecosystemDetail"),
+  ecosystemDetailLabel: document.getElementById("ecosystemDetailLabel"),
+  ecosystemDetailTitle: document.getElementById("ecosystemDetailTitle"),
+  ecosystemDetailDescription: document.getElementById("ecosystemDetailDescription"),
+  ecosystemDetailList: document.getElementById("ecosystemDetailList"),
 };
 
 let activeSectionId = null;
@@ -344,6 +518,7 @@ function init() {
   setupLanguage();
   setupNavigation();
   setupMiniAppDirectory();
+  setupEcosystemModules();
   const initialSection = document.querySelector(".section.active") || (elements.sections && elements.sections[0]);
   if (initialSection) {
     activeSectionId = initialSection.id || "home";
@@ -1121,6 +1296,7 @@ async function loadMiniAppsData() {
     const payload = await response.json();
     const parsed = Array.isArray(payload) ? payload.map((item) => sanitizeMiniApp(item)).filter(Boolean) : [];
     state.miniApps = parsed;
+    updateMiniAppsModuleItems(parsed);
     applyMiniAppFilters();
   } catch (error) {
     console.error("❌ [MiniApps] Failed to load directory", error);
@@ -1218,6 +1394,115 @@ function renderMiniAppCard(app) {
       </div>
     </article>
   `;
+}
+
+function setupEcosystemModules() {
+  renderEcosystemModuleCards();
+
+  if (elements.ecosystemModuleGrid) {
+    elements.ecosystemModuleGrid.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-module-key]");
+      if (!target) return;
+      setActiveEcosystemModule(target.dataset.moduleKey);
+    });
+  }
+
+  setActiveEcosystemModule(state.activeEcosystemModule);
+}
+
+function renderEcosystemModuleCards() {
+  if (!elements.ecosystemModuleGrid) return;
+  const cards = Object.values(CELO_ECOSYSTEM_MODULES).map((module) => {
+    const label = escapeHtml(module.label || "");
+    const title = escapeHtml(module.title || "");
+    const description = escapeHtml(module.description || "");
+    const isActive = state.activeEcosystemModule === module.key;
+
+    return `
+      <article class="module-card ${isActive ? "active" : ""}" data-module-key="${module.key}">
+        <p class="module-card__label">${label}</p>
+        <h3 class="module-card__title">${title}</h3>
+        <p class="module-card__description">${description}</p>
+        <button type="button" class="secondary-btn module-card__cta" data-module-key="${module.key}">
+          View links
+        </button>
+      </article>
+    `;
+  });
+
+  elements.ecosystemModuleGrid.innerHTML = cards.join("");
+}
+
+function setActiveEcosystemModule(key) {
+  if (!key || !CELO_ECOSYSTEM_MODULES[key]) return;
+  state.activeEcosystemModule = key;
+
+  const cards = elements.ecosystemModuleGrid?.querySelectorAll("[data-module-key]") || [];
+  cards.forEach((card) => {
+    card.classList.toggle("active", card.dataset.moduleKey === key);
+  });
+
+  renderEcosystemDetail(CELO_ECOSYSTEM_MODULES[key]);
+}
+
+function renderEcosystemDetail(module) {
+  if (!module || !elements.ecosystemDetailList) return;
+  if (elements.ecosystemDetailLabel) {
+    elements.ecosystemDetailLabel.textContent = module.label || "";
+  }
+  if (elements.ecosystemDetailTitle) {
+    elements.ecosystemDetailTitle.textContent = module.title || "";
+  }
+  if (elements.ecosystemDetailDescription) {
+    elements.ecosystemDetailDescription.textContent = module.description || "";
+  }
+
+  if (!module.items?.length) {
+    elements.ecosystemDetailList.innerHTML = `<p class="ecosystem-detail__description">Links coming soon.</p>`;
+    return;
+  }
+
+  elements.ecosystemDetailList.innerHTML = module.items.map(renderEcosystemLink).join("");
+}
+
+function renderEcosystemLink(item) {
+  if (!item) return "";
+  const title = escapeHtml(item.label || "View link");
+  const url = escapeHtml(item.url || "#");
+  const description = escapeHtml(item.description || "");
+  const actionLabel = escapeHtml(item.actionLabel || "Open");
+
+  return `
+    <a class="ecosystem-link" href="${url}" target="_blank" rel="noopener">
+      <div class="ecosystem-link__meta">
+        <p class="ecosystem-link__title">${title}</p>
+        ${description ? `<p class="ecosystem-link__description">${description}</p>` : ""}
+      </div>
+      <span class="ecosystem-link__action">${actionLabel}</span>
+    </a>
+  `;
+}
+
+function updateMiniAppsModuleItems(miniApps = []) {
+  const miniAppModule = CELO_ECOSYSTEM_MODULES.miniApps;
+  if (!miniAppModule) return;
+
+  const curated = (miniApps || [])
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((app) => ({
+      label: app.name,
+      url: app.farcasterUrl,
+      description: app.description,
+      actionLabel: t("home.openButton", "Open on Farcaster"),
+    }));
+
+  if (curated.length) {
+    miniAppModule.items = curated;
+    if (state.activeEcosystemModule === miniAppModule.key) {
+      renderEcosystemDetail(miniAppModule);
+    }
+  }
 }
 
 function setupTabs() {
