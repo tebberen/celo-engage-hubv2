@@ -538,6 +538,46 @@ section {
   animation: fadeIn 0.4s ease;
 }
 
+#home.section {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  gap: 0;
+}
+
+#home.section.active {
+  transform: none;
+  box-shadow: none;
+  border: none;
+}
+
+.home-ecosystem {
+  display: grid;
+  gap: 16px;
+}
+
+#home-main {
+  display: flex;
+  flex-direction: column;
+}
+
+#home-main section {
+  margin-bottom: 32px;
+  padding: 24px 28px;
+  border-radius: 18px;
+  background: #fff7e3;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+}
+
+#home-main section:last-of-type {
+  margin-bottom: 0;
+}
+
+#home-discover-ecosystem {
+  background: #fff3d5;
+}
+
 .section-header {
   display: flex;
   flex-direction: column;
