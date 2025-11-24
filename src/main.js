@@ -257,19 +257,165 @@ const CELO_ECOSYSTEM_MODULES = {
     description: "Centralized exchanges where users can trade CELO or cUSD.",
     items: [
       {
-        label: "Coinbase (CELO)",
+        label: "Binance",
+        description:
+          "Largest global CEX by volume with multiple CELO pairs (USDT, BTC, fiat markets).",
+        url: "https://www.binance.com/en/how-to-buy/celo",
+        actionLabel: "Open",
+      },
+      {
+        label: "Coinbase",
+        description:
+          "Regulated US exchange where CELO is listed (as CGLD) with fiat on-ramp support.",
         url: "https://www.coinbase.com/price/celo",
-        description: "Buy or sell CELO pairs securely.",
+        actionLabel: "Open",
       },
       {
-        label: "Binance (CELO)",
-        url: "https://www.binance.com/en/price/celo",
-        description: "Access CELO spot markets and liquidity.",
+        label: "Kraken",
+        description:
+          "Long-running regulated exchange that offers CELO spot markets and fiat funding options.",
+        url: "https://www.kraken.com/learn/buy-celo-celo",
+        actionLabel: "Open",
       },
       {
-        label: "Kraken (CELO)",
-        url: "https://www.kraken.com/prices/celo-celo-price-chart",
-        description: "Trade CELO with fiat and crypto pairs.",
+        label: "KuCoin",
+        description: "Popular altcoin exchange with CELO/USDT and other stablecoin markets.",
+        url: "https://www.kucoin.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "OKX",
+        description:
+          "Top-tier global CEX listing CELO with deep liquidity in USDT and other pairs.",
+        url: "https://www.okx.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Bybit",
+        description:
+          "Derivatives-focused exchange that also offers CELO spot trading pairs.",
+        url: "https://www.bybit.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Gate.io",
+        description:
+          "Early CELO supporter with spot markets and a wide selection of altcoin pairs.",
+        url: "https://www.gate.io/",
+        actionLabel: "Open",
+      },
+      {
+        label: "MEXC Global",
+        description: "High-volume altcoin exchange listing CELO/USDT and other CELO pairs.",
+        url: "https://www.mexc.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "HTX (Huobi)",
+        description:
+          "Global exchange with CELO/USDT markets and margin options on some pairs.",
+        url: "https://www.htx.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Bitget",
+        description: "CEX with deep derivatives markets and CELO spot trading support.",
+        url: "https://www.bitget.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Pionex",
+        description:
+          "Exchange with built-in trading bots, listing CELO/USDT among other grid-friendly pairs.",
+        url: "https://www.pionex.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "LBank",
+        description: "International CEX supporting CELO/USDT with global access.",
+        url: "https://www.lbank.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "WhiteBIT",
+        description:
+          "European-focused exchange that lists CELO spot pairs for retail traders.",
+        url: "https://whitebit.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "CoinEx",
+        description: "Altcoin-heavy exchange with CELO markets in USDT and BTC.",
+        url: "https://www.coinex.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "DigiFinex",
+        description:
+          "Global CEX offering CELO/USDT pairs and mobile-first trading apps.",
+        url: "https://www.digifinex.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "XT.com",
+        description:
+          "Centralized exchange listing CELO/USDT among many mid-cap tokens.",
+        url: "https://www.xt.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Bitfinex",
+        description: "Veteran exchange with CELO markets and advanced order types.",
+        url: "https://www.bitfinex.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "CEX.IO",
+        description: "CELO listed with both crypto and fiat pairs for retail and pro users.",
+        url: "https://cex.io/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Upbit",
+        description: "Korean exchange where CELO trades against KRW and BTC.",
+        url: "https://upbit.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Bithumb Global",
+        description: "Korean-focused exchange offering CELO spot markets for local users.",
+        url: "https://www.bithumb.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Indodax",
+        description: "Indonesian exchange listing CELO/IDR pairs for local fiat access.",
+        url: "https://indodax.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "NovaDAX",
+        description: "Brazilian exchange supporting CELO/BRL trading pairs.",
+        url: "https://www.novadax.com.br/",
+        actionLabel: "Open",
+      },
+      {
+        label: "CoinDCX",
+        description: "Indian CEX where CELO is available in INR and USDT pairs.",
+        url: "https://coindcx.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "WazirX",
+        description: "Another Indian exchange listing CELO with INR and USDT markets.",
+        url: "https://wazirx.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "ZebPay",
+        description: "Indian-focused exchange where CELO trades against INR.",
+        url: "https://zebpay.com/",
+        actionLabel: "Open",
       },
     ],
   },
