@@ -1214,6 +1214,12 @@ textarea {
   padding-right: 4px;
 }
 
+@media (max-width: 768px) {
+  .ecosystem-link-list {
+    max-height: 48vh;
+  }
+}
+
 .ecosystem-link {
   display: flex;
   align-items: center;
