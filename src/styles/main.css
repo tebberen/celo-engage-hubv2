@@ -811,10 +811,10 @@ textarea {
   gap: 12px;
 }
 
-#home .miniapp-controls {
+.miniapp-directory-card .miniapp-controls {
   display: grid;
   gap: 16px;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid rgba(251, 204, 92, 0.35);
   box-shadow: var(--shadow-card);
   background: linear-gradient(180deg, #fffef7 0%, #ffffff 65%);
@@ -826,12 +826,12 @@ textarea {
   gap: 8px;
 }
 
-.search-input__wrapper {
+.miniapp-directory-card .search-input__wrapper {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 24px 1fr;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: #fff;
@@ -872,6 +872,15 @@ textarea {
   white-space: nowrap;
 }
 
+.miniapp-directory-card .miniapp-category-tabs {
+  gap: 6px;
+}
+
+.miniapp-directory-card .miniapp-category-tabs .tab-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .miniapp-category-tabs .tab-btn:hover,
 .miniapp-category-tabs .tab-btn:focus-visible {
   background: #fff7dd;
@@ -887,21 +896,10 @@ textarea {
 }
 
 .miniapp-grid {
-  margin-top: 24px;
+  margin-top: 16px;
   display: grid;
-  gap: 18px;
-}
-
-@media (min-width: 720px) {
-  .miniapp-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1120px) {
-  .miniapp-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  gap: 14px;
+  grid-template-columns: 1fr;
 }
 
 .miniapp-card {
@@ -1280,6 +1278,24 @@ textarea {
 .ecosystem-panel .panel-header h2 {
   margin: 0;
   font-size: 22px;
+}
+
+.miniapp-directory-card {
+  display: grid;
+  gap: 14px;
+}
+
+.miniapp-directory-card .panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.miniapp-directory-card .panel-subtitle {
+  margin: 0;
+  color: var(--text-soft);
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .ecosystem-links {
