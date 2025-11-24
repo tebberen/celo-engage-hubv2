@@ -518,10 +518,117 @@ const CELO_ECOSYSTEM_MODULES = {
     description: "Farcaster mini apps powered by Celo.",
     items: [
       {
-        label: "Celo on Farcaster",
+        label: "Celo on Farcaster (Channel)",
+        description:
+          "Official Celo channel on Farcaster with updates, casts, and community discussion.",
         url: "https://warpcast.com/~/channel/celo",
-        description: "Discover community mini app launches and casts.",
         actionLabel: "Open channel",
+      },
+      {
+        label: "Celo Boosts",
+        description:
+          "Campaign and incentive hub for exploring Celo mini apps on Farcaster.",
+        url: "https://farcaster.xyz/miniapps/mk4XlaIDwZJA/celo-boosts",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "FireBid Celo",
+        description: "Onchain bidding and game mechanics built on Celo.",
+        url: "https://farcaster.xyz/miniapps/BXq8kwI6USdt/firebid-celo",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "The-Carplet",
+        description: "Visual identity mini app that generates a unique Carplet on Celo.",
+        url: "https://farcaster.xyz/miniapps/fItsBQ8BT9ow/the-carplet",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Poll",
+        description: "Create and participate in polls for the Celo community.",
+        url: "https://farcaster.xyz/miniapps/x3W2qlMP3MP4/celo-poll",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "x402rocks Mint Live",
+        description:
+          "Mint live drops and NFTs using the x402rocks Celo tools.",
+        url: "https://farcaster.xyz/miniapps/AqmkuW0oc7Fk/x402rocks-mint-live",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Bank of Celo",
+        description:
+          "Community-powered vault and simple banking experience on Celo.",
+        url: "https://farcaster.xyz/miniapps/xCB9v4FLnqLg/bank-of-celo",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Identity Quiz",
+        description:
+          "Quiz mini app about Celo ecosystem identity and knowledge.",
+        url: "https://farcaster.xyz/miniapps/JGszGe8Yl7xw/celo-identity-quiz",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Lite",
+        description:
+          "Lightweight Celo companion mini app for quick interactions.",
+        url: "https://farcaster.xyz/miniapps/ma3mvR7DIRs3/celo-lite",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Builder Rewards",
+        description:
+          "Track and explore builder rewards and contributions on Celo.",
+        url: "https://farcaster.xyz/miniapps/XhQmVJM8RIeD/celo-builder-rewards",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo NFT",
+        description: "Mint and view Celo-based NFTs directly from Farcaster.",
+        url: "https://farcaster.xyz/miniapps/Tip8ngTAKnHC/celo-nft",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Sender",
+        description: "Send Celo assets easily with a Farcaster-first UX.",
+        url: "https://farcaster.xyz/miniapps/lreV-hjQ2Gsg/celo-sender",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Esusu",
+        description:
+          "Group savings mini app on Celo inspired by rotating savings models.",
+        url: "https://farcaster.xyz/miniapps/ODGMy9CdO8UI/esusu",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Hub Chat",
+        description:
+          "Messaging-focused mini app for Celo builders and community.",
+        url: "https://farcaster.xyz/miniapps/7USxyPewQ2B8/hub-chat",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Daily Raffle",
+        description: "Daily raffle mini app with Celo-based rewards.",
+        url: "https://farcaster.xyz/miniapps/I8ah9X2SA5xT/celo-daily-raffle",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Karma Celo Community",
+        description:
+          "Karma-style scoring and engagement mini app for Celo community.",
+        url: "https://farcaster.xyz/miniapps/fEVg6B21KEJN/karma-celo-community",
+        actionLabel: "Open mini app",
+      },
+      {
+        label: "Celo Projects",
+        description:
+          "Directory-style mini app for discovering Celo projects on Farcaster.",
+        url: "https://farcaster.xyz/miniapps/i9MEQ3XFPr1G/celo-projects",
+        actionLabel: "Open mini app",
       },
     ],
   },
