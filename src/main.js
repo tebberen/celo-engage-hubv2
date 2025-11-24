@@ -426,19 +426,88 @@ const CELO_ECOSYSTEM_MODULES = {
     description: "Cross-chain bridges to move assets to and from Celo.",
     items: [
       {
-        label: "Portal Bridge",
-        url: "https://www.portalbridge.com/#/transfer?source=CELO",
-        description: "Bridge with Wormhole liquidity across chains.",
+        label: "Bridge to Celo (Official Entry)",
+        description:
+          "Official Celo Mondo landing page that routes into the native Superbridge flow for moving assets between Ethereum and Celo.",
+        url: "https://mondo.celo.org/bridge",
+        actionLabel: "Open",
       },
       {
-        label: "cBridge",
-        url: "https://cbridge.celer.network/#/transfer?sourceChain=CELO",
-        description: "Fast transfers powered by Celer Network.",
+        label: "Superbridge (Native Celo L2 Bridge)",
+        description:
+          "Native rollup bridge for moving CELO and ETH between Ethereum and Celo Mainnet and Celo Sepolia.",
+        url: "https://superbridge.app/celo",
+        actionLabel: "Open",
+      },
+      {
+        label: "Layerswap",
+        description:
+          "Bridge assets between Celo and 60+ networks and centralized exchanges with a fast, low-fee UX.",
+        url: "https://layerswap.io/app",
+        actionLabel: "Open",
       },
       {
         label: "Squid Router",
-        url: "https://app.squidrouter.com/?toChain=celo",
-        description: "Cross-chain swaps that settle into Celo.",
+        description:
+          "Cross-chain liquidity router (built on Axelar) that lets you bridge and swap into Celo in a single flow.",
+        url: "https://v2.app.squidrouter.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Jumper Exchange",
+        description:
+          "Cross-chain DEX and bridge aggregator that supports Celo Mainnet and routes through multiple bridge providers.",
+        url: "https://jumper.exchange/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Hyperlane Nexus",
+        description:
+          "Cross-chain messaging and bridging solution with support for Celo Mainnet and Celo Sepolia testnet.",
+        url: "https://www.usenexus.org/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Portal (Wormhole)",
+        description:
+          "Portal (formerly Wormhole) token bridge for moving assets between Celo and 30+ other blockchains.",
+        url: "https://portalbridge.com/",
+        actionLabel: "Open",
+      },
+      {
+        label: "AllBridge",
+        description:
+          "Multi-chain bridge that supports Celo Mainnet and connects EVM and non-EVM chains.",
+        url: "https://app.allbridge.io/bridge?from=ETH&to=CELO",
+        actionLabel: "Open",
+      },
+      {
+        label: "Satellite (Axelar)",
+        description:
+          "Axelar’s Satellite interface for bridging tokens to and from Celo using Axelar’s cross-chain network.",
+        url: "https://satellite.money/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Transporter (Chainlink CCIP)",
+        description:
+          "Bridge built on Chainlink CCIP for secure cross-chain token transfers involving Celo.",
+        url: "https://www.transporter.io/",
+        actionLabel: "Open",
+      },
+      {
+        label: "Galaxy",
+        description:
+          "Celo-native DEX that can be used as a landing venue after bridging, for swapping tokens on Celo.",
+        url: "https://galaxy.exchange/swap",
+        actionLabel: "Open",
+      },
+      {
+        label: "SmolRefuel",
+        description:
+          "Gas top-up and refuel tool that helps you bridge and receive small amounts of CELO for gas on arrival.",
+        url: "https://smolrefuel.com/?outboundChain=42220",
+        actionLabel: "Open",
       },
     ],
   },
