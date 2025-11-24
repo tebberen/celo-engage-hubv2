@@ -455,6 +455,7 @@ textarea:focus-visible {
   gap: clamp(var(--space-5), 3vw, var(--space-7));
   width: 100%;
   align-items: start;
+  align-content: start;
   margin-top: clamp(var(--space-3), 2vw, var(--space-5));
 }
 
@@ -584,6 +585,13 @@ section {
   gap: var(--space-4);
 }
 
+.section-subtitle {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
 .section-stack {
   display: grid;
   gap: var(--space-6);
@@ -632,6 +640,18 @@ section {
     justify-content: flex-start;
   }
 
+  .header-actions__cluster {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wallet-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .page-wrapper {
     grid-template-columns: 1fr;
     row-gap: clamp(24px, 6vw, 40px);
@@ -671,6 +691,38 @@ section {
   .header-actions {
     flex-wrap: wrap;
     gap: 10px;
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+  }
+
+  .app-nav {
+    width: 100%;
+    justify-content: flex-start;
+    row-gap: 8px;
+  }
+
+  .nav-btn {
+    font-size: var(--text-sm);
+  }
+
+  .section-card,
+  .card {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .section-header h2 {
+    font-size: 20px;
+  }
+
+  .section-header .eyebrow {
+    font-size: 12px;
+  }
+
+  .section-subtitle {
+    font-size: 14px;
   }
 }
 
@@ -912,6 +964,12 @@ textarea {
   resize: vertical;
 }
 
+.section form,
+.card form {
+  display: grid;
+  gap: 12px;
+}
+
 .helper {
   margin: 8px 0 0;
   font-size: 13px;
@@ -1151,6 +1209,7 @@ textarea {
 .ecosystem-modules {
   display: grid;
   gap: var(--space-4);
+  grid-template-columns: 1fr;
 }
 
 .module-grid {
@@ -1293,9 +1352,50 @@ textarea {
   font-weight: 700;
 }
 
+@media (min-width: 1024px) {
+  .ecosystem-modules {
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.9fr);
+    align-items: start;
+  }
+
+  .ecosystem-detail {
+    max-height: 72vh;
+  }
+}
+
 @media (min-width: 1100px) {
   .ecosystem-modules {
     grid-template-rows: auto 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ecosystem-modules {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystem-detail {
+    max-height: none;
+  }
+
+  .ecosystem-link-list {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .module-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystem-link-list {
+    max-height: 280px;
   }
 }
 
@@ -2455,9 +2555,11 @@ textarea {
 
   .wallet-actions {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .wallet-pill {
@@ -2467,6 +2569,10 @@ textarea {
   .wallet-pill__button {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .connect-btn {
+    width: 100%;
   }
 
   .left-sidebar {
@@ -2505,6 +2611,10 @@ textarea {
     width: 100%;
   }
 
+  .app-brand {
+    font-size: 20px;
+  }
+
   .header-actions {
     width: 100%;
     justify-content: stretch;
@@ -2521,6 +2631,31 @@ textarea {
     width: 100%;
     justify-content: space-between;
     gap: 10px;
+  }
+
+  #home-main {
+    gap: 16px;
+  }
+
+  .section-card,
+  .card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+  }
+
+  .section-subtitle {
+    font-size: 13px;
+  }
+
+  .primary-btn,
+  .secondary-btn,
+  .quick-donate,
+  .connect-btn {
+    width: 100%;
   }
 
   .wallet-pill {
