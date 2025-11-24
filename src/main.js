@@ -639,29 +639,83 @@ const CELO_ECOSYSTEM_MODULES = {
     description: "Official Celo community and social channels.",
     items: [
       {
-        label: "Celo on X (Twitter)",
-        url: getEcosystemUrl("https://x.com/Celo"),
-        description: "Follow announcements and highlights.",
+        label: "X (Twitter)",
+        description:
+          "Official CeloOrg account with ecosystem news, announcements, and campaign updates.",
+        url: getEcosystemUrl("https://x.com/CeloOrg"),
+        actionLabel: "Open",
       },
       {
-        label: "Celo Discord",
+        label: "Discord",
+        description:
+          "Primary community and developer chat: support, channels for builders, and ecosystem discussions.",
         url: getEcosystemUrl("https://chat.celo.org"),
-        description: "Chat with builders and contributors.",
+        actionLabel: "Open",
       },
       {
-        label: "Celo Forum",
-        url: getEcosystemUrl("https://forum.celo.org"),
-        description: "Long-form discussions and proposals.",
+        label: "Telegram",
+        description: "Global community announcement and discussion channels for Celo.",
+        url: getEcosystemUrl("https://t.me/celoplatform"),
+        actionLabel: "Open",
       },
       {
-        label: "Celo Blog",
+        label: "YouTube",
+        description:
+          "Talks, AMAs, event recordings, tutorials, and ecosystem spotlights from the Celo team.",
+        url: getEcosystemUrl("https://www.youtube.com/c/CeloOrg"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Instagram",
+        description:
+          "Visual stories, event photos, and campaign highlights from the Celo ecosystem.",
+        url: getEcosystemUrl("https://www.instagram.com/celoorg/"),
+        actionLabel: "Open",
+      },
+      {
+        label: "GitHub",
+        description:
+          "Core protocol, tooling, and sample projects from the official celo-org organization.",
+        url: getEcosystemUrl("https://github.com/celo-org"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Reddit (r/celo)",
+        description: "Community-driven discussions, Q&A, and news for the Celo ecosystem.",
+        url: getEcosystemUrl("https://www.reddit.com/r/celo/"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Medium – The Celo Blog",
+        description:
+          "Long-form ecosystem updates, technical deep dives, and community stories.",
         url: getEcosystemUrl("https://blog.celo.org"),
-        description: "Stories, updates, and ecosystem news.",
+        actionLabel: "Open",
       },
       {
-        label: "Celo YouTube",
-        url: getEcosystemUrl("https://www.youtube.com/@CeloOrg"),
-        description: "Workshops, AMAs, and replays.",
+        label: "LinkedIn",
+        description: "Official company updates, ecosystem partnerships, and job postings.",
+        url: getEcosystemUrl("https://www.linkedin.com/company/celoorg/"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Facebook",
+        description: "Announcements and ecosystem highlights for a broad audience.",
+        url: getEcosystemUrl("https://www.facebook.com/celohq"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Twitch",
+        description: "Occasional livestreams, events, and ecosystem broadcasts.",
+        url: getEcosystemUrl("https://www.twitch.tv/celoorg"),
+        actionLabel: "Open",
+      },
+      {
+        label: "Substack – Week in Celo",
+        description:
+          "Community-curated weekly newsletter summarizing what’s happening around Celo.",
+        url: getEcosystemUrl("https://celo.substack.com/"),
+        actionLabel: "Open",
       },
     ],
   },
