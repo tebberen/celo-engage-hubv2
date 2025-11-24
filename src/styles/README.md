@@ -1,11 +1,17 @@
-# `src/styles/` – Global Styles
+# `src/styles/` – Design System & Layout
 
-Global styling for the Celo Engage Hub interface, including theming, layout, and component rules shared across sections.
+Global styles for the Celo Engage Hub. The stylesheet shapes the Celo-inspired color palette, layout grid, cards, modals, and responsive behavior used across all sections.
 
 ## Files
-- **`main.css`** – Defines the Celo color system, typography scale, layout grid, navigation, cards, modals, badges, leaderboard lists, and responsive breakpoints. Loaded directly by `index.html`.
+- **`main.css`** – Single source of truth for typography, spacing, buttons, cards, badges, navigation, hero sections, and media queries. Loaded directly by `index.html`.
 
-## Usage notes
-- Keep class names aligned with those referenced in `src/main.js` to avoid breaking DOM selectors used for stateful behaviors.
-- Prefer extending existing CSS variables and utility classes before adding new bespoke styles; maintain contrast and focus states for accessibility.
-- If you introduce new sections, co-locate their styles here so the single stylesheet stays the source of truth for theming.
+## Design guidance
+- **Color palette:** Celo gold/yellow accents paired with dark neutrals. Utility variables are defined near the top of `main.css` for quick updates.
+- **Spacing & typography:** Rem-based sizes and consistent margins/padding keep cards and sections balanced. Reuse existing heading and body styles before introducing new variants.
+- **Components:** Card, badge, CTA button, and pill styles are shared across mini app grids, ecosystem lists, and Profile widgets.
+- **Responsive layout:** Flex/grid breakpoints adapt navigation, card columns, and modals for mobile screens and Farcaster mini app viewports.
+
+## Extending styles safely
+- Reuse existing variables and utility classes to maintain visual consistency.
+- Keep class names aligned with those referenced in `src/main.js` (e.g., navigation buttons, modals) to avoid breaking selectors.
+- Group new section-specific rules with clear comments inside `main.css` so future contributors can trace behaviors quickly.
