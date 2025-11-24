@@ -196,7 +196,8 @@ textarea:focus-visible {
   background: rgba(255, 239, 188, 0.6);
   color: var(--nav-button-text);
   font-weight: 600;
-  padding: 10px 14px;
+  font-size: 15px;
+  padding: 12px 18px;
   border-radius: 12px;
   min-height: 42px;
   transition: background var(--transition), box-shadow var(--transition), border-color var(--transition), color var(--transition);
@@ -644,7 +645,7 @@ section {
   .nav-btn {
     flex: 1 1 calc(50% - 6px);
     text-align: center;
-    padding: 9px 12px;
+    padding: 11px 14px;
   }
 
   .header-actions {
