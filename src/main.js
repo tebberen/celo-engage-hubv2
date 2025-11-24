@@ -328,6 +328,8 @@ const elements = {
   languageToggle: document.getElementById("languageToggle"),
   ecosystemModal: document.getElementById("ecosystemModal"),
   ecosystemMore: document.getElementById("ecosystemMore"),
+  ecosystemSidebarButtons: document.querySelectorAll(".ecosystem-links [data-module-key]"),
+  ecosystemSection: document.getElementById("ecosystem-modules"),
   shareModal: document.getElementById("shareModal"),
   shareLinkForm: document.getElementById("shareLinkForm"),
   shareLinkInput: document.getElementById("shareLinkInput"),
@@ -1403,7 +1405,19 @@ function setupEcosystemModules() {
     elements.ecosystemModuleGrid.addEventListener("click", (event) => {
       const target = event.target.closest("[data-module-key]");
       if (!target) return;
-      setActiveEcosystemModule(target.dataset.moduleKey);
+      selectEcosystemModule(target.dataset.moduleKey);
+    });
+  }
+
+  if (elements.ecosystemSidebarButtons?.length) {
+    elements.ecosystemSidebarButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const { moduleKey } = button.dataset;
+        if (moduleKey) {
+          selectEcosystemModule(moduleKey);
+        }
+      });
     });
   }
 
@@ -1433,8 +1447,22 @@ function renderEcosystemModuleCards() {
   elements.ecosystemModuleGrid.innerHTML = cards.join("");
 }
 
+function selectEcosystemModule(moduleKey) {
+  const didUpdate = setActiveEcosystemModule(moduleKey);
+  if (didUpdate) {
+    scrollToEcosystemSection();
+  }
+}
+
+function scrollToEcosystemSection() {
+  const section = document.getElementById("ecosystem-modules") || elements.ecosystemSection;
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 function setActiveEcosystemModule(key) {
-  if (!key || !CELO_ECOSYSTEM_MODULES[key]) return;
+  if (!key || !CELO_ECOSYSTEM_MODULES[key]) return false;
   state.activeEcosystemModule = key;
 
   const cards = elements.ecosystemModuleGrid?.querySelectorAll("[data-module-key]") || [];
@@ -1443,6 +1471,8 @@ function setActiveEcosystemModule(key) {
   });
 
   renderEcosystemDetail(CELO_ECOSYSTEM_MODULES[key]);
+
+  return true;
 }
 
 function renderEcosystemDetail(module) {
