@@ -116,18 +116,12 @@
                 <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
               </div>
               <ul class="ecosystem-links">
-                <li><a href="#">Celo Official Links</a></li>
-                <li><a href="#">Celo Farcaster Mini Apps</a></li>
-                <li><a href="#">Celo Bridge</a></li>
-                <li><a href="#">Celo DEX</a></li>
-                <li><a href="#">Celo CEX</a></li>
-                <li><a href="#">Celo Social Media</a></li>
-                <li><a href="#">More Ecosystem Tools</a></li>
-                <li><a href="#">Valora</a></li>
-                <li><a href="#">ReFi</a></li>
-                <li><a href="#">CeloVote</a></li>
-                <li><a href="#">Celo Camp</a></li>
-                <li><a href="#">Impact Market</a></li>
+                <li><a href="#" data-module-key="official">Celo Official Links</a></li>
+                <li><a href="#" data-module-key="miniApps">Celo Farcaster Mini Apps</a></li>
+                <li><a href="#" data-module-key="bridge">Celo Bridge</a></li>
+                <li><a href="#" data-module-key="dex">Celo DEX</a></li>
+                <li><a href="#" data-module-key="cex">Celo CEX</a></li>
+                <li><a href="#" data-module-key="social">Celo Social Media</a></li>
               </ul>
               <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
                 More Ecosystem Tools
@@ -229,7 +223,7 @@
                 </div>
               </div>
 
-              <div class="ecosystem-modules">
+              <section id="ecosystem-modules" class="ecosystem-modules">
                 <div id="ecosystemModuleGrid" class="module-grid" aria-label="Celo ecosystem modules"></div>
 
                 <div id="ecosystemDetail" class="ecosystem-detail card" aria-live="polite">
@@ -242,7 +236,7 @@
                   </div>
                   <div id="ecosystemDetailList" class="ecosystem-link-list"></div>
                 </div>
-              </div>
+              </section>
             </section>
 
             <section id="gm" class="section" data-section-label="GM" style="display: none;">
