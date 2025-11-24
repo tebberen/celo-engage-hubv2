@@ -1,18 +1,21 @@
-# `server/` – Optional Express Backend
+# `server/` – Optional Express Helper
 
-Lightweight Express service previously used for Self ID verification. The frontend ships fully static; this server is only required if you re-enable the verification flow.
+A lightweight Express server that previously powered Self ID verification checks for the hub. The front-end runs fully static; this service is only needed if you re-enable verification flows or want a simple health endpoint during development.
 
 ## Files
-- **`index.js`** – Boots Express with CORS and JSON middleware. Exposes `/api/self/health` for heartbeat checks, `/api/self/check` to query verified addresses, and `/api/self/verify` to validate signatures with `ethers.utils.verifyMessage` and store results in memory.
+- **`index.js`** – Boots Express with CORS + JSON middleware. Exposes:
+  - `GET /api/self/health` – Basic heartbeat for uptime monitors.
+  - `GET /api/self/check` – Returns the in-memory list of verified addresses.
+  - `POST /api/self/verify` – Verifies signatures with `ethers.utils.verifyMessage` and stores successful results in memory.
 
-## Usage
-- Start from the repository root:
-  ```bash
-  npm run start:server
-  ```
-- Defaults to port `8787` (override with `PORT`).
-- Designed to be stateless; if persistence is needed, swap the in-memory store for a database.
+## Running locally
+From the repository root:
+```bash
+npm run start:server
+```
+The server defaults to port **8787** (override with `PORT`). Because it uses in-memory storage, restart the process when you want a clean slate.
 
-## Contributing
-- Keep responses minimal to support polling from the browser.
-- If you reintroduce frontend verification, coordinate request/response shapes with `src/services/identityService.js` and consider hardening rate limits/auth.
+## Integration notes
+- The front-end service layer (`src/services/identityService.js`) expects the endpoints above; coordinate any shape changes.
+- If you need persistence, swap the in-memory store for a database while keeping response payloads minimal for browser polling.
+- Keep responses CORS-friendly so they can be called from GitHub Pages or other static hosts.

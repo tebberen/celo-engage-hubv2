@@ -1,21 +1,21 @@
-# `src/` – Frontend Source
+# `src/` – Frontend Application Source
 
-All browser-facing logic for Celo Engage Hub lives in this folder. The app is served from `index.html` and powered by vanilla JavaScript, CSS, and JSON data.
+All browser-facing logic, copy, and styling for Celo Engage Hub live here. The app is delivered as a static experience from `index.html` and uses vanilla JavaScript with CDN imports.
 
-## Key entry points
-- **`main.js`** – Central controller that wires navigation (Home/GM/Deploy/Donate/Profile), handles wallet connection, triggers on-chain actions, renders mini app cards, and coordinates toasts, modals, and live updates.
-- **`lang.json`** – Translation map for UI labels and messages. The language toggle in the header reads from this file.
+## Entry points
+- **`main.js`** – Central controller that wires navigation (Home, GM, Deploy, Donate, Profile), handles wallet lifecycle, loads ecosystem modules, renders mini app cards, and triggers toast/modals for on-chain flows.
+- **`lang.json`** – String map for UI labels and instructional copy. The language toggle in the header reads from this file.
 
 ## Subdirectories
-- **`services/`** – Wallet, contract, and referral helpers used by `main.js` for blockchain I/O.
-- **`utils/`** – Shared constants, CDN module bridges, and formatting helpers.
-- **`data/`** – Static JSON such as the Farcaster mini app directory.
-- **`styles/`** – Global CSS for layout, theming, and components.
+- **`data/`** – JSON definitions for Celo mini apps and curated ecosystem links.
+- **`services/`** – Wallet, contract, identity, and referral helpers that wrap blockchain calls.
+- **`styles/`** – Global CSS defining layout, theming, and responsive rules.
+- **`utils/`** – Constants, CDN module shims, and formatting helpers shared across services and `main.js`.
 
 ## Navigation model
-Sections are defined directly in `index.html` and toggled by `main.js` based on `.nav-btn` targets. The Home section exposes the mini app directory; GM/Deploy/Donate trigger on-chain flows; Profile shows wallet state, username registration, and recent activity.
+Sections are defined in `index.html` and toggled by `main.js` based on `.nav-btn` data attributes. Home renders the ecosystem directory; GM/Deploy/Donate surface action flows; Profile shows connected wallet context, governance snapshots, and saved analytics links.
 
-## Contributing
-- Extend `main.js` with small, composable functions instead of duplicating DOM selectors.
-- Keep translations in `lang.json` synchronized with any new UI strings.
-- Align new styles with existing class names so JS-driven selectors remain stable.
+## Extending the app
+- Keep selectors and class names aligned with `main.css` so dynamic behaviors remain stable.
+- Add new strings to `lang.json` when introducing UI copy, and mirror them in the DOM where needed.
+- Prefer extending services and utils rather than duplicating blockchain logic inside `main.js`.

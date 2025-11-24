@@ -1,66 +1,106 @@
-# Celo Engage Hub v2 – Farcaster Celo Mini App Directory and On-Chain Engagement Hub
+# Celo Engage Hub v2
 
-Celo Engage Hub v2 is a Farcaster-focused mini app directory and engagement surface for the Celo ecosystem. The web app ships a Celo-themed experience with quick actions for GM, Deploy, Donate, and Profile, plus a discoverable list of ecosystem mini apps.
+**Modular Celo ecosystem hub + Farcaster mini app directory with GM, Deploy, Donate, and Profile engagement flows.**
 
 ## Overview
-- **Navigation-first UI:** Header navigation surfaces Home, GM, Deploy, Donate, and Profile sections with clear breadcrumbs.
-- **Home directory:** Presents Celo-related Farcaster mini apps with search and category filters so users can find the right tool quickly.
-- **On-chain engagement:** GM, Deploy, Donate, and governance interactions are coordinated through the client-side modules.
-- **Wallet connectivity:** Supports MetaMask and WalletConnect, with Celo Mainnet/Alfajores awareness built into the UI.
+Celo Engage Hub v2 is a lightweight, mini-app–friendly web experience that spotlights the Celo ecosystem and gives users quick on-chain actions. Builders can showcase Farcaster mini apps, while users can explore the directory, send a GM, donate to ecosystem efforts, deploy starter modules, and manage wallet-connected profiles. The experience is designed for desktop and mobile browsers, as well as Farcaster mini app surfaces and MiniPay-friendly flows.
 
-## Features
-- **Celo mini app directory:** Searchable, filterable grid populated from `src/data/celoMiniApps.json`.
-- **GM / Deploy / Donate actions:** Frontend flows for sending GM messages, deploying lightweight contracts, and donating in CELO, cUSD, or cEUR.
-- **Profile page:** Shows the connected wallet, username flow, recent deployments, and participation stats.
-- **Clean Celo-styled UI:** Responsive layout, dark/golden theme toggle, and ecosystem links for quick navigation.
+### Who it is for
+- **Celo community members** who want a curated starting point for official links, wallets, bridges, and social channels.
+- **Farcaster users** looking to launch or discover Celo-focused mini apps.
+- **Builders and grantees** who need a public landing zone to share tools, track engagement, and experiment with lightweight deployments.
+
+## Key Features
+- **GM & on-chain engagement:** Trigger GM messages and lightweight interactions from the homepage and dedicated section.
+- **Donate / Support Hub:** CELO, cUSD, and cEUR donation helpers with minimum thresholds and feedback toasts.
+- **Deploy module concept:** Client-side deploy helpers for modular contracts and engagement experiments.
+- **Profile (wallet-based):** Wallet connection, identity checks, and recent activity surfaced in the Profile section.
+- **Celo Ecosystem cards:** Curated official links, DEX/CEX/Bridge options, social media, and Farcaster mini apps rendered as cards with clear CTAs.
+- **Home “how to use / why / who” guidance:** Landing copy that orients new users and builders.
+- **Mini-app friendly design:** Optimized for Farcaster embeds and MiniPay-aware flows using WalletConnect v2.
 
 ## Tech Stack
-- **Frontend:** HTML, CSS, and vanilla JavaScript served from `index.html` with assets in `/assets`.
-- **Web3:** `ethers.js` (via CDN) plus WalletConnect support for browser wallets.
-- **Network focus:** Celo Mainnet by default with support for Alfajores and other configured networks.
-- **Backend (optional):** Lightweight Express server for legacy Self ID verification (disabled by default).
+- **Frontend:** Vanilla HTML, CSS, and JavaScript shipped from `index.html` with no bundler requirement.
+- **Wallet integration:** MetaMask/injected providers plus WalletConnect v2, driven by `ethers.js` from CDN imports.
+- **Tooling:** Minimal npm footprint (for the optional server); static assets and JSON data drive the UI.
 
-## Project Structure
-- **`index.html`** – Static entry point that wires styles, scripts, and semantic markup for all sections.
-- **`src/`** – Main frontend source (controllers, translations, helpers, and styles).
-- **`src/services/`** – Wallet, contract, and referral service layer handling blockchain interactions.
-- **`src/utils/`** – Constants, CDN module bridges, and formatting helpers reused across the app.
-- **`src/data/`** – JSON data sources such as the Celo mini app directory.
-- **`src/styles/`** – Global CSS theme, layout rules, and component styling.
-- **`assets/`** – Logos and other static assets consumed by the UI.
-- **`contracts/`** – Solidity sources referenced by the project (currently optional/self-verification oriented).
-- **`server/`** – Optional Express server for Self verification health checks and signature validation.
+## Architecture & Project Structure
+- **`index.html`** – Static entry that mounts all sections and loads scripts/styles.
+- **`src/`** – Main application logic, translations, styles, and data loaders.
+  - **`src/data/`** – JSON definitions for Farcaster mini apps and ecosystem modules.
+  - **`src/services/`** – Wallet and contract service layer for GM/Donate/Deploy/Profile actions.
+  - **`src/styles/`** – Design system and responsive layout rules.
+  - **`src/utils/`** – Constants, CDN module shims, and formatting helpers.
+- **`assets/`** – Logos and iconography referenced by cards and layouts.
+- **`contracts/`** – Solidity sources for optional on-chain verification modules.
+- **`server/`** – Optional Express server used for legacy Self ID verification flows.
+
+### Folder tree
+```
+.
+├─ index.html
+├─ assets/
+├─ contracts/
+├─ server/
+├─ src/
+│  ├─ data/
+│  ├─ services/
+│  ├─ styles/
+│  └─ utils/
+└─ package.json
+```
 
 ## Getting Started
-1. **Prerequisites:** Node.js 18+ and npm installed. A Celo-compatible wallet (MetaMask or a WalletConnect client) is recommended for testing.
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Run the optional backend (only if you need Self verification testing):**
-   ```bash
-   npm run start:server
-   ```
-   The frontend itself is static. You can serve `index.html` with any static server (e.g., VS Code Live Server or `npx http-server`).
-4. **Build & deploy:** This repository is static and can be hosted on GitHub Pages, Vercel, or any static host. Ensure `index.html`, `src/`, and `assets/` are published together.
+### Prerequisites
+- Node.js 18+ and npm installed locally.
+- A CELO-compatible wallet (MetaMask or any WalletConnect v2 client) for testing interactions.
 
-## Wallet Connection
-- **Profile flow:** Use the Profile section’s “Connect Wallet” action to link MetaMask or WalletConnect. The header wallet pill mirrors status and lets users disconnect.
-- **Supported options:**
-  - **MetaMask / injected providers** via `src/services/walletService.js`.
-  - **WalletConnect v2** with the configured project ID.
-- **Network expectations:** Targets Celo Mainnet (`chainId 42220`) by default. Alfajores (`44787`) is also recognized. The UI prompts if the wallet is on an unsupported network.
+### Installation
+```bash
+git clone https://github.com/tebberen/celo-engage-hubv2.git
+cd celo-engage-hubv2
+npm install
+```
 
-## Environment & Configuration
-- RPC and WebSocket endpoints, contract addresses, module ABIs, donation thresholds, and UI strings are centralized in `src/utils/constants.js`.
-- If you provide environment variables (e.g., `CELO_ENGAGE_RPC_URL`, `CELO_ENGAGE_WS_URL`), ensure they are injected by your hosting stack; no secrets should be committed.
-- Update `manifest.json` and `miniapp.config.json` if you deploy to a new host or need to adjust mini app metadata.
+### Local development
+The frontend is fully static. Serve the repository root with any static server (e.g., VS Code Live Server, `npx http-server .`, or similar) and open `index.html` in your browser.
+
+### Optional backend
+If you want to experiment with the legacy Self verification helper:
+```bash
+npm run start:server
+```
+The Express server listens on port `8787` by default and can be accessed at `http://localhost:8787`.
+
+### Building & deployment
+There is no build step. Publish `index.html`, `src/`, `assets/`, and supporting JSON files to GitHub Pages or any static host. The live demo is served from GitHub Pages at https://tebberen.github.io/celo-engage-hubv2/.
+
+## Using the dApp
+1. **Connect a wallet** via MetaMask or WalletConnect from the header/Profile section; the app targets Celo Mainnet (`chainId 42220`) and recognizes Alfajores (`44787`).
+2. **Explore Home** for “How to use/Why/Who” guidance and a searchable Farcaster mini app grid.
+3. **Browse the Celo Ecosystem** cards to open official links, DEX/CEX/Bridge options, and social channels.
+4. **Run GM / Donate / Deploy flows** from their dedicated sections to trigger on-chain actions or simulated module flows.
+5. **Profile** shows the connected wallet context, recent deployments, governance data, and saved analytics links.
+
+### User journeys
+- **New user:** Land on Home → read the “How to use/Why/Who” tips → connect wallet → try a GM or Donate → open a featured mini app.
+- **Builder:** Land on Home → open Celo ecosystem links and Farcaster mini apps → connect wallet → test Deploy/Profile to verify wallet integration → submit new mini app data via PR.
+
+## Celo Ecosystem Integration
+- Official links, CEX/DEX/bridge entries, social channels, and Farcaster mini apps are curated as JSON in `src/data/` and constant maps in `src/utils/constants.js`.
+- Cards render title, description, and CTA labels so users can open resources directly from the hub.
+- New modules or mini apps can be added by appending JSON entries; icons live in `assets/miniapps/` and default fallbacks are provided.
+
+## Roadmap / Future Work
+- Expand the mini app directory with richer metadata (tags, chains, screenshots).
+- Add on-chain stats, streaks, or NFT badges for repeat engagement.
+- Introduce persistent storage for verification history and social leaderboards.
+- Package more deployment templates and governance shortcuts for builders.
 
 ## Contributing
-- Fork or branch from `main`, then open a PR with concise descriptions of your changes.
-- Keep new helpers modular; extend `src/services/` for blockchain interactions and `src/utils/constants.js` for shared config.
-- To add a new Celo mini app to the directory, append an entry to `src/data/celoMiniApps.json` with `name`, `description`, `category`, `farcasterUrl`, and `iconUrl` fields.
-- Prefer semantic HTML, accessible labels, and the existing class names used by `src/main.js` when adjusting the UI.
+- Open an issue or PR with proposed changes, new ecosystem links, or updated metadata.
+- Follow the existing data shapes in `src/data/celoMiniApps.json` and `src/utils/constants.js` when adding entries.
+- Keep UX consistent with current styles and class names; prefer small, composable changes.
 
 ## License
-This project is released under the **MIT License**. See `LICENSE` for full terms.
+This project is released under the **MIT License**. See [`LICENSE`](LICENSE) for details.
