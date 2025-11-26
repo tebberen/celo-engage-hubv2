@@ -439,6 +439,7 @@ export async function doDonateCEUR(amount) {
 export async function withdrawDonations(token, amount) {
   const { address } = requireSigner();
   if (address.toLowerCase() !== OWNER_ADDRESS.toLowerCase()) {
+    console.warn("Only owner can withdraw donations");
     throw new Error(UI_MESSAGES.ownerOnly);
   }
   try {
