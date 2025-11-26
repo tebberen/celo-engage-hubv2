@@ -590,16 +590,14 @@
 
       async function initMiniApp() {
         try {
-          // Notify Farcaster that the Mini App is ready
-          await sdk.actions.ready();
-          console.log("[MiniApp] sdk.actions.ready() called ✔️");
+          window.miniAppSdk = sdk;
+          const inMiniApp = (await sdk.isInMiniApp?.()) ?? false;
+          window.isInMiniApp = inMiniApp;
 
-          // OPTIONAL: detect if we are inside Farcaster
-          const isMiniApp = sdk?.context?.client === "farcaster";
-          if (isMiniApp) {
-            console.log("[MiniApp] Running inside Farcaster Mini App ✔️");
-          } else {
-            console.log("[MiniApp] Running in normal browser mode");
+          await sdk.actions.ready();
+
+          if (inMiniApp && typeof window.tryAutoConnectFarcasterWallet === "function") {
+            await window.tryAutoConnectFarcasterWallet();
           }
 
         } catch (err) {

@@ -2101,11 +2101,7 @@ function setupConnectModal() {
 }
 
 function isFarcasterMiniApp() {
-  try {
-    return typeof sdk !== "undefined" && sdk.context && sdk.context.client && typeof sdk.context.client.clientFid === "number";
-  } catch (error) {
-    return false;
-  }
+  return window.isInMiniApp === true;
 }
 
 let currentProvider = null;
@@ -2116,8 +2112,8 @@ async function connectWithFarcasterWallet() {
   try {
     console.log("[MiniApp] Farcaster connect path");
 
-    const ethProvider = await sdk.wallet.getEthereumProvider();
-    const web3Provider = new ethers.providers.Web3Provider(ethProvider);
+    const provider = await sdk.wallet.getEthereumProvider();
+    const web3Provider = new ethers.providers.Web3Provider(provider);
     const signer = web3Provider.getSigner();
     const address = await signer.getAddress();
 
@@ -2125,12 +2121,8 @@ async function connectWithFarcasterWallet() {
     currentSigner = signer;
     currentAddress = address;
 
-    const details = await connectWithProvider(web3Provider, ethProvider, "farcaster");
-    state.address = details.address;
-    state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-    updateOwnerPanelVisibility(state.address);
-    updateWalletUI();
-    renderNetworkInfo(true);
+    await connectWithProvider(web3Provider, provider, "farcaster");
+    updateWalletConnectedUI(address);
     closeConnectModal();
     await afterWalletConnected();
 
@@ -2140,14 +2132,16 @@ async function connectWithFarcasterWallet() {
   }
 }
 
-async function tryAutoConnectFarcasterWallet() {
+window.tryAutoConnectFarcasterWallet = async function () {
+  if (!isFarcasterMiniApp()) return;
+  if (currentAddress) return;
+
   try {
-    if (!isFarcasterMiniApp()) return;
     await connectWithFarcasterWallet();
   } catch (error) {
     console.warn("[MiniApp] Auto-connect Farcaster wallet failed:", error);
   }
-}
+};
 
 async function getPreferredProvider() {
   try {
@@ -2450,17 +2444,21 @@ function updateAnalyticsLinks() {
   }
 }
 
+function updateWalletConnectedUI(address) {
+  state.address = address;
+  state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  updateOwnerPanelVisibility(state.address);
+  updateWalletUI();
+  renderNetworkInfo(true);
+}
+
 async function connectWallet(connector, preferredProvider = null) {
   try {
     const preferred = preferredProvider || (await getPreferredProvider());
     const details = preferred?.provider
       ? await connectWithProvider(preferred.provider, preferred.rawProvider, preferred.type || "unknown")
       : await connector();
-    state.address = details.address;
-    state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-    updateOwnerPanelVisibility(state.address);
-    updateWalletUI();
-    renderNetworkInfo(true);
+    updateWalletConnectedUI(details.address);
     closeConnectModal();
     showToast("success", "Cüzdan bağlandı.");
     await afterWalletConnected();
@@ -2483,19 +2481,12 @@ function initWalletListeners() {
   onWalletEvent(async ({ event, address, valid }) => {
     switch (event) {
       case "connected":
-        state.address = address;
-        state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-        updateOwnerPanelVisibility(state.address);
-        updateWalletUI();
-        renderNetworkInfo(true);
+        updateWalletConnectedUI(address);
         closeConnectModal();
         await afterWalletConnected();
         break;
       case "accountsChanged":
-        state.address = address;
-        state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
-        updateOwnerPanelVisibility(state.address);
-        updateWalletUI();
+        updateWalletConnectedUI(address);
         await afterWalletConnected();
         break;
       case "disconnected": {
