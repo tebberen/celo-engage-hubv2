@@ -1,6 +1,6 @@
 # Celo Engage Hub v2
 
-**Modular Celo ecosystem hub + Farcaster mini app directory with GM, Deploy, Donate, and Profile engagement flows.**
+**Modular Celo ecosystem hub + Farcaster mini app directory with GM, Deploy, Donate, and Profile engagement  flows.**
 
 ## Overview
 Celo Engage Hub v2 is a lightweight, mini-app–friendly web experience that spotlights the Celo ecosystem and gives users quick on-chain actions. Builders can showcase Farcaster mini apps, while users can explore the directory, send a GM, donate to ecosystem efforts, deploy starter modules, and manage wallet-connected profiles. The experience is designed for desktop and mobile browsers, as well as Farcaster mini app surfaces and MiniPay-friendly flows.
