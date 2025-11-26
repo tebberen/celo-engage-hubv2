@@ -2225,6 +2225,7 @@ function hideConnectWalletButtonForMiniApp(address) {
     if (elements.walletStatus && address) {
       const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
       elements.walletStatus.textContent = short;
+      elements.walletStatus.style.display = "inline-block";
     }
   }
 }
