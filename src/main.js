@@ -1,3 +1,4 @@
+import { sdk as farcasterMiniAppSdk } from "https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -12,6 +13,7 @@ import {
 import {
   connectWalletMetaMask,
   connectWalletConnect,
+  connectWithProvider,
   disconnectWallet,
   getInjectedProvider,
   getWalletDetails,
@@ -73,6 +75,13 @@ const MINI_APP_CATEGORIES = [
 const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
 const MINI_APP_QUERY_KEYS = ["miniapp", "mini-app", "farcaster", "warpcast"];
 
+function getMiniAppSdk() {
+  if (typeof window !== "undefined" && window.__farcasterMiniAppSdk) {
+    return window.__farcasterMiniAppSdk;
+  }
+  return farcasterMiniAppSdk;
+}
+
 function isFarcasterMiniApp() {
   try {
     const searchParams = new URLSearchParams(window.location.search || "");
@@ -99,7 +108,7 @@ function isFarcasterMiniApp() {
 async function signalFarcasterMiniAppReady() {
   if (!isFarcasterMiniApp()) return;
 
-  let miniAppSdk = window.__farcasterMiniAppSdk;
+  let miniAppSdk = getMiniAppSdk();
   if (!miniAppSdk?.actions?.ready) {
     miniAppSdk = await import("https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020")
       .then((module) => module?.sdk)
@@ -116,6 +125,9 @@ async function signalFarcasterMiniAppReady() {
   if (miniAppSdk?.actions?.ready) {
     try {
       miniAppSdk.actions.ready();
+      if (typeof window !== "undefined") {
+        window.__farcasterMiniAppSdk = miniAppSdk;
+      }
     } catch (error) {
       console.warn("[MiniApp] Unable to signal ready", error);
     }
@@ -2150,6 +2162,30 @@ function setupConnectModal() {
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
 }
 
+async function getPreferredProvider() {
+  if (!isFarcasterMiniApp()) return null;
+
+  const miniAppSdk = getMiniAppSdk();
+  if (!miniAppSdk?.actions?.ready || !miniAppSdk?.wallet?.getEthereumProvider) {
+    return null;
+  }
+
+  try {
+    await miniAppSdk.actions.ready();
+    const rawProvider = await miniAppSdk.wallet.getEthereumProvider();
+    if (!rawProvider) return null;
+
+    const web3Provider = new ethers.providers.Web3Provider(rawProvider, "any");
+    if (typeof window !== "undefined") {
+      window.__farcasterMiniAppSdk = miniAppSdk;
+    }
+    return { provider: web3Provider, rawProvider, type: "farcaster" };
+  } catch (error) {
+    console.warn("[MiniApp] Unable to resolve preferred provider", error);
+    return null;
+  }
+}
+
 function hasInjectedWalletProvider() {
   return Boolean(getInjectedProvider());
 }
@@ -2387,7 +2423,11 @@ function updateAnalyticsLinks() {
 
 async function connectWallet(connector) {
   try {
-    const details = await connector();
+    const preferred = await getPreferredProvider();
+    const details =
+      preferred?.type === "farcaster"
+        ? await connectWithProvider(preferred.provider, preferred.rawProvider, "farcaster")
+        : await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
     updateOwnerPanelVisibility(state.address);
