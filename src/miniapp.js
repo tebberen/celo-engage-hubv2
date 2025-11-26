@@ -1,4 +1,3 @@
-import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -56,6 +55,13 @@ const storedCompletedLinks = safeParseStorage(localStorage.getItem(COMPLETED_STO
 const newLinkHighlights = new Set();
 const liveLinkCache = new Set();
 
+const isMiniApp = typeof window !== "undefined" && !!window.sdk;
+window.isMiniApp = isMiniApp;
+
+if (!isMiniApp) {
+  console.log("[MiniApp] Running outside Farcaster mini app environment");
+}
+
 const COMPLETION_THRESHOLD = 3;
 const MAX_COMPLETED_HISTORY = 50;
 const MINI_APP_CATEGORIES = [
@@ -81,20 +87,6 @@ function getEcosystemUrl(match) {
     return url.toLowerCase().includes(normalized) || name.toLowerCase().includes(normalized);
   });
   return entry?.url || match;
-}
-
-// ================================
-// Mini App environment detection
-// ================================
-window.miniAppSdk = sdk;
-window.sdk = sdk;
-const isMiniApp = true;
-window.isMiniApp = true;
-console.log("[MiniApp] Dedicated Farcaster mini app mode enabled");
-
-if (sdk?.actions && typeof sdk.actions.ready === "function") {
-  sdk.actions.ready();
-  console.log("[MiniApp] sdk.actions.ready() ✔️");
 }
 
 const CELO_ECOSYSTEM_MODULES = {
@@ -1038,15 +1030,20 @@ async function init() {
   renderNetworkInfo(false);
   updateWalletUI();
 
-  const inMiniApp = isMiniApp || (await detectFarcasterEnvironment());
+  setupConnectModal();
+  setupWalletButtons();
+  setupWalletDropdown();
 
-  if (!inMiniApp) {
-    setupConnectModal();
-    setupWalletButtons();
-    setupWalletDropdown();
-  } else {
-    await autoConnectFarcasterWallet();
-    hideConnectWalletButtonForMiniApp(currentAddress || state.address);
+  if (isMiniApp) {
+    try {
+      await connectWallet(connectFarcasterWallet);
+      if (window.sdk?.actions?.ready) {
+        window.sdk.actions.ready();
+        console.log("[MiniApp] sdk.actions.ready() called ✔️");
+      }
+    } catch (error) {
+      console.error("[MiniApp] Failed to auto-connect Farcaster wallet", error);
+    }
   }
 
   renderOwnerPanel();
@@ -1054,7 +1051,6 @@ async function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
-  await initMiniAppEnvironment();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -2128,16 +2124,10 @@ function setupConnectModal() {
   const dismissButtons = elements.connectModal.querySelectorAll('[data-dismiss="connectModal"]');
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
 }
-
-function isFarcasterMiniApp() {
-  return window.isMiniApp === true;
-}
-
 let currentProvider = null;
 let currentSigner = null;
 let currentAddress = null;
 let isWalletConnected = false;
-const hasMiniAppSdk = () => Boolean(typeof window !== "undefined" && (window.miniAppSdk || window.sdk));
 
 function shortenAddress(addr) {
   if (!addr) return "—";
@@ -2187,99 +2177,6 @@ function isWalletReady() {
   return Boolean(currentSigner && currentAddress);
 }
 
-async function detectFarcasterEnvironment() {
-  if (typeof window === "undefined") return false;
-  if (!hasMiniAppSdk()) {
-    window.isMiniApp = false;
-    return false;
-  }
-  if (window.isMiniApp === true) return true;
-
-  const miniAppSdk = window.miniAppSdk || sdk;
-  if (!miniAppSdk?.isInMiniApp) return false;
-
-  try {
-    const detected = (await miniAppSdk.isInMiniApp()) === true;
-    window.isMiniApp = detected;
-    if (detected) {
-      updateWalletUI();
-    }
-    return detected;
-  } catch (error) {
-    console.warn("[MiniApp] isInMiniApp detection failed", error);
-    return false;
-  }
-}
-
-async function connectWithFarcasterWallet() {
-  if (!hasMiniAppSdk()) {
-    return;
-  }
-  try {
-    if (!window.miniAppSdk) {
-      console.warn("[MiniApp] miniAppSdk not found, cannot use Farcaster wallet.");
-      return;
-    }
-
-    const miniAppSdk = window.miniAppSdk;
-    console.log("[MiniApp] Connecting via Farcaster wallet…");
-
-    const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
-
-    const { provider, signer, address } = await connectWithProvider(ethProvider, {
-      source: "farcaster",
-    });
-
-    setWalletConnectionState({ provider, signer, address });
-    updateWalletConnectedUI(address);
-    await afterWalletConnected();
-
-    console.log("[MiniApp] Connected with Farcaster wallet:", address);
-
-    hideConnectWalletButtonForMiniApp(address);
-  } catch (error) {
-    console.error("[MiniApp] Farcaster wallet connection failed:", error);
-    // Optionally: show a user-friendly toast or banner with err.message
-  }
-}
-
-window.autoConnectFarcasterWallet = async function () {
-  if (!isFarcasterMiniApp()) {
-    return;
-  }
-
-  if (isWalletReady()) {
-    console.log("[MiniApp] Already connected:", currentAddress);
-    hideConnectWalletButtonForMiniApp(currentAddress);
-    renderProfileSection();
-    return;
-  }
-
-  try {
-    await connectWithFarcasterWallet();
-  } catch (error) {
-    console.warn("[MiniApp] Auto-connect Farcaster wallet failed:", error);
-  }
-};
-
-async function getPreferredProvider() {
-  try {
-    if (!isFarcasterMiniApp() || !hasMiniAppSdk()) {
-      return null;
-    }
-    const miniAppSdk = window.miniAppSdk || sdk;
-    if (miniAppSdk?.wallet?.getEthereumProvider) {
-      const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
-      if (ethProvider) {
-        return { provider: ethProvider, rawProvider: ethProvider, type: "farcaster" };
-      }
-    }
-  } catch (error) {
-    console.error("[MiniApp] Farcaster wallet connection failed", error);
-  }
-  return null;
-}
-
 function hasInjectedWalletProvider() {
   return Boolean(getInjectedProvider());
 }
@@ -2289,22 +2186,6 @@ function getInjectedWalletConnector() {
     return null;
   }
   return connectWalletMetaMask;
-}
-
-function hideConnectWalletButtonForMiniApp(address) {
-  if (!elements.navbarConnectButton) return;
-
-  if (isFarcasterMiniApp()) {
-    elements.navbarConnectButton.style.display = "none";
-    elements.navbarConnectButton.hidden = true;
-    elements.navbarConnectButton.setAttribute("aria-hidden", "true");
-
-    if (elements.walletStatus && address) {
-      const short = `${address.slice(0, 6)}…${address.slice(-4)}`;
-      elements.walletStatus.textContent = short;
-      elements.walletStatus.style.display = "inline-block";
-    }
-  }
 }
 
 function updateConnectOptionAvailability() {
@@ -2319,28 +2200,8 @@ function updateConnectOptionAvailability() {
 }
 
 async function requestWalletConnection(trigger) {
-  if (isFarcasterMiniApp()) {
-    if (isWalletReady()) {
-      toggleWalletDropdown(true);
-      return;
-    }
-
-    try {
-      if (trigger) {
-        await withButtonLoading(
-          trigger,
-          { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
-          async () => {
-            await connectWithFarcasterWallet();
-          }
-        );
-      } else {
-        await connectWithFarcasterWallet();
-      }
-    } catch (error) {
-      console.warn("[MiniApp] Farcaster wallet connect button failed", error);
-    }
-    hideConnectWalletButtonForMiniApp(state.address || currentAddress);
+  if (isWalletReady()) {
+    toggleWalletDropdown(true);
     return;
   }
   updateConnectOptionAvailability();
@@ -2351,24 +2212,6 @@ async function startWalletConnection(trigger) {
   if (isWalletReady()) {
     toggleWalletDropdown(true);
     return;
-  }
-
-  const preferred = await getPreferredProvider();
-  if (preferred?.provider) {
-    try {
-      await withButtonLoading(
-        trigger,
-        { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
-        async () => {
-          await connectWallet(connectWalletMetaMask, preferred);
-        }
-      );
-      if (state.address) {
-        return;
-      }
-    } catch (error) {
-      console.error("❌ [MiniApp] Preferred wallet connect failed", error);
-    }
   }
   const injectedConnector = getInjectedWalletConnector();
   if (injectedConnector) {
@@ -2399,10 +2242,23 @@ function setupWalletButtons() {
     setTimeout(updateConnectOptionAvailability, 1000);
   }
 
+  if (isMiniApp && elements.connectOptions?.length) {
+    elements.connectOptions.forEach((option) => {
+      if (option.dataset.connectOption === "walletconnect") {
+        option.disabled = true;
+        option.hidden = true;
+        option.setAttribute("aria-disabled", "true");
+      }
+    });
+  }
+
   elements.connectOptions.forEach((option) => {
     option.addEventListener("click", async () => {
       const type = option.dataset.connectOption;
       const connector = type === "walletconnect" ? connectWalletConnect : connectWalletMetaMask;
+      if (isMiniApp) {
+        return;
+      }
       try {
         await withButtonLoading(option, { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true }, async () => {
           await connectWallet(connector);
@@ -2416,14 +2272,14 @@ function setupWalletButtons() {
   if (elements.navbarConnectButton) {
     elements.navbarConnectButton.addEventListener("click", async (event) => {
       event.preventDefault();
-
-      if (isFarcasterMiniApp()) {
-        if (!isWalletReady()) {
-          await connectWithFarcasterWallet();
-        } else {
-          console.log("[MiniApp] Wallet already connected:", currentAddress);
-        }
-        hideConnectWalletButtonForMiniApp(currentAddress || state.address);
+      if (isMiniApp) {
+        await withButtonLoading(
+          elements.navbarConnectButton,
+          { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+          async () => {
+            await connectWallet(connectFarcasterWallet);
+          }
+        );
         return;
       }
 
@@ -2548,10 +2404,6 @@ function setupEcosystemModal() {
 }
 
 function openConnectModal(trigger) {
-  if (isFarcasterMiniApp()) {
-    console.log("[MiniApp] Suppressing custom wallet modal in Mini App mode.");
-    return;
-  }
   if (!elements.connectModal) return;
   const defaultFocus = elements.connectOptions?.[0];
   openModalEl(elements.connectModal, { focusTarget: defaultFocus, trigger });
@@ -2601,15 +2453,25 @@ function updateWalletConnectedUI(address) {
   renderProfileSection();
 }
 
-async function connectWallet(connector, preferredProvider = null) {
+async function connectFarcasterWallet() {
+  if (!isMiniApp || !window.sdk?.wallet?.getEthereumProvider) {
+    throw new Error(UI_MESSAGES.walletNotConnected);
+  }
+
+  const ethProvider = await window.sdk.wallet.getEthereumProvider();
+  const details = await connectWithProvider(ethProvider, { rawProvider: ethProvider, source: "farcaster" });
+
+  window.currentProvider = details.provider;
+  window.currentSigner = details.signer;
+  window.currentAddress = details.address;
+  window.isWalletConnected = true;
+
+  return details;
+}
+
+async function connectWallet(connector) {
   try {
-    const preferred = preferredProvider || (await getPreferredProvider());
-    const details = preferred?.provider
-      ? await connectWithProvider(preferred.provider, {
-          rawProvider: preferred.rawProvider,
-          source: preferred.type || "unknown",
-        })
-      : await connector();
+    const details = isMiniApp ? await connectFarcasterWallet() : await connector();
     setWalletConnectionState(details);
     updateWalletConnectedUI(details.address);
     closeConnectModal();
@@ -2689,14 +2551,9 @@ function renderNetworkInfo(valid) {
 
 function updateWalletUI() {
   const connected = isWalletReady();
-  const hideConnect = connected || isFarcasterMiniApp();
-  if (isFarcasterMiniApp()) {
-    hideConnectWalletButtonForMiniApp(state.address || currentAddress);
-    if (elements.walletStatus && state.address) {
-      elements.walletStatus.textContent = shorten(state.address);
-    }
-  } else if (elements.walletStatus) {
-    elements.walletStatus.textContent = "";
+  const hideConnect = connected;
+  if (elements.walletStatus) {
+    elements.walletStatus.textContent = connected && state.address ? shorten(state.address) : "";
   }
   if (elements.walletActions) {
     elements.walletActions.classList.toggle("is-connected", connected);
@@ -3477,21 +3334,6 @@ function openUsernameModal(trigger) {
 function closeUsernameModal() {
   if (!elements.usernameModal) return;
   closeModalEl(elements.usernameModal);
-}
-
-async function initMiniAppEnvironment() {
-  const inMiniApp = isMiniApp || (await detectFarcasterEnvironment());
-  if (!inMiniApp || !hasMiniAppSdk()) return;
-  try {
-    if (window.sdk?.actions?.ready) {
-      await window.sdk.actions.ready();
-      console.log("[MiniApp] sdk.actions.ready() called ✔️");
-    }
-    updateConnectOptionAvailability();
-    updateWalletUI();
-  } catch (error) {
-    console.error("[MiniApp] ready() error:", error);
-  }
 }
 
 async function loadInitialData() {
