@@ -16,6 +16,7 @@ async function bundle() {
       entryPoints: ["src/main.js"],
       bundle: true,
       outfile: "dist/main.js",
+      publicPath: "/celo-engage-hubv2/",
       format: "esm",
       platform: "browser",
       target: "es2020",
