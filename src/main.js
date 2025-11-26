@@ -103,13 +103,17 @@ function isFarcasterMiniApp() {
   }
 }
 
-async function signalFarcasterMiniAppReady() {
-  if (!isFarcasterMiniApp()) return;
+let hasSignaledMiniAppReady = false;
 
-  if (miniAppSdk?.actions?.ready) {
+async function signalFarcasterMiniAppReady() {
+  if (hasSignaledMiniAppReady) return;
+
+  const sdk = await getFarcasterSdk();
+
+  if (sdk?.actions?.ready) {
     try {
-      console.log("FARCATER SDK CHECK: Module loaded.");
-      await miniAppSdk.actions.ready();
+      await sdk.actions.ready();
+      hasSignaledMiniAppReady = true;
       return;
     } catch (error) {
       console.warn("[MiniApp] Unable to signal ready via Mini App SDK", error);
@@ -117,7 +121,9 @@ async function signalFarcasterMiniAppReady() {
   }
 
   const didSignal = await readyFarcasterMiniApp();
-  if (!didSignal) {
+  if (didSignal) {
+    hasSignaledMiniAppReady = true;
+  } else {
     console.warn("[MiniApp] Unable to signal ready – SDK not available");
   }
 }
@@ -1049,7 +1055,6 @@ async function withButtonLoading(button, options, task) {
 }
 
 function init() {
-  signalFarcasterMiniAppReady();
   applyTheme();
   setupLanguage();
   setupNavigation();
@@ -1079,6 +1084,7 @@ function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
+  signalFarcasterMiniAppReady();
 }
 
 document.addEventListener("DOMContentLoaded", init);
