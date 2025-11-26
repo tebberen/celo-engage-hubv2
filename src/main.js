@@ -799,7 +799,7 @@ const elements = {
     topVotes: document.getElementById("leaderboardVotes"),
     topBadges: document.getElementById("leaderboardBadges"),
   },
-  ownerPanel: document.getElementById("ownerPanel"),
+  ownerPanel: document.getElementById("owner-panel"),
   withdrawCeloForm: document.getElementById("withdrawCeloForm"),
   withdrawCusdForm: document.getElementById("withdrawCusdForm"),
   withdrawCeurForm: document.getElementById("withdrawCeurForm"),
@@ -2337,6 +2337,7 @@ async function connectWallet(connector) {
     const details = await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+    updateOwnerPanelVisibility(state.address);
     updateWalletUI();
     renderNetworkInfo(true);
     closeConnectModal();
@@ -2363,6 +2364,7 @@ function initWalletListeners() {
       case "connected":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        updateOwnerPanelVisibility(state.address);
         updateWalletUI();
         renderNetworkInfo(true);
         closeConnectModal();
@@ -2371,6 +2373,7 @@ function initWalletListeners() {
       case "accountsChanged":
         state.address = address;
         state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+        updateOwnerPanelVisibility(state.address);
         updateWalletUI();
         await afterWalletConnected();
         break;
@@ -2379,6 +2382,7 @@ function initWalletListeners() {
         state.address = null;
         state.profile = null;
         state.isOwner = false;
+        updateOwnerPanelVisibility(null);
         renderProfile(null);
         renderOwnerPanel();
         closeWalletDropdown();
@@ -3126,7 +3130,21 @@ function renderGovernanceAccess() {
   }
 }
 
+function updateOwnerPanelVisibility(currentAccount) {
+  const panel = document.getElementById("owner-panel");
+  if (!panel) return;
+
+  const isOwner =
+    currentAccount &&
+    OWNER_ADDRESS &&
+    currentAccount.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+
+  // Hide owner-only actions from non-owners as an extra safeguard beyond contract checks.
+  panel.style.display = isOwner ? "block" : "none";
+}
+
 function renderOwnerPanel() {
+  updateOwnerPanelVisibility(state.address);
   if (!elements.ownerPanel) return;
   elements.ownerPanel.hidden = !state.isOwner;
   renderGovernanceAccess();
