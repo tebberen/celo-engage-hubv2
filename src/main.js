@@ -1,4 +1,4 @@
-import { sdk as frameSdk } from "@farcaster/frame-sdk";
+import { sdk as miniAppSdk } from "@farcaster/miniapp-sdk";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -106,13 +106,13 @@ function isFarcasterMiniApp() {
 async function signalFarcasterMiniAppReady() {
   if (!isFarcasterMiniApp()) return;
 
-  if (frameSdk?.actions?.ready) {
+  if (miniAppSdk?.actions?.ready) {
     try {
       console.log("FARCATER SDK CHECK: Module loaded.");
-      await frameSdk.actions.ready();
+      await miniAppSdk.actions.ready();
       return;
     } catch (error) {
-      console.warn("[MiniApp] Unable to signal ready via Frame SDK", error);
+      console.warn("[MiniApp] Unable to signal ready via Mini App SDK", error);
     }
   }
 

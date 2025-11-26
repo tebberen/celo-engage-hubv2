@@ -1,9 +1,17 @@
 {
-  "version": "vNext",
-  "name": "Celo Engage Hub",
-  "description": "A Celo ecosystem hub with GM, Deploy, Donate and curated Celo links and Farcaster mini apps.",
-  "homeUrl": "https://tebberen.github.io/celo-engage-hubv2/",
-  "iconUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.svg",
-  "requiredChains": ["eip155:42220"],
-  "requiredCapabilities": ["actions.signIn", "wallet.getEthereumProvider"]
+  "accountAssociation": {
+    "header": "REPLACE_WITH_SIGNED_HEADER",
+    "payload": "REPLACE_WITH_SIGNED_PAYLOAD",
+    "signature": "REPLACE_WITH_ACCOUNT_SIGNATURE"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Celo Engage Hub",
+    "iconUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png",
+    "homeUrl": "https://tebberen.github.io/celo-engage-hubv2/",
+    "imageUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg",
+    "buttonTitle": "Open Celo Engage Hub",
+    "splashImageUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png",
+    "splashBackgroundColor": "#FBCC5C"
+  }
 }
