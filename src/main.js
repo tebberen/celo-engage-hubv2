@@ -1,3 +1,4 @@
+import { sdk as frameSdk } from "@farcaster/frame-sdk";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -104,6 +105,15 @@ function isFarcasterMiniApp() {
 
 async function signalFarcasterMiniAppReady() {
   if (!isFarcasterMiniApp()) return;
+
+  if (frameSdk?.actions?.ready) {
+    try {
+      await frameSdk.actions.ready();
+      return;
+    } catch (error) {
+      console.warn("[MiniApp] Unable to signal ready via Frame SDK", error);
+    }
+  }
 
   const didSignal = await readyFarcasterMiniApp();
   if (!didSignal) {
@@ -1038,6 +1048,7 @@ async function withButtonLoading(button, options, task) {
 }
 
 function init() {
+  signalFarcasterMiniAppReady();
   applyTheme();
   setupLanguage();
   setupNavigation();
@@ -1067,9 +1078,6 @@ function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
-  requestAnimationFrame(() => {
-    signalFarcasterMiniAppReady();
-  });
 }
 
 document.addEventListener("DOMContentLoaded", init);

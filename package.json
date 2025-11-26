@@ -8,6 +8,7 @@
     "start:server": "node server/index.js"
   },
   "dependencies": {
+    "@farcaster/frame-sdk": "^0.0.18",
     "@farcaster/miniapp-sdk": "^0.0.17",
     "@walletconnect/web3-provider": "^1.8.0",
     "cors": "^2.8.5",
