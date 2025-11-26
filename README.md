@@ -91,6 +91,11 @@ There is no build step. Publish `index.html`, `src/`, `assets/`, and supporting 
 - Cards render title, description, and CTA labels so users can open resources directly from the hub.
 - New modules or mini apps can be added by appending JSON entries; icons live in `assets/miniapps/` and default fallbacks are provided.
 
+## Farcaster Mini App integration
+- The official Farcaster Mini App SDK is imported in `index.html` via the script tag `https://miniapps.farcaster.xyz/sdk/v1`.
+- A lightweight bootstrap script at the end of `index.html` waits for DOM readiness, polls for `window.farcaster`, then calls `sdk.actions.ready()` with success/error logs so the mini app host clears the “Ready not called” warning.
+- Wallet selection now checks for a Farcaster-provided Ethereum provider on Celo (`eip155:42220`) via `src/utils/farcaster.js`; when present, the app connects with that provider first, and falls back to MetaMask/injected providers or WalletConnect for normal web usage.
+
 ## Roadmap / Future Work
 - Expand the mini app directory with richer metadata (tags, chains, screenshots).
 - Add on-chain stats, streaks, or NFT badges for repeat engagement.

@@ -43,20 +43,7 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>"
     />
-    <script type="module" id="farcaster-miniapp-sdk-loader">
-      (async () => {
-        const sdk = await import("https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020")
-          .then((module) => module?.sdk)
-          .catch((error) => {
-            console.warn("[MiniApp] Unable to preload Farcaster SDK", error);
-            return null;
-          });
-
-        if (sdk) {
-          window.__farcasterMiniAppSdk = sdk;
-        }
-      })();
-    </script>
+    <script src="https://miniapps.farcaster.xyz/sdk/v1"></script>
   </head>
   <body>
     <div id="app" class="app-shell" data-theme="golden">
@@ -588,6 +575,53 @@
         </div>
       </div>
     </div>
+
+    <script>
+      (function () {
+        const readyLogPrefix = "[Farcaster Mini App]";
+
+        const callReady = () => {
+          if (!window.farcaster || !window.farcaster.actions?.ready) {
+            console.warn(`${readyLogPrefix} SDK not available to signal ready`);
+            return;
+          }
+
+          try {
+            window.farcaster.actions.ready();
+            console.info(`${readyLogPrefix} sdk.actions.ready() called`);
+          } catch (error) {
+            console.error(`${readyLogPrefix} Failed to call sdk.actions.ready()`, error);
+          }
+        };
+
+        const onDomReady = () => {
+          if (window.farcaster) {
+            callReady();
+            return;
+          }
+
+          const sdkCheckInterval = setInterval(() => {
+            if (window.farcaster) {
+              clearInterval(sdkCheckInterval);
+              callReady();
+            }
+          }, 50);
+
+          setTimeout(() => {
+            clearInterval(sdkCheckInterval);
+            if (!window.farcaster) {
+              console.warn(`${readyLogPrefix} SDK script not detected after waiting`);
+            }
+          }, 5000);
+        };
+
+        if (document.readyState === "complete" || document.readyState === "interactive") {
+          onDomReady();
+        } else {
+          document.addEventListener("DOMContentLoaded", onDomReady, { once: true });
+        }
+      })();
+    </script>
 
     <script type="module" src="src/main.js"></script>
   </body>
