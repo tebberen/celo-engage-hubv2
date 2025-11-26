@@ -1,4 +1,3 @@
-import { sdk as farcasterMiniAppSdk } from "https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -43,6 +42,7 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
+import { getFarcasterSdk, getWalletProvider as getFarcasterWalletProvider, readyFarcasterMiniApp } from "./utils/farcaster.js";
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
   deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
@@ -76,10 +76,7 @@ const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
 const MINI_APP_QUERY_KEYS = ["miniapp", "mini-app", "farcaster", "warpcast"];
 
 function getMiniAppSdk() {
-  if (typeof window !== "undefined" && window.__farcasterMiniAppSdk) {
-    return window.__farcasterMiniAppSdk;
-  }
-  return farcasterMiniAppSdk;
+  return getFarcasterSdk();
 }
 
 function isFarcasterMiniApp() {
@@ -108,29 +105,9 @@ function isFarcasterMiniApp() {
 async function signalFarcasterMiniAppReady() {
   if (!isFarcasterMiniApp()) return;
 
-  let miniAppSdk = getMiniAppSdk();
-  if (!miniAppSdk?.actions?.ready) {
-    miniAppSdk = await import("https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020")
-      .then((module) => module?.sdk)
-      .catch((error) => {
-        console.warn("[MiniApp] Unable to load SDK", error);
-        return null;
-      });
-
-    if (miniAppSdk) {
-      window.__farcasterMiniAppSdk = miniAppSdk;
-    }
-  }
-
-  if (miniAppSdk?.actions?.ready) {
-    try {
-      miniAppSdk.actions.ready();
-      if (typeof window !== "undefined") {
-        window.__farcasterMiniAppSdk = miniAppSdk;
-      }
-    } catch (error) {
-      console.warn("[MiniApp] Unable to signal ready", error);
-    }
+  const didSignal = await readyFarcasterMiniApp();
+  if (!didSignal) {
+    console.warn("[MiniApp] Unable to signal ready – SDK not available");
   }
 }
 
@@ -2165,21 +2142,12 @@ function setupConnectModal() {
 async function getPreferredProvider() {
   if (!isFarcasterMiniApp()) return null;
 
-  const miniAppSdk = getMiniAppSdk();
-  if (!miniAppSdk?.actions?.ready || !miniAppSdk?.wallet?.getEthereumProvider) {
-    return null;
-  }
-
   try {
-    await miniAppSdk.actions.ready();
-    const rawProvider = await miniAppSdk.wallet.getEthereumProvider();
-    if (!rawProvider) return null;
+    const farcasterProvider = await getFarcasterWalletProvider();
+    if (!farcasterProvider?.provider) return null;
 
-    const web3Provider = new ethers.providers.Web3Provider(rawProvider, "any");
-    if (typeof window !== "undefined") {
-      window.__farcasterMiniAppSdk = miniAppSdk;
-    }
-    return { provider: web3Provider, rawProvider, type: "farcaster" };
+    const web3Provider = new ethers.providers.Web3Provider(farcasterProvider.provider, "any");
+    return { provider: web3Provider, rawProvider: farcasterProvider.provider, type: "farcaster" };
   } catch (error) {
     console.warn("[MiniApp] Unable to resolve preferred provider", error);
     return null;
