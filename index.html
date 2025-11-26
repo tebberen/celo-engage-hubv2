@@ -595,10 +595,11 @@
           window.isMiniApp = isMiniApp;
           console.log("[MiniApp] isMiniApp =", isMiniApp);
 
+          // Always call ready once UI is mounted
           await sdk.actions.ready();
-          console.log("[MiniApp] sdk.actions.ready() called ✔️");
+          console.log("[MiniApp] sdk.actions.ready() ✔️");
 
-          // If we are in a mini app and a global auto-connect hook exists, call it.
+          // If in a mini app, call the auto-connect hook in main.js (if it exists)
           if (isMiniApp && typeof window.autoConnectFarcasterWallet === "function") {
             window.autoConnectFarcasterWallet();
           }
@@ -609,6 +610,7 @@
 
       initMiniAppEnvironment();
 
+      // Expose the SDK globally so main.js can use it
       window.miniAppSdk = sdk;
     </script>
   </body>
