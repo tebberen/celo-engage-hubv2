@@ -1,4 +1,4 @@
-import { ethers, EthereumProvider } from "../utils/cdn-modules.js";
+import { ethers } from "../utils/cdn-modules.js";
 import {
   APP_NAME,
   NETWORKS,
@@ -21,6 +21,11 @@ let selectedAddress = null;
 let connectionType = null;
 let walletConnectProvider = null;
 let injectedEthereumProvider = null;
+
+async function loadWalletConnectProvider() {
+  const module = await import("https://esm.sh/@walletconnect/ethereum-provider@2.9.1");
+  return module.default;
+}
 
 const walletSubscribers = new Set();
 const providerEventHandlers = new WeakMap();
@@ -314,6 +319,8 @@ export async function connectWalletConnect() {
   console.log("[MiniApp] WalletConnect path");
   const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
   const isMiniPay = isMiniPayEnvironment();
+
+  const EthereumProvider = await loadWalletConnectProvider();
 
   walletConnectProvider = await EthereumProvider.init({
     projectId: WALLETCONNECT_PROJECT_ID,

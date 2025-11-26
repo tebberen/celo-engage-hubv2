@@ -12,7 +12,6 @@ import {
 import {
   connectWalletMetaMask,
   connectWalletConnect,
-  connectWithProvider,
   disconnectWallet,
   getInjectedProvider,
   getWalletDetails,
@@ -2410,15 +2409,9 @@ function updateWalletConnectedUI(address) {
   renderProfileSection();
 }
 
-async function connectWallet(connector, preferredProvider = null) {
+async function connectWallet(connector) {
   try {
-    const preferred = preferredProvider || (await getPreferredProvider());
-    const details = preferred?.provider
-      ? await connectWithProvider(preferred.provider, {
-          rawProvider: preferred.rawProvider,
-          source: preferred.type || "unknown",
-        })
-      : await connector();
+    const details = await connector();
     setWalletConnectionState(details);
     updateWalletConnectedUI(details.address);
     closeConnectModal();
