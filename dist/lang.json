@@ -1,0 +1,470 @@
+{
+  "tr": {
+    "brand": {
+      "title": "Celo Engage Hub",
+      "subtitle": "Farcaster'daki Celo mini uygulamalarını keşfet."
+    },
+    "nav": {
+      "home": "Ana Sayfa",
+      "gm": "Günaydın",
+      "deploy": "Deploy",
+      "donate": "Bağış",
+      "governance": "Yönetim",
+      "badge": "Rozetler",
+      "profile": "Profil"
+    },
+    "actions": {
+      "languageToggle": "Dili değiştir"
+    },
+    "wallet": {
+      "connect": "Bağlan",
+      "connectedLabel": "Bağlı:",
+      "networkLabel": "Ağ",
+      "disconnect": "Bağlantıyı Kes",
+      "title": "Cüzdan Bağla",
+      "subtitle": "Devam etmek için bir cüzdan sağlayıcı seç.",
+      "metamask": "MetaMask",
+      "metamaskHint": "Tarayıcı eklentisi",
+      "walletconnect": "WalletConnect",
+      "walletconnectHint": "Mobil cüzdanlar & MiniPay",
+      "close": "Cüzdan penceresini kapat"
+    },
+    "ecosystem": {
+      "title": "Celo Ekosistemi",
+      "more": "Daha Fazla Ekosistem Aracı",
+      "moreTitle": "Diğer Ekosistem Araçları",
+      "close": "Ekosistem penceresini kapat"
+    },
+    "home": {
+      "title": "Farcaster'daki Celo Mini Uygulamaları",
+      "subtitle": "Farcaster için üretilmiş Celo deneyimlerinin küratörlü dizini.",
+      "discoverLabel": "Keşfet",
+      "discoverTitle": "Celo Ekosistemi",
+      "discoverSubtitle": "Önemli Celo kaynaklarına, dApp'lere ve sosyal kanallara hızlı erişim.",
+      "searchLabel": "Ara",
+      "searchPlaceholder": "İsme veya açıklamaya göre ara",
+      "filterLabel": "Kategoriye göre filtrele",
+      "categories": {
+        "all": "Tümü",
+        "growth": "Büyüme",
+        "games": "Oyunlar",
+        "identity": "Kimlik",
+        "governance": "Yönetim",
+        "nfts": "NFT",
+        "finance": "Finans",
+        "wallet": "Cüzdan",
+        "rewards": "Ödüller",
+        "tools": "Araçlar",
+        "messaging": "Mesajlaşma",
+        "ecosystem": "Ekosistem"
+      },
+      "empty": "Aramanızla eşleşen mini uygulama bulunamadı.",
+      "openButton": "Farcaster'da aç",
+      "error": "Mini uygulamalar yüklenemedi. Lütfen daha sonra tekrar deneyin."
+    },
+    "feed": {
+      "empty": "Henüz bağlantı paylaşılmadı.",
+      "completedTitle": "✅ Tamamlanan Bağlantılar",
+      "completedBadge": "Tamamlandı",
+      "completedEmpty": "Tamamlanan bağlantı yok.",
+      "counter": "Bağlantı tamamlandı",
+      "progress": "Destek",
+      "remaining": "Kalan tıklama",
+      "new": "Yeni"
+    },
+    "gm": {
+      "title": "GM Gönder",
+      "subtitle": "Kısa bir selam bırak, XP kazan.",
+      "messageLabel": "Mesaj (opsiyonel)",
+      "placeholder": "GM Celo dünyası!",
+      "submit": "GM Gönder",
+      "helper": "+1 XP"
+    },
+    "deploy": {
+      "title": "Deploy Et",
+      "subtitle": "Düşük gas ile basit kontrat dağıt.",
+      "nameLabel": "Kontrat adı (opsiyonel)",
+      "namePlaceholder": "AutoName-...",
+      "submit": "Kontratı Dağıt",
+      "helper": "+1 XP",
+      "history": "Dağıtılan Kontratlar"
+    },
+    "donate": {
+      "title": "Bağış",
+      "subtitle": "0.1 CELO / cUSD / cEUR altı bağışlar reddedilir.",
+      "highlightTitle": "🟡 Hub'a Destek İçin Bağış Yap",
+      "highlightSubtitle": "Topluluğu desteklemek için bir miktar seç",
+      "celo": "CELO",
+      "cusd": "cUSD",
+      "ceur": "cEUR",
+      "celoAmount": "Miktar (CELO)",
+      "celoSubmit": "CELO Bağışla",
+      "cusdApproveLabel": "Onay Miktarı (cUSD)",
+      "cusdApprove": "cUSD Onayla",
+      "cusdAmount": "Bağış Miktarı (cUSD)",
+      "cusdSubmit": "cUSD Bağışla",
+      "ceurApproveLabel": "Onay Miktarı (cEUR)",
+      "ceurApprove": "cEUR Onayla",
+      "ceurAmount": "Bağış Miktarı (cEUR)",
+      "ceurSubmit": "cEUR Bağışla",
+      "owner": {
+        "title": "Sahip Paneli",
+        "withdrawTitle": "Bağış Çekimi",
+        "withdrawCelo": "CELO Miktarı",
+        "withdrawCeloBtn": "CELO Çek",
+        "withdrawCusd": "cUSD Miktarı",
+        "withdrawCusdBtn": "cUSD Çek",
+        "withdrawCeur": "cEUR Miktarı",
+        "withdrawCeurBtn": "cEUR Çek",
+        "proposalTitle": "Yeni Öneri",
+        "proposalLabel": "Başlık",
+        "proposalDescription": "Açıklama",
+        "proposalLink": "Bağlantı",
+        "proposalSubmit": "Öneri Oluştur"
+      }
+    },
+    "sharePrompt": {
+      "title": "Bağlantını Paylaş",
+      "subtitle": "Topluluğa katkı için kendi bağlantını ekle.",
+      "context": "Az önce açtığın bağlantı:",
+      "label": "URL",
+      "placeholder": "https://seninbaglantin.com",
+      "submit": "Link Gönder",
+      "cancel": "Belki Sonra",
+      "close": "Paylaşım penceresini kapat"
+    },
+    "governance": {
+      "title": "Yönetim",
+      "subtitle": "Aktif ve tamamlanan önerilere katıl.",
+      "active": "Aktif Öneriler",
+      "completed": "Tamamlanan Öneriler",
+      "noneActive": "Aktif öneri yok.",
+      "noneCompleted": "Tamamlanan öneri yok.",
+      "completedLabel": "Tamamlandı",
+      "voteYes": "✅ Evet",
+      "voteNo": "❌ Hayır",
+      "voteYesShort": "Evet",
+      "voteNoShort": "Hayır",
+      "detail": "Detay",
+      "createEyebrow": "Sahip Aksiyonu",
+      "createTitle": "Öneri Oluştur",
+      "createHelper": "Topluluk için yeni bir öneri açmak üzere sahip cüzdanıyla bağlan.",
+      "createHelperReady": "Sahip olarak bağlısın. Topluluk için yeni bir öneri gönder.",
+      "createHelperWrong": "Öneri oluşturma yalnızca sahip cüzdanı ({address}) ile yapılabilir.",
+      "createChip": "0x09d…0da5 sadece",
+      "proposalLabel": "Başlık",
+      "proposalDescription": "Açıklama",
+      "proposalLink": "Bağlantı",
+      "proposalSubmit": "Öneri Oluştur"
+    },
+    "badge": {
+      "title": "Rozetler & Tier",
+      "subtitle": "XP → Level → Tier yolculuğunu takip et.",
+      "tooltip": "Tier {tier} – Her özelliği 3 kez kullanınca kazanılır.",
+      "mintTitle": "Yakında NFT Basımı",
+      "mintSubtitle": "Rozetlerini NFT olarak basmak için yakında burada olacağız.",
+      "mintCta": "Yakında",
+      "detailTitle": "Rozet Durumu",
+      "detailTotalXp": "Toplam XP",
+      "detailLevel": "Seviye",
+      "detailTier": "Tier",
+      "detailGm": "GM: +1 XP",
+      "detailDeploy": "Deploy: +1 XP",
+      "detailDonate": "Bağış: +3 XP",
+      "detailLink": "Link: +2 XP",
+      "detailVote": "Oy: +1 XP"
+    },
+    "leaderboard": {
+      "title": "Liderlik Tablosu",
+      "subtitle": "Topluluk kahramanları burada.",
+      "tabs": {
+        "links": "Link",
+        "gm": "GM",
+        "deploy": "Deploy",
+        "celo": "CELO Bağışçıları",
+        "cusd": "cUSD Bağışçıları",
+        "votes": "Oy",
+        "badges": "Seviye"
+      },
+      "empty": "Henüz veri yok."
+    },
+    "profile": {
+      "title": "Profil",
+      "subtitle": "Bağlı cüzdan detayları.",
+      "connectPrompt": "Profil adresini görmek için cüzdanını bağla.",
+      "connected": "Bağlı cüzdan:",
+      "empty": "Profil bilgisi bulunamadı.",
+      "stats": {
+        "xp": "XP",
+        "level": "Seviye",
+        "tier": "Tier"
+      },
+      "metrics": {
+        "link": "Link",
+        "deploy": "Deploy",
+        "gm": "GM",
+        "vote": "Oy",
+        "donate": "Bağış"
+      },
+      "badge": "Tier",
+      "nextLevel": "Sonraki seviye",
+      "nextLevelMax": "Maks"
+    },
+    "username": {
+      "title": "Profil Oluştur",
+      "subtitle": "Celo Engage Hub topluluğuna katılmak için kullanıcı adı seç.",
+      "label": "Kullanıcı adı",
+      "submit": "Katıl",
+      "close": "Kullanıcı adı penceresini kapat"
+    },
+    "deployments": {
+      "empty": "Henüz deploy edilmiş kontrat yok."
+    },
+    "global": {
+      "visitors": "Ziyaretçi",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "link": "Link",
+      "vote": "Oy",
+      "badge": "Rozet",
+      "donor": "Bağışçı",
+      "totalCelo": "Toplam CELO",
+      "totalCusd": "Toplam cUSD"
+    },
+    "network": {
+      "online": "Çevrimiçi",
+      "offline": "Çevrimdışı"
+    }
+  },
+  "en": {
+    "brand": {
+      "title": "Celo Engage Hub",
+      "subtitle": "Support others first, then leave your link."
+    },
+    "nav": {
+      "home": "Home",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "donate": "Donate",
+      "governance": "Governance",
+      "badge": "Badges",
+      "profile": "Profile"
+    },
+    "actions": {
+      "languageToggle": "Toggle language"
+    },
+    "wallet": {
+      "connect": "Connect",
+      "connectedLabel": "Connected:",
+      "networkLabel": "Network",
+      "disconnect": "Disconnect",
+      "title": "Connect Wallet",
+      "subtitle": "Choose a wallet provider to continue.",
+      "metamask": "MetaMask",
+      "metamaskHint": "Browser extension",
+      "walletconnect": "WalletConnect",
+      "walletconnectHint": "Mobile wallets & MiniPay",
+      "close": "Close connect modal"
+    },
+    "ecosystem": {
+      "title": "Celo Ecosystem",
+      "more": "More Ecosystem Tools",
+      "moreTitle": "More Ecosystem Tools",
+      "close": "Close ecosystem modal"
+    },
+    "home": {
+      "title": "Celo Mini Apps",
+      "subtitle": "Explore every Farcaster mini app powered by Celo.",
+      "discoverLabel": "Discover",
+      "discoverTitle": "Celo Ecosystem",
+      "discoverSubtitle": "Quick access to key Celo resources, dApps, and social channels.",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by name or description",
+      "filterLabel": "Filter by category",
+      "categories": {
+        "all": "All",
+        "defi": "DeFi",
+        "growth": "Growth",
+        "governance": "Governance",
+        "tools": "Tools",
+        "games": "Games"
+      },
+      "empty": "No mini apps match your search yet.",
+      "openButton": "Open on Farcaster",
+      "error": "Mini apps could not be loaded. Try again later."
+    },
+    "feed": {
+      "empty": "No links shared yet.",
+      "completedTitle": "✅ Completed Links",
+      "completedBadge": "Completed",
+      "completedEmpty": "No completed links yet.",
+      "counter": "Links Completed",
+      "progress": "Support",
+      "remaining": "Clicks left",
+      "new": "New"
+    },
+    "gm": {
+      "title": "Send a GM",
+      "subtitle": "Drop a cheerful message to earn XP.",
+      "messageLabel": "Message (optional)",
+      "placeholder": "GM Celo world!",
+      "submit": "Send GM",
+      "helper": "+1 XP"
+    },
+    "deploy": {
+      "title": "Deploy",
+      "subtitle": "Spin up a smart contract with low gas.",
+      "nameLabel": "Contract name (optional)",
+      "namePlaceholder": "AutoName-...",
+      "submit": "Deploy Contract",
+      "helper": "+1 XP",
+      "history": "Deployed Contracts"
+    },
+    "donate": {
+      "title": "Donate",
+      "subtitle": "Donations below 0.1 CELO / cUSD / cEUR are declined.",
+      "highlightTitle": "🟡 Donate to Support Hub",
+      "highlightSubtitle": "Choose an amount to support the community",
+      "celo": "CELO",
+      "cusd": "cUSD",
+      "ceur": "cEUR",
+      "celoAmount": "Amount (CELO)",
+      "celoSubmit": "Donate CELO",
+      "cusdApproveLabel": "Approval Amount (cUSD)",
+      "cusdApprove": "Approve cUSD",
+      "cusdAmount": "Donation Amount (cUSD)",
+      "cusdSubmit": "Donate cUSD",
+      "ceurApproveLabel": "Approval Amount (cEUR)",
+      "ceurApprove": "Approve cEUR",
+      "ceurAmount": "Donation Amount (cEUR)",
+      "ceurSubmit": "Donate cEUR",
+      "owner": {
+        "title": "Owner Panel",
+        "withdrawTitle": "Donation Withdrawals",
+        "withdrawCelo": "CELO Amount",
+        "withdrawCeloBtn": "Withdraw CELO",
+        "withdrawCusd": "cUSD Amount",
+        "withdrawCusdBtn": "Withdraw cUSD",
+        "withdrawCeur": "cEUR Amount",
+        "withdrawCeurBtn": "Withdraw cEUR",
+        "proposalTitle": "Create Proposal",
+        "proposalLabel": "Title",
+        "proposalDescription": "Description",
+        "proposalLink": "Link",
+        "proposalSubmit": "Create Proposal"
+      }
+    },
+    "sharePrompt": {
+      "title": "Share Your Link",
+      "subtitle": "Keep the momentum going by adding your own link.",
+      "context": "You just opened:",
+      "label": "URL",
+      "placeholder": "https://yourlink.xyz",
+      "submit": "Submit Link",
+      "cancel": "Maybe Later",
+      "close": "Close share prompt"
+    },
+    "governance": {
+      "title": "Governance",
+      "subtitle": "Join the active and completed proposals.",
+      "active": "Active Proposals",
+      "completed": "Completed Proposals",
+      "noneActive": "No active proposals.",
+      "noneCompleted": "No completed proposals yet.",
+      "completedLabel": "Completed",
+      "voteYes": "✅ Yes",
+      "voteNo": "❌ No",
+      "voteYesShort": "Yes",
+      "voteNoShort": "No",
+      "detail": "Details",
+      "createEyebrow": "Owner Action",
+      "createTitle": "Create Proposal",
+      "createHelper": "Connect with the owner wallet to open a new proposal for the community.",
+      "createHelperReady": "Connected as owner. Submit a proposal for the community.",
+      "createHelperWrong": "Proposal creation is limited to the owner wallet ({address}).",
+      "createChip": "0x09d…0da5 only",
+      "proposalLabel": "Title",
+      "proposalDescription": "Description",
+      "proposalLink": "Link",
+      "proposalSubmit": "Create Proposal"
+    },
+    "badge": {
+      "title": "Badges & Tiers",
+      "subtitle": "Track your XP → Level → Tier journey.",
+      "tooltip": "Tier {tier} – Achieved after 3 uses of each feature.",
+      "mintTitle": "Upcoming NFT Mint",
+      "mintSubtitle": "You'll be able to mint your badges as NFTs soon.",
+      "mintCta": "Coming Soon",
+      "detailTitle": "Badge Progress",
+      "detailTotalXp": "Total XP",
+      "detailLevel": "Level",
+      "detailTier": "Tier",
+      "detailGm": "GM: +1 XP",
+      "detailDeploy": "Deploy: +1 XP",
+      "detailDonate": "Donate: +3 XP",
+      "detailLink": "Link: +2 XP",
+      "detailVote": "Vote: +1 XP"
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "subtitle": "Community champions live here.",
+      "tabs": {
+        "links": "Links",
+        "gm": "GM",
+        "deploy": "Deploy",
+        "celo": "CELO Donors",
+        "cusd": "cUSD Donors",
+        "votes": "Votes",
+        "badges": "Levels"
+      },
+      "empty": "No data yet."
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Connected wallet details.",
+      "connectPrompt": "Connect your wallet to view your profile address.",
+      "connected": "Connected wallet:",
+      "empty": "Profile information not found.",
+      "stats": {
+        "xp": "XP",
+        "level": "Level",
+        "tier": "Tier"
+      },
+      "metrics": {
+        "link": "Links",
+        "deploy": "Deployments",
+        "gm": "GM Posts",
+        "vote": "Votes",
+        "donate": "Donations"
+      },
+      "badge": "Tier",
+      "nextLevel": "Next level",
+      "nextLevelMax": "Max"
+    },
+    "username": {
+      "title": "Create Profile",
+      "subtitle": "Choose a username to join the Celo Engage Hub community.",
+      "label": "Username",
+      "submit": "Join",
+      "close": "Close username modal"
+    },
+    "deployments": {
+      "empty": "No contracts deployed yet."
+    },
+    "global": {
+      "visitors": "Visitors",
+      "gm": "GM",
+      "deploy": "Deploy",
+      "link": "Links",
+      "vote": "Votes",
+      "badge": "Badges",
+      "donor": "Donors",
+      "totalCelo": "Total CELO",
+      "totalCusd": "Total cUSD"
+    },
+    "network": {
+      "online": "Online",
+      "offline": "Offline"
+    }
+  }
+}
