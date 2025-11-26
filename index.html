@@ -584,7 +584,7 @@
       </div>
     </div>
 
-    <script type="module" src="/celo-engage-hubv2/dist/main.js"></script>
+    <script type="module" src="./dist/main.js"></script>
 
     <script type="module">
       import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
@@ -593,26 +593,33 @@
       window.miniAppSdk = sdk;
       window.sdk = sdk;
 
-      // Mini app detection – safe version
-      const isMiniApp = !!(window.miniAppSdk || window.sdk);
-      window.isMiniApp = isMiniApp;
-      console.log("[MiniApp] isMiniApp =", isMiniApp);
+      async function bootstrapMiniApp() {
+        try {
+          const isMiniApp = (await sdk?.isInMiniApp?.()) === true;
+          window.isMiniApp = isMiniApp;
+          console.log("[MiniApp] isMiniApp =", isMiniApp);
 
-      if (
-        isMiniApp &&
-        window.sdk &&
-        window.sdk.actions &&
-        typeof window.sdk.actions.ready === "function"
-      ) {
-        window.sdk.actions.ready();
-        console.log("[MiniApp] sdk.actions.ready() ✔️");
+          if (
+            isMiniApp &&
+            sdk?.actions &&
+            typeof sdk.actions.ready === "function"
+          ) {
+            await sdk.actions.ready();
+            console.log("[MiniApp] sdk.actions.ready() ✔️");
 
-        if (typeof window.autoConnectFarcasterWallet === "function") {
-          window.autoConnectFarcasterWallet();
+            if (typeof window.autoConnectFarcasterWallet === "function") {
+              window.autoConnectFarcasterWallet();
+            }
+          } else {
+            console.log("[MiniApp] Running in normal browser mode");
+          }
+        } catch (error) {
+          console.warn("[MiniApp] Detection failed", error);
+          window.isMiniApp = false;
         }
-      } else {
-        console.log("[MiniApp] Running in normal browser mode");
       }
+
+      bootstrapMiniApp();
     </script>
   </body>
 </html>

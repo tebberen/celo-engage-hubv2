@@ -2150,10 +2150,12 @@ function renderProfileSection() {
   if (!statusEl && !addressEl) return;
 
   if (!currentAddress) {
-    statusEl?.textContent = t(
-      "profile.connectPrompt",
-      "Connect your wallet to view your profile address."
-    );
+    if (statusEl) {
+      statusEl.textContent = t(
+        "profile.connectPrompt",
+        "Connect your wallet to view your profile address."
+      );
+    }
     if (addressEl) {
       addressEl.textContent = "—";
       addressEl.title = "";
@@ -2161,7 +2163,9 @@ function renderProfileSection() {
     return;
   }
 
-  statusEl?.textContent = t("profile.subtitle", "Connected wallet details.");
+  if (statusEl) {
+    statusEl.textContent = t("profile.subtitle", "Connected wallet details.");
+  }
   if (addressEl) {
     addressEl.textContent = shortenAddress(currentAddress);
     addressEl.title = currentAddress;
