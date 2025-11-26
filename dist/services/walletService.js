@@ -8,6 +8,11 @@ import {
   CELO_PARAMS,
   WALLETCONNECT_PROJECT_ID,
   UI_MESSAGES,
+  CELO_CHAIN_ID_DEC,
+  CELO_CHAIN_ID_HEX,
+  CELO_CHAIN_NAME,
+  CELO_NATIVE_SYMBOL,
+  CELO_RPC_URL,
 } from "../utils/constants.js";
 
 let provider = null;
@@ -209,12 +214,62 @@ export async function connectWalletMetaMask() {
   }
 }
 
-export async function connectWithProvider(web3Provider, rawProvider = null, connectionTypeOverride = "external") {
-  if (!web3Provider) {
+export async function connectWithProvider(externalProvider, opts = {}) {
+  const { rawProvider = null, source = "external" } = opts;
+
+  if (!externalProvider) {
     throw new Error(UI_MESSAGES.walletNotConnected);
   }
 
+  const requestCapableProvider = rawProvider || externalProvider;
+
   try {
+    const web3Provider = new ethers.providers.Web3Provider(externalProvider, "any");
+    let network = await web3Provider.getNetwork();
+
+    if (network.chainId !== CELO_CHAIN_ID_DEC) {
+      console.warn("[Wallet] Wrong network:", network.chainId, "→ trying to switch to Celo…");
+
+      try {
+        await requestCapableProvider.request?.({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CELO_CHAIN_ID_HEX }],
+        });
+      } catch (switchError) {
+        if (switchError && switchError.code === 4902) {
+          try {
+            await requestCapableProvider.request?.({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: CELO_CHAIN_ID_HEX,
+                  chainName: CELO_CHAIN_NAME,
+                  nativeCurrency: {
+                    name: CELO_NATIVE_SYMBOL,
+                    symbol: CELO_NATIVE_SYMBOL,
+                    decimals: 18,
+                  },
+                  rpcUrls: [CELO_RPC_URL],
+                },
+              ],
+            });
+          } catch (addError) {
+            console.error("[Wallet] Failed to add Celo chain:", addError);
+            throw new Error("Celo ağı eklenemedi. Lütfen cüzdandan elle Celo ağına geçin.");
+          }
+        } else {
+          console.error("[Wallet] Failed to switch to Celo:", switchError);
+          throw new Error("Cüzdan farklı bir ağda. Lütfen cüzdandan Celo ağına geçin.");
+        }
+      }
+
+      network = await web3Provider.getNetwork();
+      if (network.chainId !== CELO_CHAIN_ID_DEC) {
+        console.error("[Wallet] Still not on Celo after switch attempt:", network.chainId);
+        throw new Error("Cüzdan Celo ağına geçmedi. Lütfen cüzdandan elle Celo'ya geçin.");
+      }
+    }
+
     let targetAccounts = [];
     try {
       targetAccounts = await web3Provider.send("eth_requestAccounts", []);
@@ -230,23 +285,21 @@ export async function connectWithProvider(web3Provider, rawProvider = null, conn
       throw new Error(UI_MESSAGES.walletNotConnected);
     }
 
-    const networkOk = await checkCurrentNetwork(web3Provider);
-    if (!networkOk) {
-      throw new Error(UI_MESSAGES.wrongNetwork);
-    }
+    const signerInstance = web3Provider.getSigner();
+    const address = await signerInstance.getAddress();
 
     provider = web3Provider;
-    signer = web3Provider.getSigner();
-    selectedAddress = ethers.utils.getAddress(targetAccounts[0]);
-    connectionType = connectionTypeOverride;
+    signer = signerInstance;
+    selectedAddress = ethers.utils.getAddress(address);
+    connectionType = source;
 
-    if (rawProvider) {
-      injectedEthereumProvider = rawProvider;
-      bindMetaMaskEvents(rawProvider, web3Provider);
+    if (requestCapableProvider) {
+      injectedEthereumProvider = requestCapableProvider;
+      bindMetaMaskEvents(requestCapableProvider, web3Provider);
     }
 
     notify("connected", { address: selectedAddress, connectionType });
-    return getWalletDetails();
+    return { provider: web3Provider, signer: signerInstance, address: selectedAddress };
   } catch (error) {
     provider = null;
     signer = null;

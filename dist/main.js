@@ -2149,15 +2149,14 @@ async function connectWithFarcasterWallet() {
     console.log("[MiniApp] Connecting via Farcaster wallet…");
 
     const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
-    const web3Provider = new ethers.providers.Web3Provider(ethProvider);
-    const signer = web3Provider.getSigner();
-    const address = await signer.getAddress();
+    const { provider, signer, address } = await connectWithProvider(ethProvider, {
+      source: "farcaster",
+    });
 
-    currentProvider = web3Provider;
+    currentProvider = provider;
     currentSigner = signer;
     currentAddress = address;
 
-    await connectWithProvider(web3Provider, ethProvider, "farcaster");
     updateWalletConnectedUI(address);
     await afterWalletConnected();
 
@@ -2166,6 +2165,7 @@ async function connectWithFarcasterWallet() {
     hideConnectWalletButtonForMiniApp(address);
   } catch (error) {
     console.error("[MiniApp] Farcaster wallet connection failed:", error);
+    // Optionally: show a user-friendly toast or banner with err.message
   }
 }
 
@@ -2193,8 +2193,7 @@ async function getPreferredProvider() {
     if (isFarcasterMiniApp() && miniAppSdk?.wallet?.getEthereumProvider) {
       const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
       if (ethProvider) {
-        const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
-        return { provider: web3Provider, rawProvider: ethProvider, type: "farcaster" };
+        return { provider: ethProvider, rawProvider: ethProvider, type: "farcaster" };
       }
     }
   } catch (error) {
@@ -2525,7 +2524,10 @@ async function connectWallet(connector, preferredProvider = null) {
   try {
     const preferred = preferredProvider || (await getPreferredProvider());
     const details = preferred?.provider
-      ? await connectWithProvider(preferred.provider, preferred.rawProvider, preferred.type || "unknown")
+      ? await connectWithProvider(preferred.provider, {
+          rawProvider: preferred.rawProvider,
+          source: preferred.type || "unknown",
+        })
       : await connector();
     updateWalletConnectedUI(details.address);
     closeConnectModal();
