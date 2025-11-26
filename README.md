@@ -73,7 +73,13 @@ npm run start:server
 The Express server listens on port `8787` by default and can be accessed at `http://localhost:8787`.
 
 ### Building & deployment
-There is no build step. Publish `index.html`, `src/`, `assets/`, and supporting JSON files to GitHub Pages or any static host. The live demo is served from GitHub Pages at https://tebberen.github.io/celo-engage-hubv2/.
+Build the production bundle with:
+
+```bash
+npm run build
+```
+
+The compiled assets are written to `dist/` and `index.html` references `dist/main.js` for GitHub Pages or any other static host. The live demo is served from GitHub Pages at https://tebberen.github.io/celo-engage-hubv2/.
 
 ## Using the dApp
 1. **Connect a wallet** via MetaMask or WalletConnect from the header/Profile section; the app targets Celo Mainnet (`chainId 42220`) and recognizes Alfajores (`44787`).
