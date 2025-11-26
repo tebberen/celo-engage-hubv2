@@ -766,8 +766,7 @@ const elements = {
   walletStatusIcon: document.querySelector(".wallet-pill__status"),
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
-  profilePlaceholder: document.getElementById("profilePlaceholder"),
-  profileAddressLabel: document.getElementById("profileAddressLabel"),
+  profileStatusText: document.getElementById("profileStatusText"),
   profileAddressValue: document.getElementById("profileAddressValue"),
   feedSpinner: document.getElementById("feedSpinner"),
   feedBadge: document.getElementById("feedBadge"),
@@ -1043,6 +1042,9 @@ async function init() {
 
 document.addEventListener("DOMContentLoaded", () => {
   init();
+});
+window.addEventListener("load", () => {
+  renderProfileSection();
 });
 window.addEventListener("beforeunload", cleanupLinkLiveUpdates);
 
@@ -2119,11 +2121,41 @@ let currentSigner = null;
 let currentAddress = null;
 let isWalletConnected = false;
 
+function shortenAddress(addr) {
+  if (!addr) return "—";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function renderProfileSection() {
+  const statusEl = elements.profileStatusText;
+  const addressEl = elements.profileAddressValue;
+  if (!statusEl && !addressEl) return;
+
+  if (!currentAddress) {
+    statusEl?.textContent = t(
+      "profile.connectPrompt",
+      "Connect your wallet to view your profile address."
+    );
+    if (addressEl) {
+      addressEl.textContent = "—";
+      addressEl.title = "";
+    }
+    return;
+  }
+
+  statusEl?.textContent = t("profile.subtitle", "Connected wallet details.");
+  if (addressEl) {
+    addressEl.textContent = shortenAddress(currentAddress);
+    addressEl.title = currentAddress;
+  }
+}
+
 function setWalletConnectionState({ provider = null, signer = null, address = null } = {}) {
   currentProvider = provider;
   currentSigner = signer;
   currentAddress = address;
   isWalletConnected = Boolean(provider && signer && address);
+  renderProfileSection();
 }
 
 function isWalletReady() {
@@ -2187,6 +2219,7 @@ window.autoConnectFarcasterWallet = async function () {
   if (isWalletReady()) {
     console.log("[MiniApp] Already connected:", currentAddress);
     hideConnectWalletButtonForMiniApp(currentAddress);
+    renderProfileSection();
     return;
   }
 
@@ -2530,6 +2563,7 @@ function updateWalletConnectedUI(address) {
   updateOwnerPanelVisibility(state.address);
   updateWalletUI();
   renderNetworkInfo(true);
+  renderProfileSection();
 }
 
 async function connectWallet(connector, preferredProvider = null) {
@@ -3111,28 +3145,12 @@ async function refreshLeaderboard() {
 }
 
 function renderProfile(profile) {
-  if (!profile) {
-    if (elements.profilePlaceholder) {
-      elements.profilePlaceholder.hidden = false;
-    }
-    if (elements.profileAddressLabel) {
-      elements.profileAddressLabel.hidden = true;
-    }
-    if (elements.profileAddressValue) {
-      elements.profileAddressValue.textContent = "—";
-    }
-    return;
-  }
+  renderProfileSection();
 
-  if (elements.profilePlaceholder) {
-    elements.profilePlaceholder.hidden = true;
-  }
-  if (elements.profileAddressLabel) {
-    elements.profileAddressLabel.hidden = false;
-  }
-  if (elements.profileAddressValue) {
-    elements.profileAddressValue.textContent = shorten(profile.address);
-    elements.profileAddressValue.title = profile.address;
+  if (profile?.address && elements.profileAddressValue) {
+    const addressToShow = currentAddress || profile.address;
+    elements.profileAddressValue.textContent = shortenAddress(addressToShow);
+    elements.profileAddressValue.title = addressToShow;
   }
 }
 
