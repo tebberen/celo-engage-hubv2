@@ -2144,7 +2144,11 @@ function updateConnectOptionAvailability() {
   });
 }
 
-function requestWalletConnection(trigger) {
+async function requestWalletConnection(trigger) {
+  if (isFarcasterMiniApp()) {
+    await startWalletConnection(trigger);
+    return;
+  }
   updateConnectOptionAvailability();
   openConnectModal(trigger);
 }
@@ -2216,8 +2220,8 @@ function setupWalletButtons() {
   });
 
   if (elements.navbarConnectButton) {
-    elements.navbarConnectButton.addEventListener("click", () => {
-      requestWalletConnection(elements.navbarConnectButton);
+    elements.navbarConnectButton.addEventListener("click", async () => {
+      await requestWalletConnection(elements.navbarConnectButton);
     });
   }
 
@@ -2248,10 +2252,10 @@ function setupWalletButtons() {
 function setupWalletDropdown() {
   if (!elements.walletPillButton || !elements.walletDropdown) return;
   elements.walletDropdown.setAttribute("aria-hidden", "true");
-  elements.walletPillButton.addEventListener("click", (event) => {
+  elements.walletPillButton.addEventListener("click", async (event) => {
     event.stopPropagation();
     if (!state.address) {
-      requestWalletConnection(elements.walletPillButton);
+      await requestWalletConnection(elements.walletPillButton);
       return;
     }
     toggleWalletDropdown();
@@ -2262,7 +2266,7 @@ function setupWalletDropdown() {
     if (isActivateKey) {
       event.preventDefault();
       if (!state.address) {
-        requestWalletConnection(elements.walletPillButton);
+        await requestWalletConnection(elements.walletPillButton);
       } else {
         toggleWalletDropdown();
       }
