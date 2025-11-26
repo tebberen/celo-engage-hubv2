@@ -209,6 +209,53 @@ export async function connectWalletMetaMask() {
   }
 }
 
+export async function connectWithProvider(web3Provider, rawProvider = null, connectionTypeOverride = "external") {
+  if (!web3Provider) {
+    throw new Error(UI_MESSAGES.walletNotConnected);
+  }
+
+  try {
+    let targetAccounts = [];
+    try {
+      targetAccounts = await web3Provider.send("eth_requestAccounts", []);
+    } catch (requestError) {
+      console.warn("Wallet provider requestAccounts unavailable", requestError);
+    }
+
+    if (!Array.isArray(targetAccounts) || !targetAccounts.length) {
+      targetAccounts = await web3Provider.listAccounts();
+    }
+
+    if (!targetAccounts?.length) {
+      throw new Error(UI_MESSAGES.walletNotConnected);
+    }
+
+    const networkOk = await checkCurrentNetwork(web3Provider);
+    if (!networkOk) {
+      throw new Error(UI_MESSAGES.wrongNetwork);
+    }
+
+    provider = web3Provider;
+    signer = web3Provider.getSigner();
+    selectedAddress = ethers.utils.getAddress(targetAccounts[0]);
+    connectionType = connectionTypeOverride;
+
+    if (rawProvider) {
+      injectedEthereumProvider = rawProvider;
+      bindMetaMaskEvents(rawProvider, web3Provider);
+    }
+
+    notify("connected", { address: selectedAddress, connectionType });
+    return getWalletDetails();
+  } catch (error) {
+    provider = null;
+    signer = null;
+    selectedAddress = null;
+    connectionType = null;
+    throw error;
+  }
+}
+
 export async function connectWalletConnect() {
   const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
   const isMiniPay = isMiniPayEnvironment();

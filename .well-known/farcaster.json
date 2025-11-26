@@ -3,5 +3,7 @@
   "name": "Celo Engage Hub",
   "description": "A Celo ecosystem hub with GM, Deploy, Donate and curated Celo links and Farcaster mini apps.",
   "homeUrl": "https://tebberen.github.io/celo-engage-hubv2/",
-  "iconUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.svg"
+  "iconUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.svg",
+  "requiredChains": ["eip155:42220"],
+  "requiredCapabilities": ["actions.signIn", "wallet.getEthereumProvider"]
 }
