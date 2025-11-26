@@ -584,5 +584,30 @@
     </div>
 
     <script type="module" src="/celo-engage-hubv2/dist/main.js"></script>
+
+    <script type="module">
+      import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
+
+      async function initMiniApp() {
+        try {
+          // Notify Farcaster that the Mini App is ready
+          await sdk.actions.ready();
+          console.log("[MiniApp] sdk.actions.ready() called ✔️");
+
+          // OPTIONAL: detect if we are inside Farcaster
+          const isMiniApp = sdk?.context?.client === "farcaster";
+          if (isMiniApp) {
+            console.log("[MiniApp] Running inside Farcaster Mini App ✔️");
+          } else {
+            console.log("[MiniApp] Running in normal browser mode");
+          }
+
+        } catch (err) {
+          console.error("[MiniApp] ready() failed:", err);
+        }
+      }
+
+      initMiniApp();
+    </script>
   </body>
 </html>
