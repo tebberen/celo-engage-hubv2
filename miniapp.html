@@ -13,10 +13,20 @@
     <meta name="theme-color" content="#fbcc5c" />
     <meta name="minipay:compatible" content="true" />
     <meta name="minipay:walletconnect" content="v2" />
+    <meta name="farcaster:miniapp" content="true" />
+    <meta name="miniapp:platforms" content="minipay,farcaster" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Celo Engage Hub" />
     <meta property="og:description" content="Support the Celo community with GM, Deploy, Donate, and Governance modules." />
     <meta property="og:image" content="https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg" />
+    <meta
+      name="fc:miniapp"
+      content='{"version":"1","imageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg","button":{"title":"Open Celo Engage Hub","action":{"type":"launch_frame","name":"Celo Engage Hub","url":"https://tebberen.github.io/celo-engage-hubv2/","splashImageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png","splashBackgroundColor":"#fbcc5c"}}}'
+    />
+    <meta
+      name="fc:frame"
+      content='{"version":"1","imageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg","button":{"title":"Open Celo Engage Hub","action":{"type":"launch_frame","name":"Celo Engage Hub","url":"https://tebberen.github.io/celo-engage-hubv2/","splashImageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png","splashBackgroundColor":"#fbcc5c"}}}'
+    />
     <meta name="twitter:card" content="summary" />
     <title>Celo Engage Hub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -470,34 +480,6 @@
 
     </div>
 
-    <div id="connectModal" class="modal-layer connect-modal" aria-hidden="true">
-      <div class="modal-backdrop" data-dismiss="connectModal"></div>
-      <div class="modal-dialog" role="dialog" aria-modal="true">
-        <button class="modal-close" data-dismiss="connectModal" aria-label="Close connect" data-i18n-aria-label="wallet.close">
-          ✕
-        </button>
-        <div class="modal-body">
-          <h2 data-i18n="wallet.title">Connect Wallet</h2>
-          <p data-i18n="wallet.subtitle">Choose a wallet provider to continue.</p>
-          <div class="wallet-options">
-            <button class="wallet-option" data-connect-option="metamask">
-              <span class="wallet-option__icon">🦊</span>
-              <div>
-                <strong data-i18n="wallet.metamask">MetaMask</strong>
-                <small data-i18n="wallet.metamaskHint">Browser extension</small>
-              </div>
-            </button>
-            <button class="wallet-option" data-connect-option="walletconnect">
-              <span class="wallet-option__icon">🔗</span>
-              <div>
-                <strong data-i18n="wallet.walletconnect">WalletConnect</strong>
-                <small data-i18n="wallet.walletconnectHint">Mobile wallets &amp; MiniPay</small>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
 
@@ -574,6 +556,6 @@
       </div>
     </div>
 
-    <script type="module" src="./dist/main.js"></script>
+    <script type="module" src="./dist/miniapp.js"></script>
   </body>
 </html>
