@@ -1030,6 +1030,7 @@ function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
+  initMiniAppEnvironment();
 }
 
 document.addEventListener("DOMContentLoaded", init);
@@ -2101,10 +2102,40 @@ function setupConnectModal() {
 
 function isFarcasterMiniApp() {
   try {
-    return sdk?.context?.client === "farcaster";
+    return typeof sdk !== "undefined" && sdk?.context && sdk.context.client === "farcaster";
   } catch (error) {
     console.warn("[MiniApp] Detection failed", error);
     return false;
+  }
+}
+
+async function connectWithFarcasterWallet(trigger) {
+  if (!isFarcasterMiniApp() || !sdk?.wallet?.getEthereumProvider) return;
+  try {
+    const ethProvider = await sdk.wallet.getEthereumProvider();
+    const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
+    await withButtonLoading(
+      trigger,
+      { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+      async () => {
+        await connectWallet(connectWalletMetaMask, { provider: web3Provider, rawProvider: ethProvider, type: "farcaster" });
+      }
+    );
+    console.log("[MiniApp] Connected with Farcaster wallet");
+  } catch (error) {
+    console.error("[MiniApp] Farcaster wallet connection failed:", error);
+  }
+}
+
+async function tryAutoConnectFarcasterWallet() {
+  if (!isFarcasterMiniApp() || !sdk?.wallet?.getEthereumProvider) return;
+  try {
+    const ethProvider = await sdk.wallet.getEthereumProvider();
+    const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
+    await connectWithProvider(web3Provider, ethProvider, "farcaster");
+    console.log("[MiniApp] Auto-connected Farcaster wallet");
+  } catch (error) {
+    console.warn("[MiniApp] Auto-connect Farcaster wallet failed:", error);
   }
 }
 
@@ -2138,13 +2169,26 @@ function updateConnectOptionAvailability() {
   if (!elements.connectOptions?.length) return;
   const hasInjected = hasInjectedWalletProvider();
   elements.connectOptions.forEach((option) => {
-    if (option.dataset.connectOption !== "metamask") return;
+    const type = option.dataset.connectOption;
+    if (type === "farcaster") {
+      const available = isFarcasterMiniApp();
+      option.hidden = !available;
+      option.setAttribute("aria-hidden", available ? "false" : "true");
+      option.disabled = !available;
+      option.setAttribute("aria-disabled", available ? "false" : "true");
+      return;
+    }
+    if (type !== "metamask") return;
     option.disabled = !hasInjected;
     option.setAttribute("aria-disabled", hasInjected ? "false" : "true");
   });
 }
 
-function requestWalletConnection(trigger) {
+async function requestWalletConnection(trigger) {
+  if (isFarcasterMiniApp()) {
+    await startWalletConnection(trigger);
+    return;
+  }
   updateConnectOptionAvailability();
   openConnectModal(trigger);
 }
@@ -2204,6 +2248,11 @@ function setupWalletButtons() {
   elements.connectOptions.forEach((option) => {
     option.addEventListener("click", async () => {
       const type = option.dataset.connectOption;
+      if (type === "farcaster") {
+        if (!isFarcasterMiniApp()) return;
+        await connectWithFarcasterWallet(option);
+        return;
+      }
       const connector = type === "walletconnect" ? connectWalletConnect : connectWalletMetaMask;
       try {
         await withButtonLoading(option, { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true }, async () => {
@@ -2216,8 +2265,8 @@ function setupWalletButtons() {
   });
 
   if (elements.navbarConnectButton) {
-    elements.navbarConnectButton.addEventListener("click", () => {
-      requestWalletConnection(elements.navbarConnectButton);
+    elements.navbarConnectButton.addEventListener("click", async () => {
+      await requestWalletConnection(elements.navbarConnectButton);
     });
   }
 
@@ -2248,10 +2297,10 @@ function setupWalletButtons() {
 function setupWalletDropdown() {
   if (!elements.walletPillButton || !elements.walletDropdown) return;
   elements.walletDropdown.setAttribute("aria-hidden", "true");
-  elements.walletPillButton.addEventListener("click", (event) => {
+  elements.walletPillButton.addEventListener("click", async (event) => {
     event.stopPropagation();
     if (!state.address) {
-      requestWalletConnection(elements.walletPillButton);
+      await requestWalletConnection(elements.walletPillButton);
       return;
     }
     toggleWalletDropdown();
@@ -2262,7 +2311,7 @@ function setupWalletDropdown() {
     if (isActivateKey) {
       event.preventDefault();
       if (!state.address) {
-        requestWalletConnection(elements.walletPillButton);
+        await requestWalletConnection(elements.walletPillButton);
       } else {
         toggleWalletDropdown();
       }
@@ -3257,6 +3306,17 @@ function openUsernameModal(trigger) {
 function closeUsernameModal() {
   if (!elements.usernameModal) return;
   closeModalEl(elements.usernameModal);
+}
+
+async function initMiniAppEnvironment() {
+  if (!sdk?.actions?.ready) return;
+  try {
+    await sdk.actions.ready();
+    console.log("[MiniApp] sdk.actions.ready() called ✔️");
+    await tryAutoConnectFarcasterWallet();
+  } catch (error) {
+    console.error("[MiniApp] ready() error:", error);
+  }
 }
 
 async function loadInitialData() {
