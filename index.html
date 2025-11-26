@@ -73,22 +73,23 @@
             >🌐</button>
           </nav>
         </div>
-        <div class="header-actions" role="group" aria-label="Account actions">
-          <div class="header-actions__cluster">
-            <div class="wallet-actions">
-              <button
-                id="navbarConnectButton"
-                class="connect-btn"
-                type="button"
-                data-i18n="wallet.title"
-              >
-                Connect Wallet
-              </button>
-              <div id="walletPill" class="wallet-pill" hidden>
-                <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
-                  <span id="walletAddressLabel">—</span>
-                  <span class="wallet-pill__status" aria-hidden="true">•</span>
-                  <span class="wallet-pill__chevron">▾</span>
+          <div class="header-actions" role="group" aria-label="Account actions">
+            <div class="header-actions__cluster">
+              <div class="wallet-actions">
+                <button
+                  id="navbarConnectButton"
+                  class="connect-btn"
+                  type="button"
+                  data-i18n="wallet.title"
+                >
+                  Connect Wallet
+                </button>
+                <div id="walletStatus" class="wallet-status" aria-live="polite"></div>
+                <div id="walletPill" class="wallet-pill" hidden>
+                  <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
+                    <span id="walletAddressLabel">—</span>
+                    <span class="wallet-pill__status" aria-hidden="true">•</span>
+                    <span class="wallet-pill__chevron">▾</span>
                 </button>
                 <div id="walletDropdown" class="wallet-dropdown" role="menu">
                   <div class="wallet-dropdown__network">
@@ -588,24 +589,27 @@
     <script type="module">
       import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
 
-      async function initMiniApp() {
+      async function initMiniAppEnvironment() {
         try {
-          window.miniAppSdk = sdk;
-          const inMiniApp = (await sdk.isInMiniApp?.()) ?? false;
-          window.isInMiniApp = inMiniApp;
+          const isMiniApp = await sdk.isInMiniApp();
+          window.isMiniApp = isMiniApp;
+          console.log("[MiniApp] isMiniApp =", isMiniApp);
 
           await sdk.actions.ready();
+          console.log("[MiniApp] sdk.actions.ready() called ✔️");
 
-          if (inMiniApp && typeof window.tryAutoConnectFarcasterWallet === "function") {
-            await window.tryAutoConnectFarcasterWallet();
+          // If we are in a mini app and a global auto-connect hook exists, call it.
+          if (isMiniApp && typeof window.autoConnectFarcasterWallet === "function") {
+            window.autoConnectFarcasterWallet();
           }
-
         } catch (err) {
-          console.error("[MiniApp] ready() failed:", err);
+          console.error("[MiniApp] initMiniAppEnvironment error:", err);
         }
       }
 
-      initMiniApp();
+      initMiniAppEnvironment();
+
+      window.miniAppSdk = sdk;
     </script>
   </body>
 </html>
