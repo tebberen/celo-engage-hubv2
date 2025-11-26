@@ -2306,7 +2306,7 @@ function setupWalletDropdown() {
     toggleWalletDropdown();
   });
 
-  elements.walletPillButton.addEventListener("keydown", (event) => {
+  elements.walletPillButton.addEventListener("keydown", async (event) => {
     const isActivateKey = event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space";
     if (isActivateKey) {
       event.preventDefault();
