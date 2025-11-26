@@ -43,6 +43,20 @@
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>"
     />
+    <script type="module" id="farcaster-miniapp-sdk-loader">
+      (async () => {
+        const sdk = await import("https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020")
+          .then((module) => module?.sdk)
+          .catch((error) => {
+            console.warn("[MiniApp] Unable to preload Farcaster SDK", error);
+            return null;
+          });
+
+        if (sdk) {
+          window.__farcasterMiniAppSdk = sdk;
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app" class="app-shell" data-theme="golden">
