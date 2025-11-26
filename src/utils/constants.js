@@ -42,6 +42,12 @@ export const NETWORKS = {
 export const NETWORK_KEYS = Object.keys(NETWORKS);
 export const CURRENT_NETWORK = NETWORKS[DEFAULT_NETWORK];
 
+export const CELO_CHAIN_ID_DEC = NETWORKS.mainnet?.chainIdDecimal || 42220;
+export const CELO_CHAIN_ID_HEX = NETWORKS.mainnet?.chainId || "0xa4ec";
+export const CELO_RPC_URL = NETWORKS.mainnet?.rpcUrl || "https://forno.celo.org";
+export const CELO_CHAIN_NAME = NETWORKS.mainnet?.name || "Celo";
+export const CELO_NATIVE_SYMBOL = "CELO";
+
 export const NETWORK_FALLBACK_RPC_URLS = {
   mainnet: ["https://rpc.ankr.com/celo", "https://1rpc.io/celo"],
   sepolia: ["https://celo-sepolia.gateway.tenderly.co"],

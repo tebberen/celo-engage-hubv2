@@ -2161,17 +2161,13 @@ async function connectWithFarcasterWallet() {
     console.log("[MiniApp] Connecting via Farcaster wallet…");
 
     const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
-    const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
-    const signer = web3Provider.getSigner();
-    const address = await signer.getAddress();
 
-    const details = await connectWithProvider(web3Provider, ethProvider, "farcaster");
-    setWalletConnectionState({
-      provider: details?.provider || web3Provider,
-      signer: details?.signer || signer,
-      address: details?.address || address,
+    const { provider, signer, address } = await connectWithProvider(ethProvider, {
+      source: "farcaster",
     });
-    updateWalletConnectedUI(details?.address || address);
+
+    setWalletConnectionState({ provider, signer, address });
+    updateWalletConnectedUI(address);
     await afterWalletConnected();
 
     console.log("[MiniApp] Connected with Farcaster wallet:", address);
@@ -2179,6 +2175,7 @@ async function connectWithFarcasterWallet() {
     hideConnectWalletButtonForMiniApp(address);
   } catch (error) {
     console.error("[MiniApp] Farcaster wallet connection failed:", error);
+    // Optionally: show a user-friendly toast or banner with err.message
   }
 }
 
@@ -2206,8 +2203,7 @@ async function getPreferredProvider() {
     if (isFarcasterMiniApp() && miniAppSdk?.wallet?.getEthereumProvider) {
       const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
       if (ethProvider) {
-        const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
-        return { provider: web3Provider, rawProvider: ethProvider, type: "farcaster" };
+        return { provider: ethProvider, rawProvider: ethProvider, type: "farcaster" };
       }
     }
   } catch (error) {
@@ -2540,7 +2536,10 @@ async function connectWallet(connector, preferredProvider = null) {
   try {
     const preferred = preferredProvider || (await getPreferredProvider());
     const details = preferred?.provider
-      ? await connectWithProvider(preferred.provider, preferred.rawProvider, preferred.type || "unknown")
+      ? await connectWithProvider(preferred.provider, {
+          rawProvider: preferred.rawProvider,
+          source: preferred.type || "unknown",
+        })
       : await connector();
     setWalletConnectionState(details);
     updateWalletConnectedUI(details.address);
