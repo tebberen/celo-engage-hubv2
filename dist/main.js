@@ -83,6 +83,20 @@ function getEcosystemUrl(match) {
   return entry?.url || match;
 }
 
+// ================================
+// Mini App environment detection
+// ================================
+const isMiniApp = !!(window.miniAppSdk || window.sdk);
+window.isMiniApp = isMiniApp;
+console.log("[MiniApp] isMiniApp =", isMiniApp);
+
+if (isMiniApp && window.sdk && window.sdk.actions && typeof window.sdk.actions.ready === "function") {
+  window.sdk.actions.ready();
+  console.log("[MiniApp] sdk.actions.ready() ✔️");
+} else {
+  console.log("[MiniApp] Running in normal browser mode");
+}
+
 const CELO_ECOSYSTEM_MODULES = {
   official: {
     key: "official",
@@ -1001,8 +1015,7 @@ async function withButtonLoading(button, options, task) {
 }
 
 async function init() {
-  const inMiniApp = await detectFarcasterEnvironment();
-
+  renderProfileSection();
   applyTheme();
   setupLanguage();
   setupNavigation();
@@ -1017,9 +1030,6 @@ async function init() {
   setupLeaderboardTabs();
   setupForms();
   setupDonateShortcuts();
-  setupConnectModal();
-  setupWalletButtons();
-  setupWalletDropdown();
   setupProfileModal();
   setupUsernameModal();
   setupEcosystemModal();
@@ -1028,8 +1038,15 @@ async function init() {
   renderNetworkInfo(false);
   updateWalletUI();
 
-  if (inMiniApp) {
+  const inMiniApp = isMiniApp || (await detectFarcasterEnvironment());
+
+  if (!inMiniApp) {
+    setupConnectModal();
+    setupWalletButtons();
+    setupWalletDropdown();
+  } else {
     await autoConnectFarcasterWallet();
+    hideConnectWalletButtonForMiniApp(currentAddress || state.address);
   }
 
   renderOwnerPanel();
@@ -2123,7 +2140,7 @@ let isWalletConnected = false;
 
 function shortenAddress(addr) {
   if (!addr) return "—";
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
 function renderProfileSection() {
@@ -2164,6 +2181,10 @@ function isWalletReady() {
 
 async function detectFarcasterEnvironment() {
   if (typeof window === "undefined") return false;
+  if (!hasMiniAppSdk()) {
+    window.isMiniApp = false;
+    return false;
+  }
   if (window.isMiniApp === true) return true;
 
   const miniAppSdk = window.miniAppSdk || sdk;
@@ -3445,14 +3466,15 @@ function closeUsernameModal() {
 }
 
 async function initMiniAppEnvironment() {
-  const inMiniApp = await detectFarcasterEnvironment();
-  if (!inMiniApp || !sdk?.actions?.ready) return;
+  const inMiniApp = isMiniApp || (await detectFarcasterEnvironment());
+  if (!inMiniApp || !hasMiniAppSdk()) return;
   try {
-    await sdk.actions.ready();
-    console.log("[MiniApp] sdk.actions.ready() called ✔️");
+    if (window.sdk?.actions?.ready) {
+      await window.sdk.actions.ready();
+      console.log("[MiniApp] sdk.actions.ready() called ✔️");
+    }
     updateConnectOptionAvailability();
     updateWalletUI();
-    await autoConnectFarcasterWallet();
   } catch (error) {
     console.error("[MiniApp] ready() error:", error);
   }
