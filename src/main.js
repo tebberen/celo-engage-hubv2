@@ -71,6 +71,56 @@ const MINI_APP_CATEGORIES = [
   "Ecosystem",
 ];
 const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
+const MINI_APP_QUERY_KEYS = ["miniapp", "mini-app", "farcaster", "warpcast"];
+
+function isFarcasterMiniApp() {
+  try {
+    const searchParams = new URLSearchParams(window.location.search || "");
+    const hashParams = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+
+    const matchesParams = (params) =>
+      MINI_APP_QUERY_KEYS.some((key) => {
+        const value = (params.get(key) || "").toLowerCase();
+        return value === "farcaster" || value === "warpcast" || value === "1" || value === "true";
+      });
+
+    if (matchesParams(searchParams) || matchesParams(hashParams)) {
+      return true;
+    }
+
+    const ua = navigator.userAgent || navigator.vendor || "";
+    return /warpcast/i.test(ua) || /farcaster/i.test(ua);
+  } catch (error) {
+    console.warn("[MiniApp] Mini App detection failed", error);
+    return false;
+  }
+}
+
+async function signalFarcasterMiniAppReady() {
+  if (!isFarcasterMiniApp()) return;
+
+  let miniAppSdk = window.__farcasterMiniAppSdk;
+  if (!miniAppSdk?.actions?.ready) {
+    miniAppSdk = await import("https://esm.sh/@farcaster/miniapp-sdk@latest?bundle&target=es2020")
+      .then((module) => module?.sdk)
+      .catch((error) => {
+        console.warn("[MiniApp] Unable to load SDK", error);
+        return null;
+      });
+
+    if (miniAppSdk) {
+      window.__farcasterMiniAppSdk = miniAppSdk;
+    }
+  }
+
+  if (miniAppSdk?.actions?.ready) {
+    try {
+      miniAppSdk.actions.ready();
+    } catch (error) {
+      console.warn("[MiniApp] Unable to signal ready", error);
+    }
+  }
+}
 
 function getEcosystemUrl(match) {
   if (!match) return match;
@@ -1028,6 +1078,9 @@ function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
+  requestAnimationFrame(() => {
+    signalFarcasterMiniAppReady();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);
