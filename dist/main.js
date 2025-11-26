@@ -766,8 +766,7 @@ const elements = {
   walletStatusIcon: document.querySelector(".wallet-pill__status"),
   walletAddressLabel: document.getElementById("walletAddressLabel"),
   walletNetworkName: document.getElementById("walletNetworkName"),
-  profilePlaceholder: document.getElementById("profilePlaceholder"),
-  profileAddressLabel: document.getElementById("profileAddressLabel"),
+  profileStatusText: document.getElementById("profileStatusText"),
   profileAddressValue: document.getElementById("profileAddressValue"),
   feedSpinner: document.getElementById("feedSpinner"),
   feedBadge: document.getElementById("feedBadge"),
@@ -1043,6 +1042,9 @@ async function init() {
 
 document.addEventListener("DOMContentLoaded", () => {
   init();
+});
+window.addEventListener("load", () => {
+  renderProfileSection();
 });
 window.addEventListener("beforeunload", cleanupLinkLiveUpdates);
 
@@ -2084,7 +2086,7 @@ function setupDonateShortcuts() {
     button.addEventListener("click", async () => {
       const amount = Number(button.dataset.donateAmount || 0);
       if (!amount) return;
-      if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+      if (!ensureWalletReady()) return;
       if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
       try {
         await withButtonLoading(
@@ -2117,6 +2119,48 @@ function isFarcasterMiniApp() {
 let currentProvider = null;
 let currentSigner = null;
 let currentAddress = null;
+let isWalletConnected = false;
+
+function shortenAddress(addr) {
+  if (!addr) return "—";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function renderProfileSection() {
+  const statusEl = elements.profileStatusText;
+  const addressEl = elements.profileAddressValue;
+  if (!statusEl && !addressEl) return;
+
+  if (!currentAddress) {
+    statusEl?.textContent = t(
+      "profile.connectPrompt",
+      "Connect your wallet to view your profile address."
+    );
+    if (addressEl) {
+      addressEl.textContent = "—";
+      addressEl.title = "";
+    }
+    return;
+  }
+
+  statusEl?.textContent = t("profile.subtitle", "Connected wallet details.");
+  if (addressEl) {
+    addressEl.textContent = shortenAddress(currentAddress);
+    addressEl.title = currentAddress;
+  }
+}
+
+function setWalletConnectionState({ provider = null, signer = null, address = null } = {}) {
+  currentProvider = provider;
+  currentSigner = signer;
+  currentAddress = address;
+  isWalletConnected = Boolean(provider && signer && address);
+  renderProfileSection();
+}
+
+function isWalletReady() {
+  return Boolean(currentSigner && currentAddress);
+}
 
 async function detectFarcasterEnvironment() {
   if (typeof window === "undefined") return false;
@@ -2149,14 +2193,12 @@ async function connectWithFarcasterWallet() {
     console.log("[MiniApp] Connecting via Farcaster wallet…");
 
     const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
+
     const { provider, signer, address } = await connectWithProvider(ethProvider, {
       source: "farcaster",
     });
 
-    currentProvider = provider;
-    currentSigner = signer;
-    currentAddress = address;
-
+    setWalletConnectionState({ provider, signer, address });
     updateWalletConnectedUI(address);
     await afterWalletConnected();
 
@@ -2174,9 +2216,10 @@ window.autoConnectFarcasterWallet = async function () {
     return;
   }
 
-  if (typeof currentAddress === "string" && currentAddress.length > 0) {
+  if (isWalletReady()) {
     console.log("[MiniApp] Already connected:", currentAddress);
     hideConnectWalletButtonForMiniApp(currentAddress);
+    renderProfileSection();
     return;
   }
 
@@ -2242,7 +2285,7 @@ function updateConnectOptionAvailability() {
 
 async function requestWalletConnection(trigger) {
   if (isFarcasterMiniApp()) {
-    if (state.address) {
+    if (isWalletReady()) {
       toggleWalletDropdown(true);
       return;
     }
@@ -2270,7 +2313,7 @@ async function requestWalletConnection(trigger) {
 }
 
 async function startWalletConnection(trigger) {
-  if (state.address) {
+  if (isWalletReady()) {
     toggleWalletDropdown(true);
     return;
   }
@@ -2340,7 +2383,7 @@ function setupWalletButtons() {
       event.preventDefault();
 
       if (isFarcasterMiniApp()) {
-        if (!currentAddress) {
+        if (!isWalletReady()) {
           await connectWithFarcasterWallet();
         } else {
           console.log("[MiniApp] Wallet already connected:", currentAddress);
@@ -2360,6 +2403,7 @@ function setupWalletButtons() {
         await withButtonLoading(button, { loadingText: getLoadingText("pending", "Pending…") }, async () => {
           await disconnectWallet();
         });
+        setWalletConnectionState({});
         state.address = null;
         state.profile = null;
         state.isOwner = false;
@@ -2382,7 +2426,7 @@ function setupWalletDropdown() {
   elements.walletDropdown.setAttribute("aria-hidden", "true");
   elements.walletPillButton.addEventListener("click", async (event) => {
     event.stopPropagation();
-    if (!state.address) {
+    if (!isWalletReady()) {
       await requestWalletConnection(elements.walletPillButton);
       return;
     }
@@ -2393,13 +2437,13 @@ function setupWalletDropdown() {
     const isActivateKey = event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space";
     if (isActivateKey) {
       event.preventDefault();
-      if (!state.address) {
+      if (!isWalletReady()) {
         await requestWalletConnection(elements.walletPillButton);
       } else {
         toggleWalletDropdown();
       }
     }
-    if (state.address && event.key === "ArrowDown" && !elements.walletDropdown.classList.contains("open")) {
+    if (isWalletReady() && event.key === "ArrowDown" && !elements.walletDropdown.classList.contains("open")) {
       event.preventDefault();
       openWalletDropdown();
     }
@@ -2513,11 +2557,13 @@ function updateAnalyticsLinks() {
 }
 
 function updateWalletConnectedUI(address) {
-  state.address = address;
+  const resolvedAddress = address || currentAddress;
+  state.address = resolvedAddress;
   state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
   updateOwnerPanelVisibility(state.address);
   updateWalletUI();
   renderNetworkInfo(true);
+  renderProfileSection();
 }
 
 async function connectWallet(connector, preferredProvider = null) {
@@ -2529,6 +2575,7 @@ async function connectWallet(connector, preferredProvider = null) {
           source: preferred.type || "unknown",
         })
       : await connector();
+    setWalletConnectionState(details);
     updateWalletConnectedUI(details.address);
     closeConnectModal();
     showToast("success", "Cüzdan bağlandı.");
@@ -2552,16 +2599,19 @@ function initWalletListeners() {
   onWalletEvent(async ({ event, address, valid }) => {
     switch (event) {
       case "connected":
-        updateWalletConnectedUI(address);
+        setWalletConnectionState(getWalletDetails());
+        updateWalletConnectedUI(currentAddress || address);
         closeConnectModal();
         await afterWalletConnected();
         break;
       case "accountsChanged":
-        updateWalletConnectedUI(address);
+        setWalletConnectionState(getWalletDetails());
+        updateWalletConnectedUI(currentAddress || address);
         await afterWalletConnected();
         break;
       case "disconnected": {
         const previousAddress = state.address || address;
+        setWalletConnectionState({});
         state.address = null;
         state.profile = null;
         state.isOwner = false;
@@ -2592,7 +2642,7 @@ function renderNetworkInfo(valid) {
     elements.walletNetworkName.textContent = CURRENT_NETWORK.name;
   }
   if (elements.walletStatusIcon) {
-    const online = Boolean(valid && state.address);
+    const online = Boolean(valid && isWalletReady());
     elements.walletStatusIcon.textContent = "•";
     elements.walletStatusIcon.setAttribute("data-status", online ? "online" : "offline");
     elements.walletStatusIcon.setAttribute(
@@ -2603,7 +2653,7 @@ function renderNetworkInfo(valid) {
 }
 
 function updateWalletUI() {
-  const connected = Boolean(state.address);
+  const connected = isWalletReady();
   const hideConnect = connected || isFarcasterMiniApp();
   if (isFarcasterMiniApp()) {
     hideConnectWalletButtonForMiniApp(state.address || currentAddress);
@@ -2662,9 +2712,15 @@ function shorten(value, start = 6, end = 4) {
   return `${value.slice(0, start)}…${value.slice(-end)}`;
 }
 
+function ensureWalletReady() {
+  if (isWalletReady()) return true;
+  showToast("error", UI_MESSAGES.walletNotConnected);
+  return false;
+}
+
 async function handleGMSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const message = document.getElementById("gmMessage").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
@@ -2685,7 +2741,7 @@ async function handleGMSubmit(event) {
 
 async function handleDeploySubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const name = document.getElementById("deployName").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
@@ -2706,7 +2762,7 @@ async function handleDeploySubmit(event) {
 
 async function handleDonateCeloSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const amount = Number(document.getElementById("celoAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2728,7 +2784,7 @@ async function handleDonateCeloSubmit(event) {
 
 async function handleApproveCusdSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const amount = Number(document.getElementById("cusdApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2748,7 +2804,7 @@ async function handleApproveCusdSubmit(event) {
 
 async function handleDonateCusdSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const amount = Number(document.getElementById("cusdAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2770,7 +2826,7 @@ async function handleDonateCusdSubmit(event) {
 
 async function handleApproveCeurSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const amount = Number(document.getElementById("ceurApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2790,7 +2846,7 @@ async function handleApproveCeurSubmit(event) {
 
 async function handleDonateCeurSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const amount = Number(document.getElementById("ceurAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2812,7 +2868,7 @@ async function handleDonateCeurSubmit(event) {
 
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const form = event.currentTarget;
   const input = form?.querySelector("[data-share-input]") || elements.shareLinkInput || elements.sharePromptInput;
   const rawUrl = input?.value.trim() || "";
@@ -2848,9 +2904,8 @@ async function handleShareLinkSubmit(event) {
 
 async function handleProposalSubmit(event) {
   event.preventDefault();
-  const { address } = getWalletDetails();
-  if (!address) return showToast("error", UI_MESSAGES.walletNotConnected);
-  const isOwnerWallet = address.toLowerCase() === OWNER_ADDRESS.toLowerCase();
+  if (!ensureWalletReady()) return;
+  const isOwnerWallet = currentAddress?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
   state.isOwner = isOwnerWallet;
   renderGovernanceAccess();
   if (!isOwnerWallet) return showToast("error", UI_MESSAGES.ownerOnly);
@@ -2876,7 +2931,7 @@ async function handleProposalSubmit(event) {
 
 async function handleWithdrawSubmit(event, token) {
   event.preventDefault();
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
   if (!WITHDRAW_TOKENS.has(token)) {
     console.warn("Withdraw attempted with unsupported token", token);
@@ -2936,15 +2991,16 @@ function refreshAfterTransaction() {
 }
 
 async function refreshProfile() {
-  if (!state.address) {
+  const targetAddress = state.address || currentAddress;
+  if (!targetAddress) {
     renderProfile(null);
     renderDeployments([]);
     return;
   }
   try {
     const [profile, deployments] = await Promise.all([
-      loadProfile(state.address),
-      loadUserDeployments(state.address),
+      loadProfile(targetAddress),
+      loadUserDeployments(targetAddress),
     ]);
     state.profile = profile;
     renderProfile(profile);
@@ -3089,28 +3145,12 @@ async function refreshLeaderboard() {
 }
 
 function renderProfile(profile) {
-  if (!profile) {
-    if (elements.profilePlaceholder) {
-      elements.profilePlaceholder.hidden = false;
-    }
-    if (elements.profileAddressLabel) {
-      elements.profileAddressLabel.hidden = true;
-    }
-    if (elements.profileAddressValue) {
-      elements.profileAddressValue.textContent = "—";
-    }
-    return;
-  }
+  renderProfileSection();
 
-  if (elements.profilePlaceholder) {
-    elements.profilePlaceholder.hidden = true;
-  }
-  if (elements.profileAddressLabel) {
-    elements.profileAddressLabel.hidden = false;
-  }
-  if (elements.profileAddressValue) {
-    elements.profileAddressValue.textContent = shorten(profile.address);
-    elements.profileAddressValue.title = profile.address;
+  if (profile?.address && elements.profileAddressValue) {
+    const addressToShow = currentAddress || profile.address;
+    elements.profileAddressValue.textContent = shortenAddress(addressToShow);
+    elements.profileAddressValue.title = addressToShow;
   }
 }
 
@@ -3249,7 +3289,7 @@ function renderProposalCard(proposal, readonly = false) {
 elements.activeProposals.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-proposal]");
   if (!button) return;
-  if (!state.address) return showToast("error", UI_MESSAGES.walletNotConnected);
+  if (!ensureWalletReady()) return;
   const proposalId = Number(button.dataset.proposal);
   const support = button.dataset.vote === "true";
   try {

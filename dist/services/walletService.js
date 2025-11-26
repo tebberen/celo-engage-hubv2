@@ -177,6 +177,7 @@ export async function connectWalletMetaMask() {
   }
 
   try {
+    console.log("[MiniApp] MetaMask path");
     const rawProvider = getInjectedEthereumProvider();
     if (!rawProvider) {
       console.warn("No wallet provider detected");
@@ -310,6 +311,7 @@ export async function connectWithProvider(externalProvider, opts = {}) {
 }
 
 export async function connectWalletConnect() {
+  console.log("[MiniApp] WalletConnect path");
   const chainIdDecimal = parseInt(CURRENT_NETWORK.chainId, 16);
   const isMiniPay = isMiniPayEnvironment();
 
