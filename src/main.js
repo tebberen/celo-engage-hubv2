@@ -2108,9 +2108,32 @@ let currentProvider = null;
 let currentSigner = null;
 let currentAddress = null;
 
+async function detectFarcasterEnvironment() {
+  if (typeof window === "undefined") return false;
+  if (window.isInMiniApp === true) return true;
+
+  if (!sdk?.isInMiniApp) return false;
+
+  try {
+    const detected = (await sdk.isInMiniApp()) === true;
+    window.isInMiniApp = detected;
+    if (detected) {
+      updateWalletUI();
+    }
+    return detected;
+  } catch (error) {
+    console.warn("[MiniApp] isInMiniApp detection failed", error);
+    return false;
+  }
+}
+
 async function connectWithFarcasterWallet() {
   try {
     console.log("[MiniApp] Farcaster connect path");
+
+    if (sdk?.wallet?.connect) {
+      await sdk.wallet.connect();
+    }
 
     const provider = await sdk.wallet.getEthereumProvider();
     const web3Provider = new ethers.providers.Web3Provider(provider);
@@ -2535,13 +2558,14 @@ function renderNetworkInfo(valid) {
 
 function updateWalletUI() {
   const connected = Boolean(state.address);
+  const hideConnect = connected || isFarcasterMiniApp();
   if (elements.walletActions) {
     elements.walletActions.classList.toggle("is-connected", connected);
     elements.walletActions.classList.toggle("is-disconnected", !connected);
   }
   if (elements.navbarConnectButton) {
-    elements.navbarConnectButton.hidden = connected;
-    elements.navbarConnectButton.setAttribute("aria-hidden", connected ? "true" : "false");
+    elements.navbarConnectButton.hidden = hideConnect;
+    elements.navbarConnectButton.setAttribute("aria-hidden", hideConnect ? "true" : "false");
   }
   if (elements.walletPill) {
     elements.walletPill.hidden = !connected;
@@ -3327,11 +3351,13 @@ function closeUsernameModal() {
 }
 
 async function initMiniAppEnvironment() {
-  if (!sdk?.actions?.ready) return;
+  const inMiniApp = await detectFarcasterEnvironment();
+  if (!inMiniApp || !sdk?.actions?.ready) return;
   try {
     await sdk.actions.ready();
     console.log("[MiniApp] sdk.actions.ready() called ✔️");
     updateConnectOptionAvailability();
+    updateWalletUI();
     await tryAutoConnectFarcasterWallet();
   } catch (error) {
     console.error("[MiniApp] ready() error:", error);
