@@ -1,5 +1,4 @@
-import { build } from "esbuild";
-import { mkdirSync } from "fs";
+import { cpSync, mkdirSync, rmSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -7,27 +6,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const outdir = resolve(__dirname, "dist");
+const srcDir = resolve(__dirname, "src");
+const basePath = "/celo-engage-hubv2/";
 
-mkdirSync(outdir, { recursive: true });
-
-async function bundle() {
-  try {
-    await build({
-      entryPoints: ["src/main.js"],
-      bundle: true,
-      outfile: "dist/main.js",
-      publicPath: "/celo-engage-hubv2/",
-      format: "esm",
-      platform: "browser",
-      target: "es2020",
-      sourcemap: true,
-      logLevel: "info",
-    });
-    console.info("[build] Bundle created at dist/main.js");
-  } catch (error) {
-    console.error("[build] Failed to create bundle", error);
-    process.exit(1);
-  }
+function cleanOutput() {
+  rmSync(outdir, { recursive: true, force: true });
+  mkdirSync(outdir, { recursive: true });
 }
 
-bundle();
+function copySource() {
+  cpSync(srcDir, outdir, { recursive: true, force: true });
+}
+
+function logResult() {
+  console.info(`[build] Static modules copied to ${outdir}`);
+  console.info(`[build] Base path configured for GitHub Pages: ${basePath}`);
+}
+
+async function build() {
+  cleanOutput();
+  copySource();
+  logResult();
+}
+
+build().catch((error) => {
+  console.error("[build] Failed to prepare static bundle", error);
+  process.exit(1);
+});
