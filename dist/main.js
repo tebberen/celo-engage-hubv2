@@ -1,4 +1,3 @@
-import { sdk as miniAppSdk } from "@farcaster/miniapp-sdk";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -43,7 +42,6 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
-import { getFarcasterSdk, getWalletProvider as getFarcasterWalletProvider, readyFarcasterMiniApp } from "./utils/farcaster.js";
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
   deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
@@ -74,59 +72,6 @@ const MINI_APP_CATEGORIES = [
   "Ecosystem",
 ];
 const MINI_APP_ICON_PLACEHOLDER = "./assets/miniapps/default.png";
-const MINI_APP_QUERY_KEYS = ["miniapp", "mini-app", "farcaster", "warpcast"];
-
-function getMiniAppSdk() {
-  return getFarcasterSdk();
-}
-
-function isFarcasterMiniApp() {
-  try {
-    const searchParams = new URLSearchParams(window.location.search || "");
-    const hashParams = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
-
-    const matchesParams = (params) =>
-      MINI_APP_QUERY_KEYS.some((key) => {
-        const value = (params.get(key) || "").toLowerCase();
-        return value === "farcaster" || value === "warpcast" || value === "1" || value === "true";
-      });
-
-    if (matchesParams(searchParams) || matchesParams(hashParams)) {
-      return true;
-    }
-
-    const ua = navigator.userAgent || navigator.vendor || "";
-    return /warpcast/i.test(ua) || /farcaster/i.test(ua);
-  } catch (error) {
-    console.warn("[MiniApp] Mini App detection failed", error);
-    return false;
-  }
-}
-
-let hasSignaledMiniAppReady = false;
-
-async function signalFarcasterMiniAppReady() {
-  if (hasSignaledMiniAppReady) return;
-
-  const sdk = await getFarcasterSdk();
-
-  if (sdk?.actions?.ready) {
-    try {
-      await sdk.actions.ready();
-      hasSignaledMiniAppReady = true;
-      return;
-    } catch (error) {
-      console.warn("[MiniApp] Unable to signal ready via Mini App SDK", error);
-    }
-  }
-
-  const didSignal = await readyFarcasterMiniApp();
-  if (didSignal) {
-    hasSignaledMiniAppReady = true;
-  } else {
-    console.warn("[MiniApp] Unable to signal ready – SDK not available");
-  }
-}
 
 function getEcosystemUrl(match) {
   if (!match) return match;
@@ -1084,7 +1029,6 @@ function init() {
   loadInitialData();
   initWalletListeners();
   initWebsocket();
-  signalFarcasterMiniAppReady();
 }
 
 document.addEventListener("DOMContentLoaded", init);
@@ -2155,18 +2099,7 @@ function setupConnectModal() {
 }
 
 async function getPreferredProvider() {
-  if (!isFarcasterMiniApp()) return null;
-
-  try {
-    const farcasterProvider = await getFarcasterWalletProvider();
-    if (!farcasterProvider?.provider) return null;
-
-    const web3Provider = new ethers.providers.Web3Provider(farcasterProvider.provider, "any");
-    return { provider: web3Provider, rawProvider: farcasterProvider.provider, type: "farcaster" };
-  } catch (error) {
-    console.warn("[MiniApp] Unable to resolve preferred provider", error);
-    return null;
-  }
+  return null;
 }
 
 function hasInjectedWalletProvider() {
@@ -2407,10 +2340,9 @@ function updateAnalyticsLinks() {
 async function connectWallet(connector) {
   try {
     const preferred = await getPreferredProvider();
-    const details =
-      preferred?.type === "farcaster"
-        ? await connectWithProvider(preferred.provider, preferred.rawProvider, "farcaster")
-        : await connector();
+    const details = preferred?.provider
+      ? await connectWithProvider(preferred.provider, preferred.rawProvider, preferred.type || "unknown")
+      : await connector();
     state.address = details.address;
     state.isOwner = state.address?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
     updateOwnerPanelVisibility(state.address);
