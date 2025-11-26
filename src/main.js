@@ -2120,6 +2120,7 @@ let currentProvider = null;
 let currentSigner = null;
 let currentAddress = null;
 let isWalletConnected = false;
+const hasMiniAppSdk = () => Boolean(typeof window !== "undefined" && (window.miniAppSdk || window.sdk));
 
 function shortenAddress(addr) {
   if (!addr) return "—";
@@ -2149,6 +2150,9 @@ function renderProfileSection() {
     addressEl.title = currentAddress;
   }
 }
+window.addEventListener("load", () => {
+  renderProfileSection();
+});
 
 function setWalletConnectionState({ provider = null, signer = null, address = null } = {}) {
   currentProvider = provider;
@@ -2164,6 +2168,7 @@ function isWalletReady() {
 
 async function detectFarcasterEnvironment() {
   if (typeof window === "undefined") return false;
+  if (!hasMiniAppSdk()) return false;
   if (window.isMiniApp === true) return true;
 
   const miniAppSdk = window.miniAppSdk || sdk;
@@ -2183,6 +2188,9 @@ async function detectFarcasterEnvironment() {
 }
 
 async function connectWithFarcasterWallet() {
+  if (!hasMiniAppSdk()) {
+    return;
+  }
   try {
     if (!window.miniAppSdk) {
       console.warn("[MiniApp] miniAppSdk not found, cannot use Farcaster wallet.");
@@ -2232,8 +2240,11 @@ window.autoConnectFarcasterWallet = async function () {
 
 async function getPreferredProvider() {
   try {
+    if (!isFarcasterMiniApp() || !hasMiniAppSdk()) {
+      return null;
+    }
     const miniAppSdk = window.miniAppSdk || sdk;
-    if (isFarcasterMiniApp() && miniAppSdk?.wallet?.getEthereumProvider) {
+    if (miniAppSdk?.wallet?.getEthereumProvider) {
       const ethProvider = await miniAppSdk.wallet.getEthereumProvider();
       if (ethProvider) {
         return { provider: ethProvider, rawProvider: ethProvider, type: "farcaster" };
@@ -3446,7 +3457,7 @@ function closeUsernameModal() {
 
 async function initMiniAppEnvironment() {
   const inMiniApp = await detectFarcasterEnvironment();
-  if (!inMiniApp || !sdk?.actions?.ready) return;
+  if (!inMiniApp || !hasMiniAppSdk() || !sdk?.actions?.ready) return;
   try {
     await sdk.actions.ready();
     console.log("[MiniApp] sdk.actions.ready() called ✔️");
