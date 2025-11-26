@@ -1000,7 +1000,9 @@ async function withButtonLoading(button, options, task) {
   }
 }
 
-function init() {
+async function init() {
+  const inMiniApp = await detectFarcasterEnvironment();
+
   applyTheme();
   setupLanguage();
   setupNavigation();
@@ -1025,15 +1027,22 @@ function init() {
   updateAnalyticsLinks();
   renderNetworkInfo(false);
   updateWalletUI();
+
+  if (inMiniApp) {
+    await tryAutoConnectFarcasterWallet();
+  }
+
   renderOwnerPanel();
   renderGovernanceAccess();
   loadInitialData();
   initWalletListeners();
   initWebsocket();
-  initMiniAppEnvironment();
+  await initMiniAppEnvironment();
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+});
 window.addEventListener("beforeunload", cleanupLinkLiveUpdates);
 
 function t(key, fallback = "") {
