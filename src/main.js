@@ -2102,41 +2102,45 @@ function setupConnectModal() {
 
 function isFarcasterMiniApp() {
   try {
-    return typeof sdk !== "undefined" && sdk?.context && sdk.context.client === "farcaster";
+    return typeof sdk !== "undefined" && sdk.context && sdk.context.client === "farcaster";
   } catch (error) {
-    console.warn("[MiniApp] Detection failed", error);
     return false;
   }
 }
 
+let currentProvider = null;
+let currentSigner = null;
+let currentAddress = null;
+
 async function connectWithFarcasterWallet() {
   if (!isFarcasterMiniApp() || !sdk?.wallet?.getEthereumProvider) return;
   try {
-    console.log("[MiniApp] Farcaster path");
+    console.log("[MiniApp] Farcaster connect path");
 
     const ethProvider = await sdk.wallet.getEthereumProvider();
-
     const web3Provider = new ethers.providers.Web3Provider(ethProvider);
     const signer = web3Provider.getSigner();
     const address = await signer.getAddress();
 
-    await connectWithProvider(web3Provider, ethProvider, "farcaster");
+    await connectWallet(connectWalletMetaMask, { provider: web3Provider, rawProvider: ethProvider, type: "farcaster" });
+
+    currentProvider = web3Provider;
+    currentSigner = signer;
+    currentAddress = address;
 
     console.log("[MiniApp] Connected with Farcaster wallet:", address);
-    showToast("success", "Cüzdan bağlandı.");
+
+    updateWalletUI();
   } catch (error) {
     console.error("[MiniApp] Farcaster wallet connection failed:", error);
   }
 }
 
 async function tryAutoConnectFarcasterWallet() {
-  if (!isFarcasterMiniApp() || !sdk?.wallet?.getEthereumProvider) return;
+  if (!isFarcasterMiniApp()) return;
+
   try {
-    console.log("[MiniApp] Farcaster path");
-    const ethProvider = await sdk.wallet.getEthereumProvider();
-    const web3Provider = new ethers.providers.Web3Provider(ethProvider);
-    await connectWithProvider(web3Provider, ethProvider, "farcaster");
-    console.log("[MiniApp] Auto-connected Farcaster wallet");
+    await connectWithFarcasterWallet();
   } catch (error) {
     console.warn("[MiniApp] Auto-connect Farcaster wallet failed:", error);
   }
@@ -2189,7 +2193,26 @@ function updateConnectOptionAvailability() {
 
 async function requestWalletConnection(trigger) {
   if (isFarcasterMiniApp()) {
-    await startWalletConnection(trigger);
+    if (state.address) {
+      toggleWalletDropdown(true);
+      return;
+    }
+
+    try {
+      if (trigger) {
+        await withButtonLoading(
+          trigger,
+          { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+          async () => {
+            await connectWithFarcasterWallet();
+          }
+        );
+      } else {
+        await connectWithFarcasterWallet();
+      }
+    } catch (error) {
+      console.warn("[MiniApp] Farcaster wallet connect button failed", error);
+    }
     return;
   }
   updateConnectOptionAvailability();
