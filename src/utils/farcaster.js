@@ -1,7 +1,10 @@
+import { sdk as frameSdk } from "@farcaster/frame-sdk";
+
 const FARCASTER_CHAIN_ID = "eip155:42220";
 const SDK_GLOBAL = "farcaster";
 
 function getSdk() {
+  if (frameSdk && typeof frameSdk === "object") return frameSdk;
   if (typeof window === "undefined") return null;
   const sdk = window[SDK_GLOBAL];
   if (!sdk || typeof sdk !== "object") return null;
