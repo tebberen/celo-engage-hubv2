@@ -1,3 +1,4 @@
+import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
 import { ethers } from "./utils/cdn-modules.js";
 import {
   OWNER_ADDRESS,
@@ -2098,7 +2099,27 @@ function setupConnectModal() {
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeConnectModal));
 }
 
+function isFarcasterMiniApp() {
+  try {
+    return sdk?.context?.client === "farcaster";
+  } catch (error) {
+    console.warn("[MiniApp] Detection failed", error);
+    return false;
+  }
+}
+
 async function getPreferredProvider() {
+  try {
+    if (isFarcasterMiniApp() && sdk?.wallet?.getEthereumProvider) {
+      const ethProvider = await sdk.wallet.getEthereumProvider();
+      if (ethProvider) {
+        const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
+        return { provider: web3Provider, rawProvider: ethProvider, type: "farcaster" };
+      }
+    }
+  } catch (error) {
+    console.error("[MiniApp] Farcaster wallet connection failed", error);
+  }
   return null;
 }
 
@@ -2132,6 +2153,24 @@ async function startWalletConnection(trigger) {
   if (state.address) {
     toggleWalletDropdown(true);
     return;
+  }
+
+  const preferred = await getPreferredProvider();
+  if (preferred?.provider) {
+    try {
+      await withButtonLoading(
+        trigger,
+        { loadingText: getLoadingText("connecting", "Connecting…"), keepWidth: true },
+        async () => {
+          await connectWallet(connectWalletMetaMask, preferred);
+        }
+      );
+      if (state.address) {
+        return;
+      }
+    } catch (error) {
+      console.error("❌ [MiniApp] Preferred wallet connect failed", error);
+    }
   }
   const injectedConnector = getInjectedWalletConnector();
   if (injectedConnector) {
@@ -2337,9 +2376,9 @@ function updateAnalyticsLinks() {
   }
 }
 
-async function connectWallet(connector) {
+async function connectWallet(connector, preferredProvider = null) {
   try {
-    const preferred = await getPreferredProvider();
+    const preferred = preferredProvider || (await getPreferredProvider());
     const details = preferred?.provider
       ? await connectWithProvider(preferred.provider, preferred.rawProvider, preferred.type || "unknown")
       : await connector();

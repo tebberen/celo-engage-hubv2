@@ -248,6 +248,13 @@ textarea:focus-visible {
   padding: 10px 14px;
 }
 
+.nav-btn--globe {
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
