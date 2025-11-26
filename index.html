@@ -589,29 +589,30 @@
     <script type="module">
       import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
 
-      async function initMiniAppEnvironment() {
-        try {
-          const isMiniApp = await sdk.isInMiniApp();
-          window.isMiniApp = isMiniApp;
-          console.log("[MiniApp] isMiniApp =", isMiniApp);
-
-          // Always call ready once UI is mounted
-          await sdk.actions.ready();
-          console.log("[MiniApp] sdk.actions.ready() ✔️");
-
-          // If in a mini app, call the auto-connect hook in main.js (if it exists)
-          if (isMiniApp && typeof window.autoConnectFarcasterWallet === "function") {
-            window.autoConnectFarcasterWallet();
-          }
-        } catch (err) {
-          console.error("[MiniApp] initMiniAppEnvironment error:", err);
-        }
-      }
-
-      initMiniAppEnvironment();
-
       // Expose the SDK globally so main.js can use it
       window.miniAppSdk = sdk;
+      window.sdk = sdk;
+
+      // Mini app detection – safe version
+      const isMiniApp = !!(window.miniAppSdk || window.sdk);
+      window.isMiniApp = isMiniApp;
+      console.log("[MiniApp] isMiniApp =", isMiniApp);
+
+      if (
+        isMiniApp &&
+        window.sdk &&
+        window.sdk.actions &&
+        typeof window.sdk.actions.ready === "function"
+      ) {
+        window.sdk.actions.ready();
+        console.log("[MiniApp] sdk.actions.ready() ✔️");
+
+        if (typeof window.autoConnectFarcasterWallet === "function") {
+          window.autoConnectFarcasterWallet();
+        }
+      } else {
+        console.log("[MiniApp] Running in normal browser mode");
+      }
     </script>
   </body>
 </html>
