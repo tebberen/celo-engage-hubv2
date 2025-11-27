@@ -46212,6 +46212,8 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
 // src/services/contractService.js
 var READ_RPC_TIMEOUT = 2e4;
 var DEFAULT_POLLING_INTERVAL = 1e4;
+var DEFAULT_GAS_LIMIT = 3e5;
+var DEPLOY_GAS_LIMIT = 2e6;
 var readProvider = null;
 var hasLoggedMissingGlobalStats = false;
 var ERC20_ABI = [
@@ -46397,7 +46399,8 @@ async function doGM(message = "") {
     const { sentTx, receipt } = await sendWithReferral(
       gm,
       "sendGM",
-      [address, message || ""]
+      [address, message || ""],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46414,7 +46417,8 @@ async function doDeploy(contractName) {
     const { sentTx, receipt } = await sendWithReferral(
       deployModule,
       "deployContract",
-      [address, deployName]
+      [address, deployName],
+      { gasLimit: DEPLOY_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46433,7 +46437,7 @@ async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value }
+      { value, gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46450,7 +46454,7 @@ async function approveToken(symbol, amount) {
     const tokenAddress = getTokenAddressBySymbol(symbol);
     const token = new ethers_exports.Contract(tokenAddress, ERC20_ABI, signer2);
     const value = parseAmount(amount);
-    const tx = await token.approve(spender, value);
+    const tx = await token.approve(spender, value, { gasLimit: DEFAULT_GAS_LIMIT });
     emitToast("pending", `${symbol} onay\u0131 bekleniyor...`, tx.hash);
     const receipt = await tx.wait();
     emitToast("success", UI_MESSAGES.success, tx.hash);
@@ -46474,7 +46478,7 @@ async function donateToken(symbol, amount) {
       const missingMethod = !staticError?.data || staticError?.data === "0x";
       if (symbol === "cUSD" && missingMethod) {
         const donate = getDonate(true);
-        const legacyTx = await donate.donateCUSD(address, value);
+        const legacyTx = await donate.donateCUSD(address, value, { gasLimit: DEFAULT_GAS_LIMIT });
         emitToast("pending", "cUSD ba\u011F\u0131\u015F\u0131 g\xF6nderiliyor...", legacyTx.hash);
         const legacyReceipt = await legacyTx.wait();
         emitToast("success", UI_MESSAGES.success, legacyTx.hash);
@@ -46485,7 +46489,8 @@ async function donateToken(symbol, amount) {
     const { sentTx, receipt } = await sendWithReferral(
       donateInterface,
       "donateToken",
-      [tokenAddress, address, value]
+      [tokenAddress, address, value],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46514,7 +46519,7 @@ async function withdrawDonations(token, amount) {
   }
   try {
     const donate = getDonate(true);
-    const tx = await donate.withdraw(address);
+    const tx = await donate.withdraw(address, { gasLimit: DEFAULT_GAS_LIMIT });
     emitToast("pending", `\xC7ekim i\u015Flemi ba\u015Flat\u0131ld\u0131 (${token} ${amount || ""})`, tx.hash);
     const receipt = await tx.wait();
     emitToast("success", UI_MESSAGES.success, tx.hash);
@@ -46531,7 +46536,8 @@ async function doShareLink(url) {
     const { sentTx, receipt } = await sendWithReferral(
       linkModule,
       "shareLink",
-      [address, url]
+      [address, url],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", "Link successfully shared!", sentTx.hash);
     return receipt;
@@ -46550,7 +46556,8 @@ async function govCreateProposal(title, description, link) {
     const { sentTx, receipt } = await sendWithReferral(
       gov,
       "createProposal",
-      [title, description, link || ""]
+      [title, description, link || ""],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46566,7 +46573,8 @@ async function govVote(proposalId, support) {
     const { sentTx, receipt } = await sendWithReferral(
       gov,
       "vote",
-      [address, proposalId, support]
+      [address, proposalId, support],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -46582,11 +46590,12 @@ async function registerProfile(username) {
     const { sentTx, receipt } = await sendWithReferral(
       profile,
       "registerUser",
-      [address]
+      [address],
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     if (username) {
       try {
-        const updateTx = await profile.updateUsername(username);
+        const updateTx = await profile.updateUsername(username, { gasLimit: DEFAULT_GAS_LIMIT });
         emitToast("pending", "Kullan\u0131c\u0131 ad\u0131 g\xFCncelleniyor...", updateTx.hash);
         await updateTx.wait();
       } catch (error) {
