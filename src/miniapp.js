@@ -1,85 +1,54 @@
-import { sdk } from "https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/+esm";
-import { ethers } from "./utils/cdn-modules.js";
+// ==== FARCASTER MINI APP: UI RENDERER ====
 
-// ==== FARCASTER MINI APP: BEGIN CHANGE ====
-const miniAppState = {
-  provider: null,
-  signer: null,
-  address: null,
-};
+function renderMiniApp(root) {
+  root.classList.remove("miniapp-placeholder");
+  root.innerHTML = `
+    <div class="miniapp-container">
+      <div class="miniapp-header">
+        <p class="miniapp-subtitle">Farcaster MiniPlay</p>
+        <h1 class="miniapp-title">Celo Engage Hub – Mini App</h1>
+        <p class="miniapp-subtitle">GM, Deploy, Donate, and Profiles for Farcaster</p>
+      </div>
 
-function updateStatus(message) {
-  const statusEl = document.getElementById("miniapp-status");
-  if (statusEl) {
-    statusEl.textContent = message;
-  }
-}
+      <div class="miniapp-actions">
+        <button id="btn-gm">✨ Send GM</button>
+        <button id="btn-deploy">🚀 Open Deploy Panel</button>
+        <button id="btn-donate">💛 Donate on Celo</button>
+      </div>
 
-function registerProviderListeners(provider) {
-  if (!provider || typeof provider.on !== "function") return;
+      <div class="miniapp-footer">Mini app view optimized for mobile Farcaster frames.</div>
+    </div>
+  `;
 
-  provider.on("accountsChanged", (accounts = []) => {
-    console.log("[MiniApp] accountsChanged:", accounts);
-    const nextAddress = accounts[0] || null;
-    miniAppState.address = nextAddress;
-    updateStatus(nextAddress ? `Wallet connected: ${nextAddress}` : "Wallet disconnected");
+  root.querySelector("#btn-gm")?.addEventListener("click", () => {
+    console.log("[MiniApp] GM clicked");
+    alert("GM from Celo Engage Hub Mini App!");
   });
 
-  provider.on("chainChanged", (chainId) => {
-    console.log("[MiniApp] chainChanged:", chainId);
+  root.querySelector("#btn-deploy")?.addEventListener("click", () => {
+    console.log("[MiniApp] Deploy clicked");
+    alert("Deploy panel coming soon…");
+  });
+
+  root.querySelector("#btn-donate")?.addEventListener("click", () => {
+    console.log("[MiniApp] Donate clicked");
+    alert("Donate flow coming soon…");
   });
 }
 
-async function initializeWallet() {
-  console.log("[MiniApp] Requesting Farcaster wallet provider...");
-  const ethProvider = await sdk.wallet.getEthereumProvider();
-  const web3Provider = new ethers.providers.Web3Provider(ethProvider, "any");
-
-  registerProviderListeners(ethProvider);
-
-  const accounts = await ethProvider.request({ method: "eth_requestAccounts" });
-  const signer = web3Provider.getSigner();
-  const address = accounts?.[0] || (await signer.getAddress().catch(() => null));
-
-  miniAppState.provider = web3Provider;
-  miniAppState.signer = signer;
-  miniAppState.address = address;
-
-  console.log("[MiniApp] Wallet initialized", { address });
-  updateStatus(address ? `Wallet connected: ${address}` : "Wallet detected but no address available");
-}
-
-async function initMiniApp() {
-  updateStatus("Preparing Farcaster Mini App...");
-  console.log("[MiniApp] Initializing mini app...");
-
-  let isInMiniApp = false;
-  try {
-    isInMiniApp = await sdk.isInMiniApp();
-    console.log("[MiniApp] isInMiniApp:", isInMiniApp);
-  } catch (error) {
-    console.error("[MiniApp] Failed to detect mini app environment", error);
-  }
-
-  if (!isInMiniApp) {
-    updateStatus("This view is designed for the Farcaster Mini App. Open inside Farcaster to use the wallet.");
+function initMiniApp() {
+  const root = document.getElementById("miniapp-root");
+  if (!root) {
+    console.error("[MiniApp] Root element #miniapp-root not found");
     return;
   }
 
-  try {
-    await initializeWallet();
-  } catch (error) {
-    console.error("[MiniApp] Wallet connection failed", error);
-    updateStatus("Wallet connection failed. Check Farcaster wallet permissions.");
-  }
+  renderMiniApp(root);
 }
 
-// Wait for DOM before starting the mini app lifecycle
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    initMiniApp().catch((error) => console.error("[MiniApp] Unhandled init error", error));
-  });
+  document.addEventListener("DOMContentLoaded", initMiniApp);
 } else {
-  initMiniApp().catch((error) => console.error("[MiniApp] Unhandled init error", error));
+  initMiniApp();
 }
-// ==== FARCASTER MINI APP: END CHANGE ====
+// ==== FARCASTER MINI APP: END ====
