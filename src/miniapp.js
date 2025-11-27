@@ -15,3 +15,27 @@ async function getMiniAppProvider() {
 
 const root = document.getElementById("miniapp-root") || document.getElementById("app");
 initApp({ root, getProvider: getMiniAppProvider, env: "miniapp" });
+
+let readyCalled = false;
+
+async function markMiniAppReady() {
+  if (readyCalled) return;
+  readyCalled = true;
+  try {
+    console.log("[MiniApp] calling sdk.actions.ready()…");
+    await sdk.actions.ready();
+    console.log("[MiniApp] sdk.actions.ready() resolved");
+  } catch (error) {
+    console.error("[MiniApp] sdk.actions.ready() failed:", error);
+  }
+}
+
+function setupMiniAppReady() {
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    markMiniAppReady();
+  } else {
+    window.addEventListener("DOMContentLoaded", markMiniAppReady, { once: true });
+  }
+}
+
+setupMiniAppReady();

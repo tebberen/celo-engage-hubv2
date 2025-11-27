@@ -586,22 +586,5 @@
     </div>
 
     <script type="module" src="./dist/miniapp.js"></script>
-    <script type="module">
-      import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
-
-      async function bootstrapMiniApp() {
-        try {
-          await sdk.actions.ready();
-        } catch (error) {
-          console.error("[MiniApp] sdk.actions.ready() failed:", error);
-        }
-      }
-
-      if (document.readyState === "complete" || document.readyState === "interactive") {
-        bootstrapMiniApp();
-      } else {
-        window.addEventListener("DOMContentLoaded", bootstrapMiniApp);
-      }
-    </script>
   </body>
 </html>
