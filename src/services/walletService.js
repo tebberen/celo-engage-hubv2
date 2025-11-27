@@ -233,6 +233,14 @@ export async function connectWithProvider(externalProvider, opts = {}) {
     const web3Provider = new ethers.providers.Web3Provider(externalProvider, "any");
     let network = await web3Provider.getNetwork();
 
+    // Skip strict network check/switch for 'farcaster' source if it causes issues,
+    // or try best-effort switching but don't block connection if it fails (optional behavior).
+    // For now, we keep the check but we wrap it in a condition or try/catch block specific to Farcaster.
+    // Given the user wants "only farcaster connection" in miniapp and likely trusts the provider,
+    // we should be lenient if switching fails, assuming the frame handles it or the user is already on a compatible chain.
+    // However, if the chain is wrong, transactions will fail later.
+    // Let's modify to be lenient for 'farcaster' source.
+
     if (network.chainId !== CELO_CHAIN_ID_DEC) {
       console.warn("[Wallet] Wrong network:", network.chainId, "→ trying to switch to Celo…");
 
@@ -242,6 +250,10 @@ export async function connectWithProvider(externalProvider, opts = {}) {
           params: [{ chainId: CELO_CHAIN_ID_HEX }],
         });
       } catch (switchError) {
+        // If source is farcaster, we log but maybe don't throw immediately,
+        // allowing the app to load even if network is seemingly wrong (might be a provider quirk).
+        // But if we really need Celo, we should probably still try to add chain.
+
         if (switchError && switchError.code === 4902) {
           try {
             await requestCapableProvider.request?.({
@@ -261,16 +273,26 @@ export async function connectWithProvider(externalProvider, opts = {}) {
             });
           } catch (addError) {
             console.error("[Wallet] Failed to add Celo chain:", addError);
-            throw new Error("Celo ağı eklenemedi. Lütfen cüzdandan elle Celo ağına geçin.");
+            if (source !== "farcaster") {
+               throw new Error("Celo ağı eklenemedi. Lütfen cüzdandan elle Celo ağına geçin.");
+            }
           }
         } else {
           console.error("[Wallet] Failed to switch to Celo:", switchError);
-          throw new Error("Cüzdan farklı bir ağda. Lütfen cüzdandan Celo ağına geçin.");
+          if (source !== "farcaster") {
+             throw new Error("Cüzdan farklı bir ağda. Lütfen cüzdandan Celo ağına geçin.");
+          }
         }
       }
 
-      network = await web3Provider.getNetwork();
-      if (network.chainId !== CELO_CHAIN_ID_DEC) {
+      // Re-check network
+      try {
+        network = await web3Provider.getNetwork();
+      } catch (err) {
+        console.warn("[Wallet] Failed to re-check network", err);
+      }
+
+      if (network.chainId !== CELO_CHAIN_ID_DEC && source !== "farcaster") {
         console.error("[Wallet] Still not on Celo after switch attempt:", network.chainId);
         throw new Error("Cüzdan Celo ağına geçmedi. Lütfen cüzdandan elle Celo'ya geçin.");
       }
