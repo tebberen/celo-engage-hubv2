@@ -1051,6 +1051,9 @@ function initApp({ root = null, getProvider = null, env = "web" } = {}) {
   appEnv = env || "web";
   providerFactory = getProvider || null;
   appRoot = root;
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-app-env", appEnv);
+  }
   const start = () => init();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });

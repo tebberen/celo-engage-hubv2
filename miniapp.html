@@ -38,6 +38,9 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
       rel="stylesheet"
     />
+    <script>
+      document.documentElement.setAttribute("data-app-env", "miniapp");
+    </script>
     <link rel="manifest" href="./manifest.json" />
     <link rel="miniapp-config" href="./miniapp.config.json" />
     <link rel="stylesheet" href="src/styles/main.css" />
@@ -47,7 +50,8 @@
     />
   </head>
   <body>
-    <div id="app" class="app-shell" data-theme="golden">
+    <div id="miniapp-root">
+      <div id="app" class="app-shell" data-theme="golden">
       <header class="app-header">
         <div class="brand-area nav-left">
           <span class="app-brand">Celo Engage Hub</span>
@@ -575,6 +579,9 @@
             </div>
           </form>
         </div>
+      </div>
+    </div>
+
       </div>
     </div>
 

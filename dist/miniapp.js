@@ -5,5 +5,5 @@ async function getMiniAppProvider() {
   return await sdk.wallet.getEthereumProvider();
 }
 
-const root = document.getElementById("app") || document.getElementById("miniapp-root");
+const root = document.getElementById("miniapp-root") || document.getElementById("app");
 initApp({ root, getProvider: getMiniAppProvider, env: "miniapp" });
