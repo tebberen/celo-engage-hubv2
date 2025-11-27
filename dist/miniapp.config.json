@@ -1,0 +1,29 @@
+{
+  "id": "celo-engage-hub",
+  "name": "Celo Engage Hub",
+  "description": "Responsive Celo community hub optimized for MiniPay browser and Farcaster MiniApps.",
+  "homepageUrl": "https://celo.org",
+  "iconUrl": "https://storage.googleapis.com/ceibalancer/celo-icon.png",
+  "version": "1.0.0",
+  "developer": {
+    "name": "Celo Foundation",
+    "url": "https://celo.org"
+  },
+  "support": {
+    "email": "community@celo.org",
+    "url": "https://discord.gg/celo"
+  },
+  "metadata": {
+    "categories": ["community", "finance", "productivity"],
+    "languages": ["en", "tr"],
+    "repository": "https://github.com/celo-org/celo-engage-hub"
+  },
+  "capabilities": {
+    "walletConnect": "2.0",
+    "supportedTokens": ["CELO", "cUSD", "cEUR"],
+    "preferredViewport": {
+      "width": 375,
+      "height": 667
+    }
+  }
+}

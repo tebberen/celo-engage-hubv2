@@ -1,0 +1,24 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Celo Engage Hub preview</title>
+  <desc id="desc">Preview card for the Celo Engage Hub mini app</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop stop-color="#FBCC5C" offset="0%" />
+      <stop stop-color="#F6E7B2" offset="100%" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)" rx="32" />
+  <rect x="80" y="200" width="1040" height="360" rx="32" fill="#FFF8E1" stroke="#F2C94C" stroke-width="4" />
+  <text x="600" y="360" text-anchor="middle" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="700" fill="#24221C">
+    Celo Engage Hub
+  </text>
+  <text x="600" y="430" text-anchor="middle" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#4F4A40">
+    GM, Deploy, Donate, and Profiles for Farcaster + MiniPay
+  </text>
+  <g transform="translate(0, 30)">
+    <rect x="470" y="500" width="260" height="80" rx="18" fill="#FBCC5C" stroke="#A67A00" stroke-width="3" />
+    <text x="600" y="550" text-anchor="middle" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#24221C">
+      Launch Mini App
+    </text>
+  </g>
+</svg>

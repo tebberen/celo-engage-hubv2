@@ -1,0 +1,36 @@
+{
+  "name": "Celo Engage Hub",
+  "short_name": "Engage Hub",
+  "description": "Community-first GM, Deploy, Donate, and Governance hub optimized for MiniPay and Farcaster MiniApps.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff8e1",
+  "theme_color": "#fbcc5c",
+  "categories": ["productivity", "social", "finance"],
+  "icons": [
+    {
+      "src": "assets/logo-celo-engage-hub.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Donate",
+      "short_name": "Donate",
+      "description": "Open the donation tools to support the community",
+      "url": "./#donate"
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Leaders",
+      "description": "View the top contributors on Celo Engage Hub",
+      "url": "./#leaderboard"
+    }
+  ]
+}
