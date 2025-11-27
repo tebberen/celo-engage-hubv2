@@ -6,6 +6,7 @@ import {
   MODULE_ADDRESS_BOOK,
   DEFAULT_NETWORK,
   CURRENT_NETWORK,
+  CELO_CHAIN_ID_DEC,
   OWNER_ADDRESS,
   UI_MESSAGES,
   MIN_DONATION,
@@ -314,7 +315,7 @@ export async function doGM(message = "") {
       gm,
       "sendGM",
       [address, message || ""],
-      { gasLimit: DEFAULT_GAS_LIMIT }
+      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -335,7 +336,7 @@ export async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT }
+      { gasLimit: DEPLOY_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -357,7 +358,7 @@ export async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value, gasLimit: DEFAULT_GAS_LIMIT }
+      { value, gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -533,7 +534,7 @@ export async function registerProfile(username) {
       profile,
       "registerUser",
       [address],
-      { gasLimit: DEFAULT_GAS_LIMIT }
+      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
 
     if (username) {
