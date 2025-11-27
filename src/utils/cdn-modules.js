@@ -1,3 +1,3 @@
-// Centralized ESM re-exports for third-party CDNs.
-// Replace these URLs with bundled assets during build time to avoid runtime CDN dependencies.
-export { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
+// Export ethers from the installed package so esbuild can bundle it.
+import { ethers } from "ethers";
+export { ethers };
