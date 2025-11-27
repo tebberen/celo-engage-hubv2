@@ -21,19 +21,20 @@
     <script type="module">
       import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
 
-      const markReady = async () => {
+      async function bootstrapMiniApp() {
         try {
+          console.log("[MiniApp] calling sdk.actions.ready() …");
           await sdk.actions.ready();
-          console.log("Farcaster mini app SDK is ready");
+          console.log("[MiniApp] ready() resolved, splash can hide.");
         } catch (error) {
-          console.error("Failed to mark mini app as ready", error);
+          console.error("[MiniApp] sdk.actions.ready() failed:", error);
         }
-      };
+      }
 
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", markReady, { once: true });
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        bootstrapMiniApp();
       } else {
-        markReady();
+        window.addEventListener("DOMContentLoaded", bootstrapMiniApp);
       }
     </script>
     <!-- ==== FARCASTER MINI APP: END CHANGE ==== -->

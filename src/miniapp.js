@@ -49,17 +49,6 @@ async function initializeWallet() {
   updateStatus(address ? `Wallet connected: ${address}` : "Wallet detected but no address available");
 }
 
-async function signalReady() {
-  console.log("[MiniApp] Calling sdk.actions.ready()...");
-  try {
-    await sdk.actions.ready();
-    console.log("[MiniApp] sdk.actions.ready() completed successfully.");
-  } catch (error) {
-    console.error("[MiniApp] Failed to call sdk.actions.ready()", error);
-    updateStatus("Unable to finalize mini app startup. Please reload inside Farcaster.");
-  }
-}
-
 async function initMiniApp() {
   updateStatus("Preparing Farcaster Mini App...");
   console.log("[MiniApp] Initializing mini app...");
@@ -82,8 +71,6 @@ async function initMiniApp() {
   } catch (error) {
     console.error("[MiniApp] Wallet connection failed", error);
     updateStatus("Wallet connection failed. Check Farcaster wallet permissions.");
-  } finally {
-    await signalReady();
   }
 }
 
