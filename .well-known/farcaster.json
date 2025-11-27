@@ -4,11 +4,11 @@
     "payload": "REPLACE_WITH_SIGNED_PAYLOAD",
     "signature": "REPLACE_WITH_ACCOUNT_SIGNATURE"
   },
-  "frame": {
+  "miniapp": {
     "version": "1",
     "name": "Celo Engage Hub",
     "iconUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png",
-    "homeUrl": "https://tebberen.github.io/celo-engage-hubv2/",
+    "homeUrl": "https://tebberen.github.io/celo-engage-hubv2/miniapp.html",
     "imageUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg",
     "buttonTitle": "Open Celo Engage Hub",
     "splashImageUrl": "https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png",
