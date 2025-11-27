@@ -64,6 +64,11 @@ body {
   flex-direction: column;
 }
 
+html[data-app-env="miniapp"] #navbarConnectButton,
+html[data-app-env="miniapp"] #connectModal {
+  display: none !important;
+}
+
 body.modal-open {
   overflow: hidden;
 }
