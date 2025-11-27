@@ -10,6 +10,7 @@ import {
   MIN_DONATION,
 } from "./utils/constants.js";
 
+const ROOT_ID = "miniapp-clean-root";
 const DEFAULT_DONATION = MIN_DONATION || 0.1;
 let readyCalled = false;
 
@@ -183,7 +184,7 @@ async function handleMiniAppDonate(provider) {
 }
 
 async function bootstrapMiniApp() {
-  const root = document.getElementById("miniapp-clean-root");
+  const root = document.getElementById(ROOT_ID);
   if (!root) {
     console.error("[MiniAppClean] Root element not found");
     return;
@@ -193,7 +194,7 @@ async function bootstrapMiniApp() {
 
   const provider = await getMiniAppProvider();
 
-  const statusEl = document.getElementById("miniapp-clean-status-text");
+  const statusEl = root.querySelector("#miniapp-clean-status-text");
   try {
     const accounts = await provider.request({ method: "eth_accounts" });
     const address = accounts?.[0] || "Unknown";
@@ -207,10 +208,10 @@ async function bootstrapMiniApp() {
     }
   }
 
-  const gmBtn = document.getElementById("miniapp-clean-gm-btn");
+  const gmBtn = root.querySelector("#miniapp-clean-gm-btn");
   gmBtn?.addEventListener("click", () => handleMiniAppGm(provider));
 
-  const donateBtn = document.getElementById("miniapp-clean-donate-btn");
+  const donateBtn = root.querySelector("#miniapp-clean-donate-btn");
   donateBtn?.addEventListener("click", () => handleMiniAppDonate(provider));
 }
 
