@@ -2102,7 +2102,8 @@ function setupDonateShortcuts() {
     button.addEventListener("click", async () => {
       const amount = Number(button.dataset.donateAmount || 0);
       if (!amount) return;
-      if (!ensureWalletReady()) return;
+      console.log(`[${appEnv}] Quick donate clicked`);
+      if (!(await ensureWalletReady())) return;
       if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
       try {
         await withButtonLoading(
@@ -2621,15 +2622,27 @@ function shorten(value, start = 6, end = 4) {
   return `${value.slice(0, start)}…${value.slice(-end)}`;
 }
 
-function ensureWalletReady() {
+async function ensureWalletReady() {
   if (isWalletReady()) return true;
+  if (isMiniAppEnvironment()) {
+    try {
+      console.log("[MiniApp] Attempting auto-connect via Farcaster");
+      const details = await connectWithProvidedProvider();
+      return Boolean(details);
+    } catch (error) {
+      console.error("❌ [MiniApp] Failed to ensure wallet ready", error);
+      showToast("error", parseError(error));
+      return false;
+    }
+  }
   showToast("error", UI_MESSAGES.walletNotConnected);
   return false;
 }
 
 async function handleGMSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] GM button clicked`);
+  if (!(await ensureWalletReady())) return;
   const message = document.getElementById("gmMessage").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
@@ -2650,7 +2663,8 @@ async function handleGMSubmit(event) {
 
 async function handleDeploySubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Deploy button clicked`);
+  if (!(await ensureWalletReady())) return;
   const name = document.getElementById("deployName").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
@@ -2671,7 +2685,8 @@ async function handleDeploySubmit(event) {
 
 async function handleDonateCeloSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Donate CELO button clicked`);
+  if (!(await ensureWalletReady())) return;
   const amount = Number(document.getElementById("celoAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2693,7 +2708,8 @@ async function handleDonateCeloSubmit(event) {
 
 async function handleApproveCusdSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Approve cUSD button clicked`);
+  if (!(await ensureWalletReady())) return;
   const amount = Number(document.getElementById("cusdApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2713,7 +2729,8 @@ async function handleApproveCusdSubmit(event) {
 
 async function handleDonateCusdSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Donate cUSD button clicked`);
+  if (!(await ensureWalletReady())) return;
   const amount = Number(document.getElementById("cusdAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2735,7 +2752,8 @@ async function handleDonateCusdSubmit(event) {
 
 async function handleApproveCeurSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Approve cEUR button clicked`);
+  if (!(await ensureWalletReady())) return;
   const amount = Number(document.getElementById("ceurApproveAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2755,7 +2773,8 @@ async function handleApproveCeurSubmit(event) {
 
 async function handleDonateCeurSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Donate cEUR button clicked`);
+  if (!(await ensureWalletReady())) return;
   const amount = Number(document.getElementById("ceurAmount").value || 0);
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
@@ -2777,7 +2796,8 @@ async function handleDonateCeurSubmit(event) {
 
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Share link clicked`);
+  if (!(await ensureWalletReady())) return;
   const form = event.currentTarget;
   const input = form?.querySelector("[data-share-input]") || elements.shareLinkInput || elements.sharePromptInput;
   const rawUrl = input?.value.trim() || "";
@@ -2813,7 +2833,8 @@ async function handleShareLinkSubmit(event) {
 
 async function handleProposalSubmit(event) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Submit proposal clicked`);
+  if (!(await ensureWalletReady())) return;
   const isOwnerWallet = currentAddress?.toLowerCase() === OWNER_ADDRESS.toLowerCase();
   state.isOwner = isOwnerWallet;
   renderGovernanceAccess();
@@ -2840,7 +2861,8 @@ async function handleProposalSubmit(event) {
 
 async function handleWithdrawSubmit(event, token) {
   event.preventDefault();
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Withdraw ${token} clicked`);
+  if (!(await ensureWalletReady())) return;
   if (!state.isOwner) return showToast("error", UI_MESSAGES.ownerOnly);
   if (!WITHDRAW_TOKENS.has(token)) {
     console.warn("Withdraw attempted with unsupported token", token);
@@ -3198,7 +3220,8 @@ function renderProposalCard(proposal, readonly = false) {
 elements.activeProposals.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-proposal]");
   if (!button) return;
-  if (!ensureWalletReady()) return;
+  console.log(`[${appEnv}] Vote button clicked`);
+  if (!(await ensureWalletReady())) return;
   const proposalId = Number(button.dataset.proposal);
   const support = button.dataset.vote === "true";
   try {
