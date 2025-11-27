@@ -10,34 +10,14 @@
     />
   </head>
   <body>
-    <!-- Mini app root container -->
+    <!-- ==== FARCASTER MINI APP: BEGIN CHANGE ==== -->
     <div id="miniapp-root">
       <h1>Celo Engage Hub – Mini App</h1>
       <p id="miniapp-status">Farcaster mini app view is loading…</p>
     </div>
 
-    <!-- 1) Farcaster Mini App SDK (provides global `window.miniapp`) -->
-    <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/dist/index.min.js"></script>
-
-    <!-- 2) My mini app bundle (NOT main.js, only miniapp.js) -->
-    <script src="./dist/miniapp.js"></script>
-
-    <!-- 3) Guaranteed ready() fallback -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        try {
-          if (window.miniapp && window.miniapp.sdk && window.miniapp.sdk.actions) {
-            window.miniapp.sdk.actions.ready();
-            console.log("[MiniApp] sdk.actions.ready() called ✅");
-          } else {
-            console.log(
-              "[MiniApp] miniapp SDK not found, probably opened in a normal browser."
-            );
-          }
-        } catch (err) {
-          console.error("[MiniApp] Error calling sdk.actions.ready():", err);
-        }
-      });
-    </script>
+    <!-- Mini app bundle built for the Farcaster Mini App flow -->
+    <script type="module" src="./dist/miniapp.js"></script>
+    <!-- ==== FARCASTER MINI APP: END CHANGE ==== -->
   </body>
 </html>
