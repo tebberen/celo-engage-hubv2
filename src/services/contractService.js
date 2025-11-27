@@ -18,7 +18,7 @@ import {
   CEUR_TOKEN_ADDRESS,
   NETWORK_FALLBACK_RPC_URLS,
 } from "../utils/constants.js";
-import { getWalletDetails } from "./walletService.js";
+import { getWalletDetails, getConnectionType } from "./walletService.js";
 import { sendWithReferral } from "./divviReferral.js";
 
 const READ_RPC_TIMEOUT = 20000;
@@ -230,6 +230,16 @@ function requireSigner() {
   return details;
 }
 
+function getTxOverrides() {
+  const connectionType = getConnectionType();
+  // Farcaster/Frame providers often do not support eth_estimateGas, so we must provide gasLimit.
+  // We also provide it for WalletConnect generally to be safe.
+  if (connectionType === "farcaster" || connectionType === "walletconnect") {
+    return { gasLimit: 500000 }; // Reasonable default for most interactions here
+  }
+  return {};
+}
+
 function withSigner(contract) {
   const { signer } = requireSigner();
   return contract.connect(signer);
@@ -310,7 +320,8 @@ export async function doGM(message = "") {
     const { sentTx, receipt } = await sendWithReferral(
       gm,
       "sendGM",
-      [address, message || ""]
+      [address, message || ""],
+      getTxOverrides()
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -327,10 +338,15 @@ export async function doDeploy(contractName) {
     const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
     const deployModule = getDeploy(true);
 
+    // Deployment uses more gas
+    const overrides = { ...getTxOverrides() };
+    if (overrides.gasLimit) overrides.gasLimit = 2000000;
+
     const { sentTx, receipt } = await sendWithReferral(
       deployModule,
       "deployContract",
-      [address, deployName]
+      [address, deployName],
+      overrides
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -352,7 +368,7 @@ export async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value }
+      { value, ...getTxOverrides() }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -371,7 +387,7 @@ async function approveToken(symbol, amount) {
     const tokenAddress = getTokenAddressBySymbol(symbol);
     const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
     const value = parseAmount(amount);
-    const tx = await token.approve(spender, value);
+    const tx = await token.approve(spender, value, getTxOverrides());
     emitToast("pending", `${symbol} onayı bekleniyor...`, tx.hash);
     const receipt = await tx.wait();
     emitToast("success", UI_MESSAGES.success, tx.hash);
@@ -397,7 +413,7 @@ async function donateToken(symbol, amount) {
       const missingMethod = !staticError?.data || staticError?.data === "0x";
       if (symbol === "cUSD" && missingMethod) {
         const donate = getDonate(true);
-        const legacyTx = await donate.donateCUSD(address, value);
+        const legacyTx = await donate.donateCUSD(address, value, getTxOverrides());
         emitToast("pending", "cUSD bağışı gönderiliyor...", legacyTx.hash);
         const legacyReceipt = await legacyTx.wait();
         emitToast("success", UI_MESSAGES.success, legacyTx.hash);
@@ -409,7 +425,8 @@ async function donateToken(symbol, amount) {
     const { sentTx, receipt } = await sendWithReferral(
       donateInterface,
       "donateToken",
-      [tokenAddress, address, value]
+      [tokenAddress, address, value],
+      getTxOverrides()
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -444,7 +461,7 @@ export async function withdrawDonations(token, amount) {
   }
   try {
     const donate = getDonate(true);
-    const tx = await donate.withdraw(address);
+    const tx = await donate.withdraw(address, getTxOverrides());
     emitToast("pending", `Çekim işlemi başlatıldı (${token} ${amount || ""})`, tx.hash);
     const receipt = await tx.wait();
     emitToast("success", UI_MESSAGES.success, tx.hash);
@@ -463,7 +480,8 @@ export async function doShareLink(url) {
     const { sentTx, receipt } = await sendWithReferral(
       linkModule,
       "shareLink",
-      [address, url]
+      [address, url],
+      getTxOverrides()
     );
 
     emitToast("success", "Link successfully shared!", sentTx.hash);
@@ -485,7 +503,8 @@ export async function govCreateProposal(title, description, link) {
     const { sentTx, receipt } = await sendWithReferral(
       gov,
       "createProposal",
-      [title, description, link || ""]
+      [title, description, link || ""],
+      getTxOverrides()
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -504,7 +523,8 @@ export async function govVote(proposalId, support) {
     const { sentTx, receipt } = await sendWithReferral(
       gov,
       "vote",
-      [address, proposalId, support]
+      [address, proposalId, support],
+      getTxOverrides()
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -523,12 +543,13 @@ export async function registerProfile(username) {
     const { sentTx, receipt } = await sendWithReferral(
       profile,
       "registerUser",
-      [address]
+      [address],
+      getTxOverrides()
     );
 
     if (username) {
       try {
-        const updateTx = await profile.updateUsername(username);
+        const updateTx = await profile.updateUsername(username, getTxOverrides());
         emitToast("pending", "Kullanıcı adı güncelleniyor...", updateTx.hash);
         await updateTx.wait();
       } catch (error) {

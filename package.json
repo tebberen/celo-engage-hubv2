@@ -9,7 +9,7 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@farcaster/miniapp-sdk": "^0.0.17",
+    "@farcaster/miniapp-sdk": "^0.2.1",
     "@walletconnect/web3-provider": "^1.8.0",
     "cors": "^2.8.5",
     "ethers": "^5.7.2",

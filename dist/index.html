@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Celo Engage Hub brings builders together with GM, Deploy, Donate, and Governance tools optimized for MiniPay and Farcaster MiniApps." />
+    <meta name="application-name" content="Celo Engage Hub" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Celo Engage Hub" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#fbcc5c" />
+    <meta name="minipay:compatible" content="true" />
+    <meta name="minipay:walletconnect" content="v2" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Celo Engage Hub" />
+    <meta property="og:description" content="Support the Celo community with GM, Deploy, Donate, and Governance modules." />
+    <meta property="og:image" content="https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg" />
+    <meta
+      name="fc:miniapp"
+      content='{"version":"1","imageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg","button":{"title":"Open Celo Engage Hub","action":{"type":"launch_frame","name":"Celo Engage Hub","url":"https://tebberen.github.io/celo-engage-hubv2/miniapp.html","splashImageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png","splashBackgroundColor":"#fbcc5c"}}}'
+    />
+    <meta name="twitter:card" content="summary" />
+    <title>Celo Engage Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://esm.sh" crossorigin />
+    <link rel="dns-prefetch" href="https://esm.sh" />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="miniapp-config" href="./miniapp.config.json" />
+    <link rel="stylesheet" href="src/styles/main.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✨</text></svg>"
+    />
+  </head>
+  <body>
+    <div id="app" class="app-shell" data-theme="golden">
+      <header class="app-header">
+        <div class="brand-area nav-left">
+          <span class="app-brand">Celo Engage Hub</span>
+        </div>
+        <div class="nav-surface">
+          <nav class="app-nav" aria-label="Ana gezinme">
+            <button class="nav-btn active" data-target="home" data-i18n="nav.home">Home</button>
+            <button class="nav-btn" data-target="gm" data-i18n="nav.gm">GM</button>
+            <button class="nav-btn" data-target="deploy" data-i18n="nav.deploy">Deploy</button>
+            <button class="nav-btn" data-target="donate" data-i18n="nav.donate">Donate</button>
+            <button class="nav-btn" data-target="profile" data-i18n="nav.profile">Profile</button>
+            <button
+              id="languageToggle"
+              class="nav-btn nav-btn--icon nav-btn--globe"
+              aria-label="Dil değiştir"
+              data-i18n-aria-label="actions.languageToggle"
+            >🌐</button>
+          </nav>
+        </div>
+          <div class="header-actions" role="group" aria-label="Account actions">
+            <div class="header-actions__cluster">
+              <div class="wallet-actions">
+                <button
+                  id="navbarConnectButton"
+                  class="connect-btn"
+                  type="button"
+                  data-i18n="wallet.title"
+                >
+                  Connect Wallet
+                </button>
+                <div id="walletStatus" class="wallet-status" aria-live="polite"></div>
+                <div id="walletPill" class="wallet-pill" hidden>
+                  <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
+                    <span id="walletAddressLabel">—</span>
+                    <span class="wallet-pill__status" aria-hidden="true">•</span>
+                    <span class="wallet-pill__chevron">▾</span>
+                </button>
+                <div id="walletDropdown" class="wallet-dropdown" role="menu">
+                  <div class="wallet-dropdown__network">
+                    <span data-i18n="wallet.networkLabel">Network</span>
+                    <strong id="walletNetworkName">—</strong>
+                  </div>
+                  <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <div class="page-wrapper">
+          <aside class="left-sidebar">
+            <section class="card highlight-panel donate-highlight">
+              <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
+              <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
+              <div class="donate-quick-actions">
+                <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
+                <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
+              </div>
+            </section>
+
+            <section class="card highlight-panel ecosystem-panel">
+              <div class="panel-header">
+                <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
+              </div>
+              <ul class="ecosystem-links">
+                <li><a href="#" data-module-key="official">Celo Official Links</a></li>
+                <li><a href="#" data-module-key="miniApps">Celo Farcaster Mini Apps</a></li>
+                <li><a href="#" data-module-key="bridge">Celo Bridge</a></li>
+                <li><a href="#" data-module-key="dex">Celo DEX</a></li>
+                <li><a href="#" data-module-key="cex">Celo CEX</a></li>
+                <li><a href="#" data-module-key="social">Celo Social Media</a></li>
+              </ul>
+              <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
+                More Ecosystem Tools
+              </button>
+            </section>
+
+          </aside>
+
+            <div class="main-content">
+              <div id="home" class="section active" data-section-label="Home">
+                <main id="home-main">
+                  <section id="home-discover-ecosystem" class="home-ecosystem section-card">
+                    <header class="section-header">
+                      <p class="eyebrow" data-i18n="home.discoverLabel">Discover</p>
+                      <h2 data-i18n="home.discoverTitle">Celo Ecosystem</h2>
+                      <p class="section-subtitle" data-i18n="home.discoverSubtitle">
+                        Quick access to key Celo resources, dApps, and social channels.
+                      </p>
+                    </header>
+
+                    <div id="ecosystem-modules" class="ecosystem-modules">
+                      <div id="ecosystemModuleGrid" class="module-grid" aria-label="Celo ecosystem modules"></div>
+
+                      <div id="ecosystemDetail" class="ecosystem-detail card" aria-live="polite">
+                        <div class="ecosystem-detail__header">
+                          <p id="ecosystemDetailLabel" class="chip">OFFICIAL</p>
+                          <h3 id="ecosystemDetailTitle">Celo Official Links</h3>
+                          <p id="ecosystemDetailDescription" class="ecosystem-detail__description">
+                            Core Celo sites like Foundation, Docs, Explorer, and governance.
+                          </p>
+                        </div>
+                        <div id="ecosystemDetailList" class="ecosystem-link-list"></div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section id="home-how-to-use" class="home-onboarding section-card">
+                    <div class="section-header">
+                      <h2>How to use Celo Engage Hub?</h2>
+                      <p class="section-subtitle">Follow these quick steps to get the most out of the hub.</p>
+                    </div>
+
+                    <div class="step-grid">
+                      <article class="step-card">
+                        <p class="step-card__label">STEP 1</p>
+                        <h3 class="step-card__title">Connect your wallet</h3>
+                        <p class="step-card__description">Use the top-right Connect Wallet button to link your Celo wallet.</p>
+                      </article>
+                      <article class="step-card">
+                        <p class="step-card__label">STEP 2</p>
+                        <h3 class="step-card__title">Explore the Celo ecosystem</h3>
+                        <p class="step-card__description">Browse Celo tools, bridges, exchanges, mini apps and official links in one place.</p>
+                      </article>
+                      <article class="step-card">
+                        <p class="step-card__label">STEP 3</p>
+                        <h3 class="step-card__title">Take on-chain actions</h3>
+                        <p class="step-card__description">Use GM, Deploy and Donate to interact with contracts and support the community.</p>
+                      </article>
+                      <article class="step-card">
+                        <p class="step-card__label">STEP 4</p>
+                        <h3 class="step-card__title">Share your journey</h3>
+                        <p class="step-card__description">Cast about your experience on Farcaster and invite others to join.</p>
+                      </article>
+                    </div>
+                  </section>
+
+                  <section id="home-why" class="home-value section-card">
+                    <div class="section-header">
+                      <h2>Why Celo Engage Hub?</h2>
+                      <p class="section-subtitle">A curated, on-chain-friendly space built for the Celo and Farcaster ecosystem.</p>
+                    </div>
+
+                    <div class="value-grid">
+                      <article class="value-card">
+                        <p class="value-card__label">CURATED CELO EXPERIENCE</p>
+                        <h3 class="value-card__title">Curated Celo experience</h3>
+                        <p class="value-card__description">Official links, tools, bridges, exchanges and mini apps curated in one place.</p>
+                      </article>
+                      <article class="value-card">
+                        <p class="value-card__label">ON-CHAIN ENGAGEMENT</p>
+                        <h3 class="value-card__title">On-chain engagement</h3>
+                        <p class="value-card__description">GM, Deploy and Donate flows make it easy to interact with contracts and support builders.</p>
+                      </article>
+                      <article class="value-card">
+                        <p class="value-card__label">FARCASTER-NATIVE</p>
+                        <h3 class="value-card__title">Farcaster-native mindset</h3>
+                        <p class="value-card__description">Designed to highlight Celo projects that live close to Farcaster and mini apps.</p>
+                      </article>
+                    </div>
+                  </section>
+
+                  <section id="home-who-for" class="home-audience section-card">
+                    <div class="section-header">
+                      <h2>Who is Celo Engage Hub for?</h2>
+                      <p class="section-subtitle">Tailored experiences for everyone exploring or building on Celo.</p>
+                    </div>
+
+                    <div class="audience-grid">
+                      <article class="audience-card">
+                        <p class="audience-card__label">FOR USERS</p>
+                        <h3 class="audience-card__title">Explore Celo in a simple way</h3>
+                        <ul class="audience-list">
+                          <li>Discover Celo tools and mini apps from one hub.</li>
+                          <li>Send your first on-chain GM or small donation.</li>
+                          <li>Follow official links to stay safe and up to date.</li>
+                        </ul>
+                      </article>
+                      <article class="audience-card">
+                        <p class="audience-card__label">FOR BUILDERS</p>
+                        <h3 class="audience-card__title">Showcase and grow your project</h3>
+                        <ul class="audience-list">
+                          <li>List your Celo mini apps and tools where users can easily find them.</li>
+                          <li>Use GM, Deploy and Donate flows as simple entry points to your contracts.</li>
+                          <li>Connect with the wider Celo and Farcaster builder community.</li>
+                        </ul>
+                      </article>
+                    </div>
+                  </section>
+                </main>
+              </div>
+
+            <section id="gm" class="section" data-section-label="GM" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="gm.title">Send a GM</h2>
+                <p data-i18n="gm.subtitle">Drop a cheerful message to earn XP.</p>
+              </div>
+              <form id="gmForm" class="card">
+                <label for="gmMessage" data-i18n="gm.messageLabel">Message (optional)</label>
+                <textarea
+                  id="gmMessage"
+                  maxlength="140"
+                  placeholder="GM Celo world!"
+                  data-i18n-placeholder="gm.placeholder"
+                ></textarea>
+                <button type="submit" class="primary-btn" data-i18n="gm.submit">Send GM</button>
+                <p class="helper" data-i18n="gm.helper">+1 XP</p>
+              </form>
+            </section>
+
+            <section id="deploy" class="section" data-section-label="Deploy" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="deploy.title">Deploy</h2>
+                <p data-i18n="deploy.subtitle">Spin up a smart contract with low gas.</p>
+              </div>
+              <form id="deployForm" class="card">
+                <label for="deployName" data-i18n="deploy.nameLabel">Contract name (optional)</label>
+                <input
+                  id="deployName"
+                  type="text"
+                  maxlength="32"
+                  placeholder="AutoName-..."
+                  data-i18n-placeholder="deploy.namePlaceholder"
+                />
+                <button type="submit" class="primary-btn" data-i18n="deploy.submit">Deploy Contract</button>
+                <p class="helper" data-i18n="deploy.helper">+1 XP</p>
+              </form>
+              <div class="card" id="deployHistory">
+                <h3 data-i18n="deploy.history">Deployed Contracts</h3>
+                <ul id="deployedContracts"></ul>
+              </div>
+            </section>
+
+            <section id="donate" class="section" data-section-label="Donate" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="donate.title">Donate</h2>
+                <p data-i18n="donate.subtitle">Donations below 0.1 CELO / cUSD / cEUR are declined.</p>
+              </div>
+              <div class="card donate-card">
+                <div class="tab-list" role="tablist">
+                  <button type="button" class="tab-btn active" data-tab="celo" data-i18n="donate.celo">CELO</button>
+                  <button type="button" class="tab-btn" data-tab="cusd" data-i18n="donate.cusd">cUSD</button>
+                  <button type="button" class="tab-btn" data-tab="ceur" data-i18n="donate.ceur">cEUR</button>
+                </div>
+                <div class="tab-panel active" data-content="celo">
+                  <form id="donateCeloForm">
+                    <label for="celoAmount" data-i18n="donate.celoAmount">Amount (CELO)</label>
+                    <input id="celoAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.celoSubmit">Donate CELO</button>
+                  </form>
+                </div>
+                <div class="tab-panel" data-content="cusd">
+                  <form id="approveCusdForm">
+                    <label for="cusdApproveAmount" data-i18n="donate.cusdApproveLabel">Approval Amount (cUSD)</label>
+                    <input id="cusdApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.cusdApprove">Approve cUSD</button>
+                  </form>
+                  <form id="donateCusdForm">
+                    <label for="cusdAmount" data-i18n="donate.cusdAmount">Donation Amount (cUSD)</label>
+                    <input id="cusdAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.cusdSubmit">Donate cUSD</button>
+                  </form>
+                </div>
+                <div class="tab-panel" data-content="ceur">
+                  <form id="approveCeurForm">
+                    <label for="ceurApproveAmount" data-i18n="donate.ceurApproveLabel">Approval Amount (cEUR)</label>
+                    <input id="ceurApproveAmount" type="number" min="0.1" step="0.01" placeholder="1" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.ceurApprove">Approve cEUR</button>
+                  </form>
+                  <form id="donateCeurForm">
+                    <label for="ceurAmount" data-i18n="donate.ceurAmount">Donation Amount (cEUR)</label>
+                    <input id="ceurAmount" type="number" min="0.1" step="0.01" placeholder="0.1" />
+                    <button type="submit" class="primary-btn" data-i18n="donate.ceurSubmit">Donate cEUR</button>
+                  </form>
+                </div>
+              </div>
+              <div id="owner-panel" class="card owner-only" hidden>
+                <h3 data-i18n="donate.owner.title">Owner Panel</h3>
+                <div class="owner-section">
+                  <h4 data-i18n="donate.owner.withdrawTitle">Donation Withdrawals</h4>
+                  <form id="withdrawCeloForm">
+                    <label for="withdrawCeloAmount" data-i18n="donate.owner.withdrawCelo">CELO Amount</label>
+                    <input id="withdrawCeloAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeloBtn">Withdraw CELO</button>
+                  </form>
+                  <form id="withdrawCusdForm">
+                    <label for="withdrawCusdAmount" data-i18n="donate.owner.withdrawCusd">cUSD Amount</label>
+                    <input id="withdrawCusdAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCusdBtn">Withdraw cUSD</button>
+                  </form>
+                  <form id="withdrawCeurForm">
+                    <label for="withdrawCeurAmount" data-i18n="donate.owner.withdrawCeur">cEUR Amount</label>
+                    <input id="withdrawCeurAmount" type="number" min="0" step="0.01" />
+                    <button type="submit" class="secondary-btn" data-i18n="donate.owner.withdrawCeurBtn">Withdraw cEUR</button>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            <section id="governance" class="section" data-section-label="Governance" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="governance.title">Governance</h2>
+                <p data-i18n="governance.subtitle">Join the active and completed proposals.</p>
+              </div>
+              <div class="card governance-create" aria-live="polite">
+                <div class="governance-create__header">
+                  <div>
+                    <p class="eyebrow" data-i18n="governance.createEyebrow">Owner Action</p>
+                    <h3 data-i18n="governance.createTitle">Create Proposal</h3>
+                    <p id="proposalAccessMessage" class="governance-create__helper" data-i18n="governance.createHelper">
+                      Connect with the owner wallet to open a new proposal for the community.
+                    </p>
+                  </div>
+                  <span class="chip" data-i18n="governance.createChip">0x09d…0da5 only</span>
+                </div>
+                <div id="proposalFormWrapper">
+                  <form id="proposalForm" class="governance-form">
+                    <label for="proposalTitle" data-i18n="governance.proposalLabel">Title</label>
+                    <input id="proposalTitle" type="text" required maxlength="80" />
+                    <label for="proposalDescription" data-i18n="governance.proposalDescription">Description</label>
+                    <textarea id="proposalDescription" required maxlength="280"></textarea>
+                    <label for="proposalLink" data-i18n="governance.proposalLink">Link</label>
+                    <input id="proposalLink" type="url" placeholder="https://" />
+                    <button type="submit" class="primary-btn" data-i18n="governance.proposalSubmit">Create Proposal</button>
+                  </form>
+                </div>
+              </div>
+              <div class="governance-columns">
+                <div class="card">
+                  <h3 data-i18n="governance.active">Active Proposals</h3>
+                  <div class="skeleton-group skeleton-group--compact" id="governanceSkeleton" aria-hidden="true">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                  </div>
+                  <ul id="activeProposals" class="proposal-list" aria-live="polite"></ul>
+                </div>
+                <div class="card">
+                  <h3 data-i18n="governance.completed">Completed Proposals</h3>
+                  <ul id="pastProposals" class="proposal-list" aria-live="polite"></ul>
+                </div>
+              </div>
+            </section>
+
+            <section id="badges" class="section" data-section-label="Badges" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="badge.title">Badges &amp; Tiers</h2>
+                <p data-i18n="badge.subtitle">Track your XP → Level → Tier journey.</p>
+              </div>
+              <div id="badgeShowcase" class="badge-section"></div>
+              <div class="card" id="badgeDetails"></div>
+              <div class="card">
+                <h3 data-i18n="badge.mintTitle">Upcoming NFT Mint</h3>
+                <p data-i18n="badge.mintSubtitle">You'll be able to mint your badges as NFTs soon.</p>
+                <button type="button" class="secondary-btn" disabled data-i18n="badge.mintCta">Coming Soon</button>
+              </div>
+            </section>
+
+            <section id="leaderboard" class="section" data-section-label="Leaderboard" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="leaderboard.title">Leaderboard</h2>
+                <p data-i18n="leaderboard.subtitle">Community champions live here.</p>
+              </div>
+              <div class="card leaderboard-card">
+                <div class="tab-list leaderboard-tabs" role="tablist">
+                  <button class="tab-btn active" data-tab="topLinks" data-i18n="leaderboard.tabs.links">Links</button>
+                  <button class="tab-btn" data-tab="topGM" data-i18n="leaderboard.tabs.gm">GM</button>
+                  <button class="tab-btn" data-tab="topDeploy" data-i18n="leaderboard.tabs.deploy">Deploy</button>
+                  <button class="tab-btn" data-tab="topCelo" data-i18n="leaderboard.tabs.celo">CELO Donors</button>
+                  <button class="tab-btn" data-tab="topCusd" data-i18n="leaderboard.tabs.cusd">cUSD Donors</button>
+                  <button class="tab-btn" data-tab="topVotes" data-i18n="leaderboard.tabs.votes">Votes</button>
+                  <button class="tab-btn" data-tab="topBadges" data-i18n="leaderboard.tabs.badges">Levels</button>
+                </div>
+                <div class="leaderboard-panels">
+                  <div class="tab-panel active" data-content="topLinks">
+                    <ol id="leaderboardLinks" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topGM">
+                    <ol id="leaderboardGM" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topDeploy">
+                    <ol id="leaderboardDeploy" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topCelo">
+                    <ol id="leaderboardCelo" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topCusd">
+                    <ol id="leaderboardCusd" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topVotes">
+                    <ol id="leaderboardVotes" class="leaderboard-list"></ol>
+                  </div>
+                  <div class="tab-panel" data-content="topBadges">
+                    <ol id="leaderboardBadges" class="leaderboard-list"></ol>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="profile" class="section" data-section-label="Profile" style="display: none;">
+              <div class="section-header">
+                <h2 data-i18n="profile.title">Profile</h2>
+                <p data-i18n="profile.subtitle">Connected wallet details.</p>
+              </div>
+              <div class="card profile-card">
+                <p id="profileStatusText" class="profile-placeholder" data-i18n="profile.connectPrompt">
+                  Connect your wallet to view your profile address.
+                </p>
+                <p class="profile-address">
+                  <span data-i18n="profile.connected">Connected wallet:</span>
+                  <strong id="profileAddressValue">—</strong>
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+
+    </div>
+
+    <div id="connectModal" class="modal-layer connect-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="connectModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="connectModal" aria-label="Close connect" data-i18n-aria-label="wallet.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="wallet.title">Connect Wallet</h2>
+          <p data-i18n="wallet.subtitle">Choose a wallet provider to continue.</p>
+          <div class="wallet-options">
+            <button class="wallet-option" data-connect-option="metamask">
+              <span class="wallet-option__icon">🦊</span>
+              <div>
+                <strong data-i18n="wallet.metamask">MetaMask</strong>
+                <small data-i18n="wallet.metamaskHint">Browser extension</small>
+              </div>
+            </button>
+            <button class="wallet-option" data-connect-option="walletconnect">
+              <span class="wallet-option__icon">🔗</span>
+              <div>
+                <strong data-i18n="wallet.walletconnect">WalletConnect</strong>
+                <small data-i18n="wallet.walletconnectHint">Mobile wallets &amp; MiniPay</small>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+
+    <div id="shareModal" class="share-modal" aria-hidden="true">
+      <div class="share-modal__backdrop" data-dismiss="shareModal"></div>
+      <div class="share-modal__dialog" role="dialog" aria-modal="true">
+        <button class="modal-close icon-btn" data-dismiss="shareModal" aria-label="Close share" data-i18n-aria-label="sharePrompt.close">
+          ✕
+        </button>
+        <div class="share-modal__content">
+          <h2 data-i18n="sharePrompt.title">Share Your Link</h2>
+          <p class="share-modal__context">
+            <span data-i18n="sharePrompt.context">You just opened:</span>
+            <strong id="sharePromptLink">—</strong>
+          </p>
+          <p data-i18n="sharePrompt.subtitle">Keep the momentum going by adding your own link.</p>
+          <form id="sharePromptForm" class="share-modal__form" data-share-form>
+            <label for="sharePromptInput" data-i18n="sharePrompt.label">URL</label>
+            <input
+              id="sharePromptInput"
+              data-share-input
+              type="url"
+              placeholder="https://"
+              value="https://"
+              required
+              data-autofocus
+              data-i18n-placeholder="sharePrompt.placeholder"
+            />
+            <div class="share-modal__actions">
+              <button type="button" class="secondary-btn" data-dismiss="shareModal" data-i18n="sharePrompt.cancel">Maybe Later</button>
+              <button type="submit" class="primary-btn" data-i18n="sharePrompt.submit">Submit Link</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="ecosystemModal" class="modal-layer ecosystem-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="ecosystemModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="ecosystemModal" aria-label="Close ecosystem" data-i18n-aria-label="ecosystem.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="ecosystem.moreTitle">More Ecosystem Tools</h2>
+          <div class="ecosystem-modal__grid">
+            <a href="https://valoraapp.com" target="_blank" rel="noopener">Valora</a>
+            <a href="https://refidao.com" target="_blank" rel="noopener">ReFi</a>
+            <a href="https://celovote.com" target="_blank" rel="noopener">CeloVote</a>
+            <a href="https://www.celocamp.com" target="_blank" rel="noopener">Celo Camp</a>
+            <a href="https://impactmarket.com" target="_blank" rel="noopener">Impact Market</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="usernameModal" class="modal-layer username-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-dismiss="usernameModal"></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <button class="modal-close" data-dismiss="usernameModal" aria-label="Close username" data-i18n-aria-label="username.close">
+          ✕
+        </button>
+        <div class="modal-body">
+          <h2 data-i18n="username.title">Create Profile</h2>
+          <p data-i18n="username.subtitle">Choose a username to join the Celo Engage Hub community.</p>
+          <form id="usernameForm">
+            <label for="usernameInput" data-i18n="username.label">Username</label>
+            <input id="usernameInput" type="text" maxlength="32" required data-autofocus />
+            <div class="modal-actions">
+              <button type="submit" class="primary-btn" data-i18n="username.submit">Join</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
