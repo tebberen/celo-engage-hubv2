@@ -4,6 +4,108 @@
     <meta charset="UTF-8" />
     <title>Celo Engage Hub – Mini App</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 20% 20%, #fef6dc, #ffffff 40%),
+          radial-gradient(circle at 80% 0%, #e2f3ff, #ffffff 35%);
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+      }
+
+      #miniapp-root {
+        width: min(420px, 92vw);
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+        padding: 22px 20px 18px;
+        border: 1px solid rgba(0, 0, 0, 0.03);
+      }
+
+      .miniapp-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .miniapp-header {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+      }
+
+      .miniapp-title {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: -0.01em;
+      }
+
+      .miniapp-subtitle {
+        margin: 0;
+        font-size: 0.98rem;
+        color: #4b5563;
+      }
+
+      .miniapp-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .miniapp-actions button {
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        background: linear-gradient(120deg, #ffe39f, #ffd166);
+        color: #111827;
+        font-weight: 700;
+        font-size: 0.98rem;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+        width: 100%;
+      }
+
+      .miniapp-actions button:nth-child(2) {
+        background: linear-gradient(120deg, #e0f2fe, #c7d2fe);
+      }
+
+      .miniapp-actions button:nth-child(3) {
+        background: linear-gradient(120deg, #e7fff5, #c6f6d5);
+      }
+
+      .miniapp-actions button:active {
+        transform: translateY(1px);
+      }
+
+      .miniapp-actions button:hover {
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+      }
+
+      .miniapp-footer {
+        text-align: center;
+        font-size: 0.85rem;
+        color: #6b7280;
+      }
+
+      .miniapp-placeholder h1,
+      .miniapp-placeholder p {
+        margin: 0 0 8px;
+        text-align: center;
+        color: #14213d;
+      }
+    </style>
     <meta
       name="fc:miniapp"
       content='{"version":"1","imageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/og-celo-engage-hub.svg","button":{"title":"Open Celo Engage Hub","action":{"type":"launch_frame","name":"Celo Engage Hub","url":"https://tebberen.github.io/celo-engage-hubv2/miniapp.html","splashImageUrl":"https://tebberen.github.io/celo-engage-hubv2/assets/logo-celo-engage-hub.png","splashBackgroundColor":"#fbcc5c"}}}'
@@ -11,7 +113,7 @@
   </head>
   <body>
     <!-- ==== FARCASTER MINI APP: BEGIN CHANGE ==== -->
-    <div id="miniapp-root">
+    <div id="miniapp-root" class="miniapp-placeholder">
       <h1>Celo Engage Hub – Mini App</h1>
       <p id="miniapp-status">Farcaster mini app view is loading…</p>
     </div>
