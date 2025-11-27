@@ -559,6 +559,21 @@
       </div>
     </div>
 
-    <script type="module" src="./dist/miniapp.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@farcaster/miniapp-sdk/dist/index.min.js"></script>
+    <script src="./dist/miniapp.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        try {
+          if (window.miniapp && window.miniapp.sdk && window.miniapp.sdk.actions) {
+            window.miniapp.sdk.actions.ready();
+            console.log("[MiniApp] sdk.actions.ready() called ✅");
+          } else {
+            console.log("[MiniApp] miniapp SDK bulunamadı, muhtemelen normal browser'da açıldı.");
+          }
+        } catch (err) {
+          console.error("[MiniApp] sdk.actions.ready() çağrılırken hata:", err);
+        }
+      });
+    </script>
   </body>
 </html>
