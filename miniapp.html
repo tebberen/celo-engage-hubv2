@@ -18,6 +18,24 @@
 
     <!-- Mini app bundle built for the Farcaster Mini App flow -->
     <script type="module" src="./dist/miniapp.js"></script>
+    <script type="module">
+      import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
+
+      const markReady = async () => {
+        try {
+          await sdk.actions.ready();
+          console.log("Farcaster mini app SDK is ready");
+        } catch (error) {
+          console.error("Failed to mark mini app as ready", error);
+        }
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", markReady, { once: true });
+      } else {
+        markReady();
+      }
+    </script>
     <!-- ==== FARCASTER MINI APP: END CHANGE ==== -->
   </body>
 </html>
