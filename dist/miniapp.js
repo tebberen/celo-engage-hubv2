@@ -47855,8 +47855,9 @@ async function init2() {
   initWalletListeners();
   initWebsocket();
 }
-function initApp({ root: root2 = null, getProvider: getProvider2 = null, env = "web" } = {}) {
+function initApp({ root: root2 = null, getProvider: getProvider2 = null, env = "web", onShare = null } = {}) {
   appEnv = env || "web";
+  state.onShare = onShare;
   providerFactory = getProvider2 || null;
   appRoot = root2;
   if (typeof document !== "undefined") {
@@ -47986,6 +47987,32 @@ function setupUsernameModal() {
   elements.usernameModal.setAttribute("aria-hidden", "true");
   const dismissButtons = elements.usernameModal.querySelectorAll('[data-dismiss="usernameModal"]');
   dismissButtons.forEach((btn) => btn.addEventListener("click", closeUsernameModal));
+}
+function openShareSuccessModal(text) {
+  const modal = document.getElementById("shareSuccessModal");
+  if (!modal) return;
+  const appUrl = window.location.href.split("#")[0];
+  const encodedText = encodeURIComponent(text);
+  const encodedEmbed = encodeURIComponent(appUrl);
+  const shareUrl = `https://warpcast.com/~/compose?text=${encodedText}&embeds[]=${encodedEmbed}`;
+  const confirmBtn = document.getElementById("confirmShareBtn");
+  if (confirmBtn) {
+    const newBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+    newBtn.addEventListener("click", () => {
+      if (state.onShare) {
+        state.onShare(shareUrl);
+      } else {
+        window.open(shareUrl, "_blank");
+      }
+      closeModalEl(modal);
+    });
+  }
+  const closeBtn = document.getElementById("closeShareSuccessBtn");
+  if (closeBtn) {
+    closeBtn.onclick = () => closeModalEl(modal);
+  }
+  openModalEl(modal);
 }
 function closeShareModal() {
   if (!elements.shareModal) return;
@@ -49169,9 +49196,12 @@ async function handleGMSubmit(event) {
       submitter,
       { loadingText: getLoadingText("sendingGM", "Sending GM\u2026") },
       async () => {
-        await doGM(message);
+        const receipt = await doGM(message);
         document.getElementById("gmMessage").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("Just sent a GM on Celo Engage Hub! \u{1F305}");
+        }
       }
     );
   } catch (error) {
@@ -49198,9 +49228,12 @@ async function handleDeploySubmit(event) {
       submitter,
       { loadingText: getLoadingText("deploying", "Deploying\u2026") },
       async () => {
-        await doDeploy(name);
+        const receipt = await doDeploy(name);
         document.getElementById("deployName").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("Just deployed a smart contract on Celo with ease! \u{1F680}");
+        }
       }
     );
   } catch (error) {
@@ -49224,9 +49257,12 @@ async function handleDonateCeloSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation\u2026") },
       async () => {
-        await doDonateCELO(amount);
+        const receipt = await doDonateCELO(amount);
         document.getElementById("celoAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} CELO! \u{1F49B}`);
+        }
       }
     );
   } catch (error) {
@@ -49268,9 +49304,12 @@ async function handleDonateCusdSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation\u2026") },
       async () => {
-        await doDonateCUSD(amount);
+        const receipt = await doDonateCUSD(amount);
         document.getElementById("cusdAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} cUSD! \u{1F49B}`);
+        }
       }
     );
   } catch (error) {
@@ -49312,9 +49351,12 @@ async function handleDonateCeurSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation\u2026") },
       async () => {
-        await doDonateCEUR(amount);
+        const receipt = await doDonateCEUR(amount);
         document.getElementById("ceurAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} cEUR! \u{1F49B}`);
+        }
       }
     );
   } catch (error) {
@@ -49853,7 +49895,10 @@ async function getMiniAppProvider() {
   return provider2;
 }
 var root = document.getElementById("miniapp-root") || document.getElementById("app");
-initApp({ root, getProvider: getMiniAppProvider, env: "miniapp" });
+var handleShare = (url) => {
+  sdk.actions.openUrl(url);
+};
+initApp({ root, getProvider: getMiniAppProvider, env: "miniapp", onShare: handleShare });
 var readyCalled = false;
 async function markMiniAppReady() {
   if (readyCalled) return;

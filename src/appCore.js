@@ -1061,8 +1061,9 @@ async function init() {
   initWebsocket();
 }
 
-function initApp({ root = null, getProvider = null, env = "web" } = {}) {
+function initApp({ root = null, getProvider = null, env = "web", onShare = null } = {}) {
   appEnv = env || "web";
+  state.onShare = onShare;
   providerFactory = getProvider || null;
   appRoot = root;
   if (typeof document !== "undefined") {
@@ -1235,6 +1236,45 @@ function openShareModal(link, trigger) {
     elements.sharePromptInput.value = "https://";
   }
   openModalEl(elements.shareModal, { focusTarget: elements.sharePromptInput, trigger });
+}
+
+function openShareSuccessModal(text) {
+  const modal = document.getElementById("shareSuccessModal");
+  if (!modal) return;
+
+  // Mini App URL'ini dinamik oluştur
+  const appUrl = window.location.href.split('#')[0]; // Hash'i temizle
+  const encodedText = encodeURIComponent(text);
+  const encodedEmbed = encodeURIComponent(appUrl);
+
+  // Farcaster Compose URL'i
+  const shareUrl = `https://warpcast.com/~/compose?text=${encodedText}&embeds[]=${encodedEmbed}`;
+
+  // Paylaş butonuna linki ata
+  const confirmBtn = document.getElementById("confirmShareBtn");
+  if (confirmBtn) {
+    // Önceki listener'ları temizlemek için klonla
+    const newBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+    newBtn.addEventListener("click", () => {
+      if (state.onShare) {
+        state.onShare(shareUrl); // Miniapp.js'den gelen fonksiyonu kullan
+      } else {
+        window.open(shareUrl, "_blank"); // Web fallback
+      }
+      closeModalEl(modal);
+    });
+  }
+
+  // Kapat butonu
+  const closeBtn = document.getElementById("closeShareSuccessBtn");
+  if (closeBtn) {
+    closeBtn.onclick = () => closeModalEl(modal);
+  }
+
+  // Modalı aç
+  openModalEl(modal);
 }
 
 function closeShareModal() {
@@ -2698,7 +2738,7 @@ async function handleGMSubmit(event) {
         document.getElementById("gmMessage").value = "";
         await refreshAfterTransaction();
         if (receipt && receipt.transactionHash) {
-          openShareSuccessModal("gm", receipt.transactionHash);
+          openShareSuccessModal("Just sent a GM on Celo Engage Hub! 🌅");
         }
       }
     );
@@ -2737,7 +2777,7 @@ async function handleDeploySubmit(event) {
         document.getElementById("deployName").value = "";
         await refreshAfterTransaction();
         if (receipt && receipt.transactionHash) {
-          openShareSuccessModal("deploy", receipt.transactionHash);
+          openShareSuccessModal("Just deployed a smart contract on Celo with ease! 🚀");
         }
       }
     );
@@ -2767,7 +2807,7 @@ async function handleDonateCeloSubmit(event) {
         document.getElementById("celoAmount").value = "";
         await refreshAfterTransaction();
         if (receipt && receipt.transactionHash) {
-          openShareSuccessModal("donate", receipt.transactionHash);
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} CELO! 💛`);
         }
       }
     );
@@ -2816,7 +2856,7 @@ async function handleDonateCusdSubmit(event) {
         document.getElementById("cusdAmount").value = "";
         await refreshAfterTransaction();
         if (receipt && receipt.transactionHash) {
-          openShareSuccessModal("donate", receipt.transactionHash);
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} cUSD! 💛`);
         }
       }
     );
@@ -2865,7 +2905,7 @@ async function handleDonateCeurSubmit(event) {
         document.getElementById("ceurAmount").value = "";
         await refreshAfterTransaction();
         if (receipt && receipt.transactionHash) {
-          openShareSuccessModal("donate", receipt.transactionHash);
+          openShareSuccessModal(`Just supported the Celo ecosystem with ${amount} cEUR! 💛`);
         }
       }
     );
