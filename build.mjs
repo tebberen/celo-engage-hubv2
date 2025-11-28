@@ -30,6 +30,9 @@ async function buildAndCopy() {
     format: "esm",
     target: ["es2020"],
     sourcemap: true,
+    loader: {
+      ".wasm": "binary",
+    },
   });
 
   console.info("[build] Copying assets...");

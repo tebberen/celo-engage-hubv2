@@ -26746,6 +26746,7 @@ async function loadLeaderboard() {
 }
 
 // src/appCore.js
+window.globalTransactionLock = false;
 var deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
   deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
@@ -29007,12 +29008,19 @@ async function handleGMSubmit(event) {
 }
 async function handleDeploySubmit(event) {
   event.preventDefault();
-  console.log(`[${appEnv}] Deploy button clicked`);
-  const provider2 = await ensureWalletReady();
-  if (!provider2) return;
-  const name = document.getElementById("deployName").value.trim();
+  event.stopPropagation();
+  if (window.globalTransactionLock) {
+    console.warn("\u26A0\uFE0F \u0130\u015Flem zaten s\xFCr\xFCyor, ikinci t\u0131klama engellendi.");
+    return;
+  }
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    window.globalTransactionLock = true;
+    if (submitter) submitter.disabled = true;
+    console.log(`[${appEnv}] Deploy button clicked`);
+    const provider2 = await ensureWalletReady();
+    if (!provider2) return;
+    const name = document.getElementById("deployName").value.trim();
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("deploying", "Deploying\u2026") },
@@ -29025,6 +29033,9 @@ async function handleDeploySubmit(event) {
   } catch (error) {
     console.error("\u274C [Deploy] Submission failed", error);
     showToast("error", parseError(error));
+  } finally {
+    window.globalTransactionLock = false;
+    if (submitter) submitter.disabled = false;
   }
 }
 async function handleDonateCeloSubmit(event) {
