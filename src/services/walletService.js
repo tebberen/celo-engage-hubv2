@@ -459,9 +459,10 @@ export async function switchNetwork(networkKey) {
     const currentNetwork = await provider.getNetwork();
     const targetChainId = parseInt(config.chainId, 16);
 
+    // Eğer zaten hedef ağdaysak, işlem yapmadan çık (Çift onayı engeller)
     if (currentNetwork.chainId === targetChainId) {
-      console.log("✅ Zaten doğru ağdasınız:", config.name);
-      return true; // İşlem yapma, direkt çık (1. Onay penceresini engeller)
+      console.log(`✅ Zaten doğru ağdasınız: ${config.name}`);
+      return true;
     }
   } catch (err) {
     console.warn("Ağ kontrolü yapılamadı, zorla değiştiriliyor...", err);
@@ -473,23 +474,29 @@ export async function switchNetwork(networkKey) {
     await provider.send("wallet_switchEthereumChain", [{ chainId: hexChainId }]);
     return true;
   } catch (error) {
+    // Hata 4902: Zincir cüzdanda ekli değilse ekle
     if (error?.code === 4902) {
-      await provider.send("wallet_addEthereumChain", [
-        {
-          chainId: hexChainId,
-          chainName: config.name,
-          nativeCurrency: {
-            name: "Celo",
-            symbol: "CELO",
-            decimals: 18,
+      try {
+        await provider.send("wallet_addEthereumChain", [
+          {
+            chainId: hexChainId,
+            chainName: config.name,
+            nativeCurrency: {
+              name: "Celo",
+              symbol: "CELO",
+              decimals: 18,
+            },
+            rpcUrls: [config.rpcUrl],
+            blockExplorerUrls: [config.explorer],
           },
-          rpcUrls: [config.rpcUrl],
-          blockExplorerUrls: [config.explorer],
-        },
-      ]);
-      return true;
+        ]);
+        return true;
+      } catch (addError) {
+        console.error("Ağ ekleme hatası:", addError);
+        return false;
+      }
     }
-    console.warn("switchNetwork error", error);
+    console.warn("switchNetwork hatası:", error);
     return false;
   }
 }

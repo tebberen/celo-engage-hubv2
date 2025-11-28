@@ -46144,7 +46144,7 @@ async function switchNetwork(networkKey) {
     const currentNetwork = await provider.getNetwork();
     const targetChainId = parseInt(config.chainId, 16);
     if (currentNetwork.chainId === targetChainId) {
-      console.log("\u2705 Zaten do\u011Fru a\u011Fdas\u0131n\u0131z:", config.name);
+      console.log(`\u2705 Zaten do\u011Fru a\u011Fdas\u0131n\u0131z: ${config.name}`);
       return true;
     }
   } catch (err) {
@@ -46156,22 +46156,27 @@ async function switchNetwork(networkKey) {
     return true;
   } catch (error) {
     if (error?.code === 4902) {
-      await provider.send("wallet_addEthereumChain", [
-        {
-          chainId: hexChainId,
-          chainName: config.name,
-          nativeCurrency: {
-            name: "Celo",
-            symbol: "CELO",
-            decimals: 18
-          },
-          rpcUrls: [config.rpcUrl],
-          blockExplorerUrls: [config.explorer]
-        }
-      ]);
-      return true;
+      try {
+        await provider.send("wallet_addEthereumChain", [
+          {
+            chainId: hexChainId,
+            chainName: config.name,
+            nativeCurrency: {
+              name: "Celo",
+              symbol: "CELO",
+              decimals: 18
+            },
+            rpcUrls: [config.rpcUrl],
+            blockExplorerUrls: [config.explorer]
+          }
+        ]);
+        return true;
+      } catch (addError) {
+        console.error("A\u011F ekleme hatas\u0131:", addError);
+        return false;
+      }
     }
-    console.warn("switchNetwork error", error);
+    console.warn("switchNetwork hatas\u0131:", error);
     return false;
   }
 }
@@ -46486,7 +46491,11 @@ async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: 6e5 }
+      {
+        gasLimit: 6e5
+        // 🔻 2.000.000'dan 600.000'e düşürüldü (Yetersiz bakiye hatasını çözer)
+        // chainId parametresi KALDIRILDI (Hata önlendi)
+      }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;

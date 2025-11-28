@@ -330,6 +330,7 @@ export async function doGM(message = "") {
 
 export async function doDeploy(contractName) {
   try {
+    // 1. Ağın Celo olduğundan emin ol (Gerekirse değiştirir)
     await switchNetwork('mainnet');
 
     const { address } = requireSigner();
@@ -340,7 +341,10 @@ export async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: 600000 }
+      {
+        gasLimit: 600000 // 🔻 2.000.000'dan 600.000'e düşürüldü (Yetersiz bakiye hatasını çözer)
+        // chainId parametresi KALDIRILDI (Hata önlendi)
+      }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
