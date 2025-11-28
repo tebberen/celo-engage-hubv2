@@ -19,7 +19,7 @@ import {
   CEUR_TOKEN_ADDRESS,
   NETWORK_FALLBACK_RPC_URLS,
 } from "../utils/constants.js";
-import { getWalletDetails } from "./walletService.js";
+import { getWalletDetails, switchNetwork } from "./walletService.js";
 import { sendWithReferral } from "./divviReferral.js";
 
 const READ_RPC_TIMEOUT = 20000;
@@ -308,6 +308,8 @@ function parseAmount(amount) {
 
 export async function doGM(message = "") {
   try {
+    await switchNetwork('mainnet');
+
     const { address } = requireSigner();
     const gm = getGM(true);
 
@@ -315,7 +317,7 @@ export async function doGM(message = "") {
       gm,
       "sendGM",
       [address, message || ""],
-      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -328,6 +330,8 @@ export async function doGM(message = "") {
 
 export async function doDeploy(contractName) {
   try {
+    await switchNetwork('mainnet');
+
     const { address } = requireSigner();
     const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
     const deployModule = getDeploy(true);
@@ -336,7 +340,7 @@ export async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEPLOY_GAS_LIMIT }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -349,6 +353,8 @@ export async function doDeploy(contractName) {
 
 export async function doDonateCELO(amount) {
   try {
+    await switchNetwork('mainnet');
+
     ensureMinDonation(amount);
     const { address } = requireSigner();
     const donate = getDonate(true);
@@ -358,7 +364,7 @@ export async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value, gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { value, gasLimit: DEFAULT_GAS_LIMIT }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
@@ -527,6 +533,8 @@ export async function govVote(proposalId, support) {
 
 export async function registerProfile(username) {
   try {
+    await switchNetwork('mainnet');
+
     const { address } = requireSigner();
     const profile = getProfile(true);
 
@@ -534,7 +542,7 @@ export async function registerProfile(username) {
       profile,
       "registerUser",
       [address],
-      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
 
     if (username) {

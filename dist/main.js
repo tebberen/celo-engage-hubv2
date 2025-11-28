@@ -25645,6 +25645,13 @@ function notify(event, payload = {}) {
     }
   });
 }
+function formatChainId(hexId) {
+  if (!hexId) return null;
+  if (typeof hexId === "number") {
+    return `0x${hexId.toString(16)}`;
+  }
+  return hexId;
+}
 function getWalletDetails() {
   return {
     provider,
@@ -25966,6 +25973,35 @@ async function disconnectWallet() {
 function getInjectedProvider() {
   return getInjectedEthereumProvider();
 }
+async function switchNetwork(networkKey) {
+  const config = NETWORKS[networkKey];
+  if (!config) return false;
+  if (!provider) return false;
+  const hexChainId = formatChainId(config.chainId);
+  try {
+    await provider.send("wallet_switchEthereumChain", [{ chainId: hexChainId }]);
+    return true;
+  } catch (error) {
+    if (error?.code === 4902) {
+      await provider.send("wallet_addEthereumChain", [
+        {
+          chainId: hexChainId,
+          chainName: config.name,
+          nativeCurrency: {
+            name: "Celo",
+            symbol: "CELO",
+            decimals: 18
+          },
+          rpcUrls: [config.rpcUrl],
+          blockExplorerUrls: [config.explorer]
+        }
+      ]);
+      return true;
+    }
+    console.warn("switchNetwork error", error);
+    return false;
+  }
+}
 
 // src/services/divviReferral.js
 import { getReferralTag, submitReferral } from "https://cdn.jsdelivr.net/npm/@divvi/referral-sdk@2.0.0/+esm";
@@ -26252,13 +26288,14 @@ function parseAmount(amount) {
 }
 async function doGM(message = "") {
   try {
+    await switchNetwork("mainnet");
     const { address } = requireSigner();
     const gm = getGM(true);
     const { sentTx, receipt } = await sendWithReferral(
       gm,
       "sendGM",
       [address, message || ""],
-      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26269,6 +26306,7 @@ async function doGM(message = "") {
 }
 async function doDeploy(contractName) {
   try {
+    await switchNetwork("mainnet");
     const { address } = requireSigner();
     const deployName = contractName?.trim() || `AutoName-${Date.now()}`;
     const deployModule = getDeploy(true);
@@ -26276,7 +26314,7 @@ async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEPLOY_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26287,6 +26325,7 @@ async function doDeploy(contractName) {
 }
 async function doDonateCELO(amount) {
   try {
+    await switchNetwork("mainnet");
     ensureMinDonation(amount);
     const { address } = requireSigner();
     const donate = getDonate(true);
@@ -26295,7 +26334,7 @@ async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value, gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { value, gasLimit: DEFAULT_GAS_LIMIT }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26443,13 +26482,14 @@ async function govVote(proposalId, support) {
 }
 async function registerProfile(username) {
   try {
+    await switchNetwork("mainnet");
     const { address } = requireSigner();
     const profile = getProfile(true);
     const { sentTx, receipt } = await sendWithReferral(
       profile,
       "registerUser",
       [address],
-      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
+      { gasLimit: DEFAULT_GAS_LIMIT }
     );
     if (username) {
       try {
