@@ -46202,7 +46202,12 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
       throw new Error(`Method ${methodName} is not available on contract`);
     }
     const fallbackTx = await contract[methodName](...invocationArgs);
-    const receipt2 = await fallbackTx.wait();
+    let receipt2 = null;
+    try {
+      receipt2 = await fallbackTx.wait();
+    } catch (waitError) {
+      console.warn("\u26A0\uFE0F Fallback wait error (ignored, tx sent):", waitError);
+    }
     return { sentTx: fallbackTx, receipt: receipt2 };
   };
   if (!signer2 || typeof signer2.getAddress !== "function") {
@@ -46227,54 +46232,51 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
   if (!txRequest || !txRequest.data) {
     return sendWithoutReferral("missing calldata");
   }
-  let referralTag;
   try {
-    referralTag = getReferralTag({
+    const referralTag = getReferralTag({
       user: userAddress,
       consumer: DIVVI_CONSUMER_ADDRESS
     });
-  } catch (error) {
-    return sendWithoutReferral(error);
-  }
-  const sanitizedTag = referralTag?.startsWith("0x") ? referralTag.slice(2) : referralTag;
-  if (sanitizedTag) {
-    const lowerData = txRequest.data.toLowerCase();
-    const lowerTag = sanitizedTag.toLowerCase();
-    if (!lowerData.endsWith(lowerTag)) {
-      txRequest.data = `${txRequest.data}${sanitizedTag}`;
+    const sanitizedTag = referralTag?.startsWith("0x") ? referralTag.slice(2) : referralTag;
+    if (sanitizedTag) {
+      const lowerData = txRequest.data.toLowerCase();
+      const lowerTag = sanitizedTag.toLowerCase();
+      if (!lowerData.endsWith(lowerTag)) {
+        txRequest.data = `${txRequest.data}${sanitizedTag}`;
+      }
     }
+  } catch (error) {
+    console.warn("Referral tag generation failed, proceeding without tag", error);
   }
   txRequest.from = userAddress;
   if (includeOverrides) {
-    if (overrides.value !== void 0) {
-      txRequest.value = overrides.value;
-    }
-    if (overrides.gasLimit !== void 0) {
-      txRequest.gasLimit = overrides.gasLimit;
-    }
-    if (overrides.gasPrice !== void 0) {
-      txRequest.gasPrice = overrides.gasPrice;
-    }
+    if (overrides.value !== void 0) txRequest.value = overrides.value;
+    if (overrides.gasLimit !== void 0) txRequest.gasLimit = overrides.gasLimit;
+    if (overrides.gasPrice !== void 0) txRequest.gasPrice = overrides.gasPrice;
   }
   let sentTx;
-  let receipt;
   try {
     sentTx = await signer2.sendTransaction(txRequest);
+  } catch (sendError) {
+    console.error("\u274C Primary transaction send failed:", sendError);
+    return sendWithoutReferral(sendError);
+  }
+  let receipt = null;
+  try {
     receipt = await sentTx.wait();
-  } catch (error) {
-    return sendWithoutReferral(error);
+  } catch (waitError) {
+    console.warn("\u26A0\uFE0F Transaction sent but wait() failed (Farcaster RPC issue). Tx Hash:", sentTx.hash);
   }
   try {
     const provider2 = signer2.provider;
-    if (!provider2 || typeof provider2.getNetwork !== "function") {
-      throw new Error("Provider unavailable for Divvi submission");
+    if (provider2 && typeof provider2.getNetwork === "function") {
+      const network = await provider2.getNetwork();
+      await submitReferral({
+        txHash: sentTx.hash,
+        chainId: Number(network.chainId)
+      });
+      console.log("\u2705 Divvi referral submitted", sentTx.hash);
     }
-    const network = await provider2.getNetwork();
-    await submitReferral({
-      txHash: sentTx.hash,
-      chainId: Number(network.chainId)
-    });
-    console.log("\u2705 Divvi referral submitted", sentTx.hash);
   } catch (error) {
     console.warn("\u26A0\uFE0F Divvi referral submission failed", error);
   }
