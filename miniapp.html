@@ -52,55 +52,16 @@
   <body>
     <div id="miniapp-root">
       <div id="app" class="app-shell" data-theme="golden">
-      <header class="app-header">
-        <div class="brand-area nav-left">
-          <span class="app-brand">Celo Engage Hub</span>
-        </div>
+      <header class="app-header compact-header">
         <div class="nav-surface">
           <nav class="app-nav" aria-label="Ana gezinme">
-            <button class="nav-btn active" data-target="home" data-i18n="nav.home">Home</button>
-            <button class="nav-btn" data-target="gm" data-i18n="nav.gm">GM</button>
-            <button class="nav-btn" data-target="deploy" data-i18n="nav.deploy">Deploy</button>
-            <button class="nav-btn" data-target="donate" data-i18n="nav.donate">Donate</button>
-            <button class="nav-btn" data-target="profile" data-i18n="nav.profile">Profile</button>
-            <button
-              id="languageToggle"
-              class="nav-btn nav-btn--icon nav-btn--globe"
-              aria-label="Dil değiştir"
-              data-i18n-aria-label="actions.languageToggle"
-            >🌐</button>
+            <button class="nav-btn active" data-target="home" aria-label="Home">🏠</button>
+            <button class="nav-btn" data-target="gm" aria-label="GM">GM</button>
+            <button class="nav-btn" data-target="deploy" aria-label="Deploy">🚀</button>
+            <button class="nav-btn" data-target="donate" aria-label="Donate">💛</button>
+            <button class="nav-btn" data-target="profile" aria-label="Profile">👤</button>
+            <button id="languageToggle" class="nav-btn nav-btn--icon" aria-label="Dil değiştir">🌐</button>
           </nav>
-        </div>
-          <div class="header-actions" role="group" aria-label="Account actions">
-            <div class="header-actions__cluster">
-              <div class="wallet-actions">
-                <button
-                  id="navbarConnectButton"
-                  class="connect-btn"
-                  type="button"
-                  data-i18n="wallet.title"
-                >
-                  Connect Wallet
-                </button>
-                <div id="walletStatus" class="wallet-status" aria-live="polite"></div>
-                <div id="walletPill" class="wallet-pill" hidden>
-                  <button id="walletPillButton" class="wallet-pill__button" aria-haspopup="true" aria-expanded="false">
-                    <span id="walletAddressLabel">—</span>
-                    <span class="wallet-pill__status" aria-hidden="true">•</span>
-                    <span class="wallet-pill__chevron">▾</span>
-                </button>
-                <div id="walletDropdown" class="wallet-dropdown" role="menu">
-                  <div class="wallet-dropdown__network">
-                    <span data-i18n="wallet.networkLabel">Network</span>
-                    <strong id="walletNetworkName">—</strong>
-                  </div>
-                  <button id="disconnectWallet" class="wallet-dropdown__item" role="menuitem" data-i18n="wallet.disconnect">
-                    Disconnect
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </header>
 
