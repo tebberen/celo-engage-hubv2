@@ -42,6 +42,9 @@ import {
   getLink,
   getLinkEventContract,
 } from "./services/contractService.js";
+
+window.globalTransactionLock = false;
+
 let deviceId = localStorage.getItem("celo-engage-device-id");
 if (!deviceId) {
   deviceId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `device-${Date.now()}`;
@@ -2683,12 +2686,25 @@ async function handleGMSubmit(event) {
 
 async function handleDeploySubmit(event) {
   event.preventDefault();
-  console.log(`[${appEnv}] Deploy button clicked`);
-  const provider = await ensureWalletReady();
-  if (!provider) return;
-  const name = document.getElementById("deployName").value.trim();
+  event.stopPropagation();
+
+  if (window.globalTransactionLock) {
+    console.warn("⚠️ İşlem zaten sürüyor, ikinci tıklama engellendi.");
+    return;
+  }
+
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
+
   try {
+    window.globalTransactionLock = true;
+    if (submitter) submitter.disabled = true;
+
+    console.log(`[${appEnv}] Deploy button clicked`);
+    const provider = await ensureWalletReady();
+    if (!provider) return;
+
+    const name = document.getElementById("deployName").value.trim();
+
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("deploying", "Deploying…") },
@@ -2701,6 +2717,9 @@ async function handleDeploySubmit(event) {
   } catch (error) {
     console.error("❌ [Deploy] Submission failed", error);
     showToast("error", parseError(error));
+  } finally {
+    window.globalTransactionLock = false;
+    if (submitter) submitter.disabled = false;
   }
 }
 
