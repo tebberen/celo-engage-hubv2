@@ -2828,3 +2828,40 @@ textarea {
   display: grid;
   place-items: center;
 }
+
+/* --- Mini App UI Düzeltmeleri (Boşluk ve Renkler) --- */
+
+/* 1. Navbar Butonlarını Belirginleştir */
+.app-header.compact-header .nav-btn {
+  color: #000000 !important; /* Simsiyah yazı */
+  font-weight: 700 !important; /* Daha kalın font */
+  background: rgba(255, 255, 255, 0.5); /* Hafif beyaz arka plan */
+  border: 1px solid rgba(186, 147, 34, 0.4); /* Daha belirgin kenarlık */
+}
+
+/* Aktif buton daha da koyu olsun */
+.app-header.compact-header .nav-btn.active {
+  background: var(--celo-yellow);
+  color: #000000;
+  border: 1px solid #000000; /* Aktif olunca siyah kenarlık */
+}
+
+/* 2. Navbar ile İçerik Arasındaki Boşluğu Kapat */
+/* Mini App ortamında üst boşlukları sıfırlıyoruz */
+html[data-app-env="miniapp"] .app-main {
+  padding-top: 12px !important; /* Üstten sadece 12px boşluk */
+}
+
+html[data-app-env="miniapp"] .page-wrapper {
+  margin-top: 0 !important; /* Wrapper boşluğunu sıfırla */
+  gap: 16px; /* Sütunlar arası boşluğu da biraz azalt */
+}
+
+html[data-app-env="miniapp"] .section {
+  padding: 12px !important; /* İçerik kartlarının iç boşluğunu optimize et */
+}
+
+/* Home ekranında 'Donate' kartının üstündeki ekstra boşluğu al */
+html[data-app-env="miniapp"] .left-sidebar {
+  margin-top: 0 !important;
+}
