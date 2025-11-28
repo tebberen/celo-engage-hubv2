@@ -1,0 +1,5 @@
+
+> celo-engage-hubv2@1.0.0 start:server
+> node server/index.js
+
+Self verification server listening on port 8787
