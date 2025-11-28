@@ -13,7 +13,7 @@
     "@walletconnect/web3-provider": "^1.8.0",
     "cors": "^2.8.5",
     "ethers": "^5.7.2",
-    "express": "^4.19.2"
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "esbuild": "^0.21.5"

@@ -52,6 +52,9 @@ let appEnv = "web";
 let providerFactory = null;
 let appRoot = null;
 
+let isAppInitialized = false;
+let isTransactionPending = false;
+
 function isMiniAppEnvironment() {
   return appEnv === "miniapp";
 }
@@ -1019,6 +1022,12 @@ async function withButtonLoading(button, options, task) {
 }
 
 async function init() {
+  if (isAppInitialized) {
+    console.warn("[App] Uygulama zaten başlatıldı, ikinci çağrı engellendi.");
+    return;
+  }
+  isAppInitialized = true;
+
   renderProfileSection();
   applyTheme();
   setupLanguage();
@@ -2660,12 +2669,15 @@ async function ensureWalletReady() {
 
 async function handleGMSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] GM button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
   const message = document.getElementById("gmMessage").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("sendingGM", "Sending GM…") },
@@ -2678,17 +2690,22 @@ async function handleGMSubmit(event) {
   } catch (error) {
     console.error("❌ [GM] Submission failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleDeploySubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Deploy button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
   const name = document.getElementById("deployName").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("deploying", "Deploying…") },
@@ -2701,11 +2718,15 @@ async function handleDeploySubmit(event) {
   } catch (error) {
     console.error("❌ [Deploy] Submission failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleDonateCeloSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Donate CELO button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2713,6 +2734,7 @@ async function handleDonateCeloSubmit(event) {
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
@@ -2725,11 +2747,15 @@ async function handleDonateCeloSubmit(event) {
   } catch (error) {
     console.error("❌ [Donate] CELO donation error", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleApproveCusdSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Approve cUSD button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2737,6 +2763,7 @@ async function handleApproveCusdSubmit(event) {
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("approving", "Approving…") },
@@ -2747,11 +2774,15 @@ async function handleApproveCusdSubmit(event) {
   } catch (error) {
     console.error("❌ [Donate] cUSD approval error", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleDonateCusdSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Donate cUSD button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2759,6 +2790,7 @@ async function handleDonateCusdSubmit(event) {
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
@@ -2771,11 +2803,15 @@ async function handleDonateCusdSubmit(event) {
   } catch (error) {
     console.error("❌ [Donate] cUSD donation error", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleApproveCeurSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Approve cEUR button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2783,6 +2819,7 @@ async function handleApproveCeurSubmit(event) {
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("approving", "Approving…") },
@@ -2793,11 +2830,15 @@ async function handleApproveCeurSubmit(event) {
   } catch (error) {
     console.error("❌ [Donate] cEUR approval error", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleDonateCeurSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Donate cEUR button clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2805,6 +2846,7 @@ async function handleDonateCeurSubmit(event) {
   if (amount < MIN_DONATION) return showToast("error", UI_MESSAGES.minDonation);
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
@@ -2817,11 +2859,15 @@ async function handleDonateCeurSubmit(event) {
   } catch (error) {
     console.error("❌ [Donate] cEUR donation error", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleShareLinkSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Share link clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2840,6 +2886,7 @@ async function handleShareLinkSubmit(event) {
   }
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("sharingLink", "Submitting Link…") },
@@ -2855,11 +2902,15 @@ async function handleShareLinkSubmit(event) {
   } catch (error) {
     console.error("❌ [Link] Share action failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleProposalSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Submit proposal clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2872,6 +2923,7 @@ async function handleProposalSubmit(event) {
   const link = document.getElementById("proposalLink").value.trim();
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("creatingProposal", "Submitting Proposal…") },
@@ -2884,11 +2936,15 @@ async function handleProposalSubmit(event) {
   } catch (error) {
     console.error("❌ [Governance] Proposal submission failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleWithdrawSubmit(event, token) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   console.log(`[${appEnv}] Withdraw ${token} clicked`);
   const provider = await ensureWalletReady();
   if (!provider) return;
@@ -2905,6 +2961,7 @@ async function handleWithdrawSubmit(event, token) {
   }
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("withdrawing", "Processing Withdrawal…") },
@@ -2917,15 +2974,20 @@ async function handleWithdrawSubmit(event, token) {
   } catch (error) {
     console.error("❌ [Donate] Withdraw failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
 async function handleRegisterSubmit(event) {
   event.preventDefault();
+  if (isTransactionPending) return;
+
   const username = elements.usernameInput.value.trim();
   if (!username) return;
   const submitter = event.submitter || event.target.querySelector('[type="submit"]');
   try {
+    isTransactionPending = true;
     await withButtonLoading(
       submitter,
       { loadingText: getLoadingText("registering", "Saving Profile…") },
@@ -2938,6 +3000,8 @@ async function handleRegisterSubmit(event) {
   } catch (error) {
     console.error("❌ [Profile] Registration flow failed", error);
     showToast("error", parseError(error));
+  } finally {
+    isTransactionPending = false;
   }
 }
 
