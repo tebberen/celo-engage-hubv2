@@ -1277,6 +1277,8 @@ function openShareSuccessModal(text) {
   openModalEl(modal);
 }
 
+window.openShareSuccessModal = openShareSuccessModal;
+
 function closeShareModal() {
   if (!elements.shareModal) return;
   closeModalEl(elements.shareModal);

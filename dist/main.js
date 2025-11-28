@@ -26313,7 +26313,12 @@ async function doGM(message = "") {
       [address, message || ""],
       { gasLimit: DEFAULT_GAS_LIMIT }
     );
-    emitToast("success", UI_MESSAGES.success, sentTx.hash);
+    if (sentTx && sentTx.hash) {
+      emitToast("success", UI_MESSAGES.success, sentTx.hash);
+      if (typeof window.openShareSuccessModal === "function") {
+        window.openShareSuccessModal("Just sent a GM on Celo Engage Hub! \u{1F305}");
+      }
+    }
     return receipt;
   } catch (error) {
     console.error("\u274C [GM] Failed to send GM", error);
@@ -26336,7 +26341,12 @@ async function doDeploy(contractName) {
         // chainId parametresi KALDIRILDI (Hata önlendi)
       }
     );
-    emitToast("success", UI_MESSAGES.success, sentTx.hash);
+    if (sentTx && sentTx.hash) {
+      emitToast("success", UI_MESSAGES.success, sentTx.hash);
+      if (typeof window.openShareSuccessModal === "function") {
+        window.openShareSuccessModal("Just deployed a smart contract on Celo with ease! \u{1F680}");
+      }
+    }
     return receipt;
   } catch (error) {
     console.error("\u274C [Deploy] Contract deployment failed", error);
@@ -26356,7 +26366,12 @@ async function doDonateCELO(amount) {
       [address],
       { value, gasLimit: DEFAULT_GAS_LIMIT }
     );
-    emitToast("success", UI_MESSAGES.success, sentTx.hash);
+    if (sentTx && sentTx.hash) {
+      emitToast("success", UI_MESSAGES.success, sentTx.hash);
+      if (typeof window.openShareSuccessModal === "function") {
+        window.openShareSuccessModal("Just supported the Celo ecosystem! \u{1F49B}");
+      }
+    }
     return receipt;
   } catch (error) {
     console.error("\u274C [Donate] CELO donation failed", error);
@@ -27851,6 +27866,7 @@ function openShareSuccessModal(text) {
   }
   openModalEl(modal);
 }
+window.openShareSuccessModal = openShareSuccessModal;
 function closeShareModal() {
   if (!elements.shareModal) return;
   closeModalEl(elements.shareModal);
