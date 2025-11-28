@@ -454,6 +454,19 @@ export async function switchNetwork(networkKey) {
   if (!config) return false;
   if (!provider) return false;
 
+  // ÖNCE KONTROL ET: Zaten doğru ağda mıyız?
+  try {
+    const currentNetwork = await provider.getNetwork();
+    const targetChainId = parseInt(config.chainId, 16);
+
+    if (currentNetwork.chainId === targetChainId) {
+      console.log("✅ Zaten doğru ağdasınız:", config.name);
+      return true; // İşlem yapma, direkt çık (1. Onay penceresini engeller)
+    }
+  } catch (err) {
+    console.warn("Ağ kontrolü yapılamadı, zorla değiştiriliyor...", err);
+  }
+
   const hexChainId = formatChainId(config.chainId);
 
   try {

@@ -340,7 +340,7 @@ export async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT }
+      { gasLimit: 600000 }
     );
 
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
