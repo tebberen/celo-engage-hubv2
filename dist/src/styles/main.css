@@ -2753,3 +2753,76 @@ textarea {
     margin: 56px 10px;
   }
 }
+
+/* --- Mini App Compact Header Styles --- */
+
+/* Header'ı küçült ve ortala */
+.app-header.compact-header {
+  padding: 8px 12px;
+  min-height: auto; /* Sabit yüksekliği kaldır */
+  display: flex;
+  justify-content: center;
+  background: var(--surface-strong); /* Arka planı biraz daha yumuşatabiliriz */
+  box-shadow: 0 4px 12px rgba(251, 204, 92, 0.25);
+  position: sticky; /* Sayfa kayarken üstte kalsın */
+}
+
+/* Navigasyon konteynerini genişlet */
+.app-header.compact-header .nav-surface {
+  width: 100%;
+  max-width: 400px; /* Çok genişlemesin */
+}
+
+/* Menü listesini tek satıra zorla */
+.app-header.compact-header .app-nav {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap; /* Asla alt satıra geçmesin */
+  justify-content: space-between; /* Aralarına eşit boşluk koy */
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  width: 100%;
+  overflow-x: auto; /* Çok dar ekranlarda kaydırma çubuğu çıksın (güvenlik için) */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Scrollbar'ı gizle */
+}
+
+/* Scrollbar gizleme (Chrome/Safari) */
+.app-header.compact-header .app-nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Butonları küçült ve ikonlaştır */
+.app-header.compact-header .nav-btn {
+  flex: 1; /* Hepsi eşit genişlikte olsun */
+  min-width: 40px; /* Dokunmatik için minimum boyut */
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px; /* İkon boyutu */
+  border-radius: 12px;
+  background: transparent; /* Varsayılan arka planı şeffaf yap */
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+/* Aktif buton stili */
+.app-header.compact-header .nav-btn.active {
+  background: var(--celo-yellow);
+  color: #1f1404;
+  box-shadow: var(--shadow-soft);
+  font-weight: bold;
+}
+
+/* Hover/Focus efektleri */
+.app-header.compact-header .nav-btn:hover {
+  background: rgba(251, 204, 92, 0.2);
+}
+
+/* Dil butonu */
+.app-header.compact-header #languageToggle {
+  font-size: 20px;
+}
