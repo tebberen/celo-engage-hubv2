@@ -1927,7 +1927,7 @@ function renderMiniAppCard(app) {
 }
 
 function setupEcosystemModules() {
-  renderEcosystemModuleCards();
+  renderEcosystemModuleCards(); // Existing call (if applicable)
 
   if (elements.ecosystemModuleGrid) {
     elements.ecosystemModuleGrid.addEventListener("click", (event) => {
@@ -1946,6 +1946,15 @@ function setupEcosystemModules() {
           selectEcosystemModule(moduleKey);
         }
       });
+    });
+  }
+
+  // NEW: Close button logic for the detail box
+  const closeBtn = document.getElementById("closeDetailBtn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      const detailBox = document.getElementById("ecosystemDetail");
+      if (detailBox) detailBox.style.display = "none";
     });
   }
 
@@ -1977,8 +1986,20 @@ function renderEcosystemModuleCards() {
 
 function selectEcosystemModule(moduleKey) {
   const didUpdate = setActiveEcosystemModule(moduleKey);
+
   if (didUpdate) {
-    scrollToEcosystemSection();
+    const detailBox = document.getElementById("ecosystemDetail");
+    if (detailBox) {
+      // Show the box
+      detailBox.style.display = "grid";
+      // Trigger fade-in animation
+      detailBox.classList.remove("fade-in");
+      void detailBox.offsetWidth; // Trigger reflow
+      detailBox.classList.add("fade-in");
+
+      // Smooth scroll to the detail box
+      detailBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 }
 
