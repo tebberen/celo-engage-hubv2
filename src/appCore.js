@@ -1022,6 +1022,25 @@ async function withButtonLoading(button, options, task) {
 }
 
 async function init() {
+  if (!document.getElementById("shareSuccessModal")) {
+    const modalHTML = `
+            <div id="shareSuccessModal" class="modal-layer share-success-modal" aria-hidden="true" style="z-index: 9999;">
+              <div class="modal-backdrop" id="closeShareSuccessBackdrop"></div>
+              <div class="modal-dialog" role="dialog" aria-modal="true">
+                <div class="modal-body" style="text-align: center; padding: 24px;">
+                  <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+                  <h2 style="margin-bottom: 8px; color: #000;">Transaction Successful!</h2>
+                  <p style="color: #666; margin-bottom: 24px;">Spread the word on Farcaster.</p>
+                  <div class="modal-actions" style="justify-content: center; gap: 12px;">
+                    <button type="button" class="secondary-btn" id="closeShareSuccessBtn">Close</button>
+                    <button type="button" class="primary-btn" id="confirmShareBtn">Share on Farcaster 📢</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  }
+
   renderProfileSection();
   applyTheme();
   setupLanguage();
@@ -2524,8 +2543,23 @@ function closeEcosystemModal() {
 
 function setupToastBridge() {
   registerToastHandler(({ type, message, hash, explorer }) => {
+    // 1. Show the visual toast (Existing logic)
     showToast(type, message, hash, explorer);
+
+    // 2. IF SUCCESS -> Trigger the Share Modal (The Fix)
     if (type === "success") {
+      console.log("✅ Success toast detected. Opening Share Modal...");
+      // Add a small delay to make it feel natural after the toast appears
+      setTimeout(() => {
+        // Determine context based on active tab (fallback to generic message)
+        let shareText = "Just used Celo Engage Hub! 🟡";
+        if (activeSectionId === "gm") shareText = "Just sent a GM on Celo Engage Hub! 🌅";
+        if (activeSectionId === "deploy") shareText = "Just deployed a smart contract on Celo! 🚀";
+        if (activeSectionId === "donate") shareText = "Just supported the Celo ecosystem! 💛";
+
+        openShareSuccessModal(shareText);
+      }, 500);
+
       refreshAfterTransaction();
     }
   });
