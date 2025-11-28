@@ -2694,9 +2694,12 @@ async function handleGMSubmit(event) {
       submitter,
       { loadingText: getLoadingText("sendingGM", "Sending GM…") },
       async () => {
-        await doGM(message);
+        const receipt = await doGM(message);
         document.getElementById("gmMessage").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("gm", receipt.transactionHash);
+        }
       }
     );
   } catch (error) {
@@ -2730,9 +2733,12 @@ async function handleDeploySubmit(event) {
       submitter,
       { loadingText: getLoadingText("deploying", "Deploying…") },
       async () => {
-        await doDeploy(name);
+        const receipt = await doDeploy(name);
         document.getElementById("deployName").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("deploy", receipt.transactionHash);
+        }
       }
     );
   } catch (error) {
@@ -2757,9 +2763,12 @@ async function handleDonateCeloSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
       async () => {
-        await doDonateCELO(amount);
+        const receipt = await doDonateCELO(amount);
         document.getElementById("celoAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("donate", receipt.transactionHash);
+        }
       }
     );
   } catch (error) {
@@ -2803,9 +2812,12 @@ async function handleDonateCusdSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
       async () => {
-        await doDonateCUSD(amount);
+        const receipt = await doDonateCUSD(amount);
         document.getElementById("cusdAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("donate", receipt.transactionHash);
+        }
       }
     );
   } catch (error) {
@@ -2849,9 +2861,12 @@ async function handleDonateCeurSubmit(event) {
       submitter,
       { loadingText: getLoadingText("donating", "Sending Donation…") },
       async () => {
-        await doDonateCEUR(amount);
+        const receipt = await doDonateCEUR(amount);
         document.getElementById("ceurAmount").value = "";
-        refreshAfterTransaction();
+        await refreshAfterTransaction();
+        if (receipt && receipt.transactionHash) {
+          openShareSuccessModal("donate", receipt.transactionHash);
+        }
       }
     );
   } catch (error) {
