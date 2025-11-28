@@ -14,7 +14,12 @@ async function getMiniAppProvider() {
 }
 
 const root = document.getElementById("miniapp-root") || document.getElementById("app");
-initApp({ root, getProvider: getMiniAppProvider, env: "miniapp" });
+
+const handleShare = (url) => {
+  sdk.actions.openUrl(url);
+};
+
+initApp({ root, getProvider: getMiniAppProvider, env: "miniapp", onShare: handleShare });
 
 let readyCalled = false;
 

@@ -7,4 +7,9 @@ async function getWebProvider() {
 }
 
 const root = document.getElementById("app");
-initApp({ root, getProvider: getWebProvider, env: "web" });
+
+const handleShare = (url) => {
+  window.open(url, "_blank");
+};
+
+initApp({ root, getProvider: getWebProvider, env: "web", onShare: handleShare });
