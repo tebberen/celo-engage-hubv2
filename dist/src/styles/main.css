@@ -2855,6 +2855,8 @@ html[data-app-env="miniapp"] .app-main {
 html[data-app-env="miniapp"] .page-wrapper {
   margin-top: 0 !important; /* Wrapper boşluğunu sıfırla */
   gap: 16px; /* Sütunlar arası boşluğu da biraz azalt */
+  grid-template-columns: 1fr !important;
+  display: block !important;
 }
 
 html[data-app-env="miniapp"] .section {

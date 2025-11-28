@@ -68,40 +68,41 @@
 
       <main class="app-main">
         <div class="page-wrapper">
-          <aside class="left-sidebar">
-            <section class="card highlight-panel donate-highlight">
-              <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
-              <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
-              <div class="donate-quick-actions">
-                <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
-                <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
-                <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
-                <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
-              </div>
-            </section>
-
-            <section class="card highlight-panel ecosystem-panel">
-              <div class="panel-header">
-                <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
-              </div>
-              <ul class="ecosystem-links">
-                <li><a href="#" data-module-key="official">Celo Official Links</a></li>
-                <li><a href="#" data-module-key="miniApps">Celo Farcaster Mini Apps</a></li>
-                <li><a href="#" data-module-key="bridge">Celo Bridge</a></li>
-                <li><a href="#" data-module-key="dex">Celo DEX</a></li>
-                <li><a href="#" data-module-key="cex">Celo CEX</a></li>
-                <li><a href="#" data-module-key="social">Celo Social Media</a></li>
-              </ul>
-              <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
-                More Ecosystem Tools
-              </button>
-            </section>
-
-          </aside>
+          <!-- REMOVED ASIDE -->
 
             <div class="main-content">
               <div id="home" class="section active" data-section-label="Home">
                 <main id="home-main">
+                  <!-- MOVED DONATE HIGHLIGHT -->
+                  <section class="card highlight-panel donate-highlight">
+                    <h2 data-i18n="donate.highlightTitle">🟡 Donate to Support Hub</h2>
+                    <p data-i18n="donate.highlightSubtitle">Choose an amount to support the community</p>
+                    <div class="donate-quick-actions">
+                      <button type="button" class="quick-donate" data-donate-amount="0.5">0.5 CELO</button>
+                      <button type="button" class="quick-donate" data-donate-amount="1">1 CELO</button>
+                      <button type="button" class="quick-donate" data-donate-amount="5">5 CELO</button>
+                      <button type="button" class="quick-donate" data-donate-amount="10">10 CELO</button>
+                    </div>
+                  </section>
+
+                  <!-- MOVED ECOSYSTEM PANEL -->
+                  <section class="card highlight-panel ecosystem-panel">
+                    <div class="panel-header">
+                      <h2 data-i18n="ecosystem.title">Celo Ecosystem</h2>
+                    </div>
+                    <ul class="ecosystem-links">
+                      <li><a href="#" data-module-key="official">Celo Official Links</a></li>
+                      <li><a href="#" data-module-key="miniApps">Celo Farcaster Mini Apps</a></li>
+                      <li><a href="#" data-module-key="bridge">Celo Bridge</a></li>
+                      <li><a href="#" data-module-key="dex">Celo DEX</a></li>
+                      <li><a href="#" data-module-key="cex">Celo CEX</a></li>
+                      <li><a href="#" data-module-key="social">Celo Social Media</a></li>
+                    </ul>
+                    <button id="ecosystemMore" class="secondary-btn ecosystem-more" data-i18n="ecosystem.more">
+                      More Ecosystem Tools
+                    </button>
+                  </section>
+
                   <section id="home-discover-ecosystem" class="home-ecosystem section-card">
                     <header class="section-header">
                       <p class="eyebrow" data-i18n="home.discoverLabel">Discover</p>
