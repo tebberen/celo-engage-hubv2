@@ -25795,6 +25795,27 @@ async function connectWithProvider(externalProvider, opts = {}) {
   const requestCapableProvider = rawProvider || externalProvider;
   try {
     const web3Provider = new ethers_exports.providers.Web3Provider(externalProvider, "any");
+    if (source === "farcaster") {
+      try {
+        await requestCapableProvider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: CELO_CHAIN_ID_HEX }]
+        });
+      } catch (switchError) {
+        if (switchError && switchError.code === 4902) {
+          try {
+            await requestCapableProvider.request({
+              method: "wallet_addEthereumChain",
+              params: [CELO_PARAMS]
+            });
+          } catch (addError) {
+            console.error("[Wallet] Failed to add Celo chain:", addError);
+          }
+        } else {
+          console.warn("[Wallet] Switch chain request failed or rejected:", switchError);
+        }
+      }
+    }
     let network = await web3Provider.getNetwork();
     if (network.chainId !== CELO_CHAIN_ID_DEC) {
       console.warn("[Wallet] Wrong network:", network.chainId, "\u2192 trying to switch to Celo\u2026");
@@ -26237,7 +26258,7 @@ async function doGM(message = "") {
       gm,
       "sendGM",
       [address, message || ""],
-      { gasLimit: DEFAULT_GAS_LIMIT }
+      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26255,7 +26276,7 @@ async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT }
+      { gasLimit: DEPLOY_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26274,7 +26295,7 @@ async function doDonateCELO(amount) {
       donate,
       "donateCELO",
       [address],
-      { value, gasLimit: DEFAULT_GAS_LIMIT }
+      { value, gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
@@ -26428,7 +26449,7 @@ async function registerProfile(username) {
       profile,
       "registerUser",
       [address],
-      { gasLimit: DEFAULT_GAS_LIMIT }
+      { gasLimit: DEFAULT_GAS_LIMIT, chainId: CELO_CHAIN_ID_DEC }
     );
     if (username) {
       try {

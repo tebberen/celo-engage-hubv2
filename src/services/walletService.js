@@ -231,6 +231,31 @@ export async function connectWithProvider(externalProvider, opts = {}) {
 
   try {
     const web3Provider = new ethers.providers.Web3Provider(externalProvider, "any");
+
+    // BAĞLANTI KURULUR KURULMAZ AĞI DEĞİŞTİRMEYİ DENE
+    if (source === 'farcaster') {
+        try {
+            await requestCapableProvider.request({
+                method: "wallet_switchEthereumChain",
+                params: [{ chainId: CELO_CHAIN_ID_HEX }],
+            });
+        } catch (switchError) {
+            // Hata 4902: Zincir ekli değilse ekle
+            if (switchError && switchError.code === 4902) {
+                try {
+                    await requestCapableProvider.request({
+                        method: "wallet_addEthereumChain",
+                        params: [CELO_PARAMS],
+                    });
+                } catch (addError) {
+                    console.error("[Wallet] Failed to add Celo chain:", addError);
+                }
+            } else {
+                console.warn("[Wallet] Switch chain request failed or rejected:", switchError);
+            }
+        }
+    }
+
     let network = await web3Provider.getNetwork();
 
     // Skip strict network check/switch for 'farcaster' source if it causes issues,
