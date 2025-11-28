@@ -28374,6 +28374,13 @@ function setupEcosystemModules() {
       });
     });
   }
+  const closeBtn = document.getElementById("closeDetailBtn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      const detailBox = document.getElementById("ecosystemDetail");
+      if (detailBox) detailBox.style.display = "none";
+    });
+  }
   setActiveEcosystemModule(state.activeEcosystemModule);
 }
 function renderEcosystemModuleCards() {
@@ -28399,13 +28406,14 @@ function renderEcosystemModuleCards() {
 function selectEcosystemModule(moduleKey) {
   const didUpdate = setActiveEcosystemModule(moduleKey);
   if (didUpdate) {
-    scrollToEcosystemSection();
-  }
-}
-function scrollToEcosystemSection() {
-  const section = document.getElementById("ecosystem-modules") || elements.ecosystemSection;
-  if (section) {
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    const detailBox = document.getElementById("ecosystemDetail");
+    if (detailBox) {
+      detailBox.style.display = "grid";
+      detailBox.classList.remove("fade-in");
+      void detailBox.offsetWidth;
+      detailBox.classList.add("fade-in");
+      detailBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 }
 function setActiveEcosystemModule(key2) {
