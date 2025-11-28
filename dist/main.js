@@ -25977,6 +25977,16 @@ async function switchNetwork(networkKey) {
   const config = NETWORKS[networkKey];
   if (!config) return false;
   if (!provider) return false;
+  try {
+    const currentNetwork = await provider.getNetwork();
+    const targetChainId = parseInt(config.chainId, 16);
+    if (currentNetwork.chainId === targetChainId) {
+      console.log("\u2705 Zaten do\u011Fru a\u011Fdas\u0131n\u0131z:", config.name);
+      return true;
+    }
+  } catch (err) {
+    console.warn("A\u011F kontrol\xFC yap\u0131lamad\u0131, zorla de\u011Fi\u015Ftiriliyor...", err);
+  }
   const hexChainId = formatChainId(config.chainId);
   try {
     await provider.send("wallet_switchEthereumChain", [{ chainId: hexChainId }]);
@@ -26107,7 +26117,6 @@ async function sendWithReferral(contract, methodName, args = [], overrides = {})
 var READ_RPC_TIMEOUT = 2e4;
 var DEFAULT_POLLING_INTERVAL = 1e4;
 var DEFAULT_GAS_LIMIT = 3e5;
-var DEPLOY_GAS_LIMIT = 2e6;
 var readProvider = null;
 var hasLoggedMissingGlobalStats = false;
 var ERC20_ABI = [
@@ -26314,7 +26323,7 @@ async function doDeploy(contractName) {
       deployModule,
       "deployContract",
       [address, deployName],
-      { gasLimit: DEPLOY_GAS_LIMIT }
+      { gasLimit: 6e5 }
     );
     emitToast("success", UI_MESSAGES.success, sentTx.hash);
     return receipt;
