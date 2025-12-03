@@ -1,37 +1,58 @@
 # Celo Engage Hub v2
 
-**A responsive Celo community hub optimized for MiniPay, Farcaster Mini Apps, and AI Agent interaction.**
+**The Unified "One Action" Gateway for the Celo Ecosystem.**
+
+A modular, lightweight decentralized application (dApp) optimized for **Farcaster Mini Apps**, **MiniPay**, and **AI Agent** interaction. It unifies essential user actions—donating, deploying contracts, sending "GM" messages, and managing profiles—into a single, optimized interface.
 
 ---
-
-## 🚀 Project Overview
-
-**Celo Engage Hub v2** is a modular, lightweight decentralized application (dApp) designed to be the primary entry point for the Celo ecosystem. It unifies essential user actions—donating, deploying contracts, sending "GM" messages, and managing profiles—into a single, optimized interface.
-
-This project is architected with a **dual-entry strategy**:
-1.  **Web dApp:** A full-featured browser experience.
-2.  **Farcaster Mini App:** A streamlined, "One Action" optimized experience embedded directly within Farcaster frames.
 
 ## 🏆 Proof of Ship Alignment
 
-This project specifically targets the **Proof of Ship 10** competition tracks:
+This project is explicitly architected to address the **Proof of Ship 10** competition tracks.
 
-### 📱 Track: Mini Apps
-- **Farcaster Native:** Fully integrated with `@farcaster/miniapp-sdk`.
-- **"One Action" Philosophy:** The Mini App entry point (`miniapp.html`) bypasses landing pages to present immediate, actionable modules (Home, GM, Donate, Deploy).
-- **Mobile First:** UI is optimized for mobile viewports (`375x667`), ensuring seamless interaction within the Farcaster client.
-- **Wallet Integration:** Leverages Farcaster's native wallet provider for frictionless signing and transactions.
+### 📱 Track 1: Mini Apps
+*   **Farcaster Native Integration:** The application is built with the `@farcaster/miniapp-sdk`, providing a seamless experience within Farcaster Frames.
+*   **"One Action" Philosophy:** The user interface is stripped of friction, presenting immediate, actionable modules (Home, GM, Donate, Deploy) without landing page redirects.
+*   **Mobile-First Design:** The layout is strictly optimized for mobile viewports (`375x667`), ensuring native-like performance on iOS and Android clients.
+*   **Zero-Friction Onboarding:** Utilizes Farcaster's injected wallet provider for instant signing and transactions, removing the need for external wallet connections in the Mini App context.
 
-### 🤖 Track: Noah AI (AI Agent Optimization)
-- **Structured Documentation:** This codebase is documented to be easily parsed by AI agents for code review and automated deployment understanding.
-- **Semantic Codebase:** Clear separation of concerns in `src/services`, `src/data`, and `contracts` allows AI agents to easily reason about the application logic.
-- **Verifiable Logic:** Smart contracts include self-verification mechanics accessible via API, enabling AI agents to verify user identity and on-chain actions.
+### 🤖 Track 2: Noah AI (AI Agent Optimization)
+*   **Semantic Codebase:** The project structure separates concerns (`src/services`, `src/data`, `contracts`) in a way that allows AI agents to easily parse, reason about, and verify application logic.
+*   **AI-Parsable Documentation:** This README and the `src/README.md` are written in structured Markdown with clear context boundaries, enabling "AI Agent Judges" to ingest and evaluate the project's technical merit autonomously.
+*   **Verifiable On-Chain Logic:** All core interactions are backed by verified smart contracts on Celo Mainnet, allowing AI agents to query and validate state changes programmatically.
 
 ---
 
-## 🏗 Architecture
+## 🚀 Deployed Contracts (Celo Mainnet)
 
-The application is built as a static client-side application with optional server-side components for legacy verification.
+The following contracts have been deployed and verified on the Celo Mainnet. They serve as the backbone for the application's functionality.
+
+| Module / Contract Name | Contract Address | Explorer Link |
+| :--- | :--- | :--- |
+| **Celo Engage Hub (Core)** | `0x18351438b1bD20ee433Ea7D25589e913f14ca1A5` | [View on CeloScan](https://celoscan.io/address/0x18351438b1bD20ee433Ea7D25589e913f14ca1A5) |
+| **GM Module** | `0x06E065AE4dDa7b669D6381D1F7ec523bfD83e2D7` | [View on CeloScan](https://celoscan.io/address/0x06E065AE4dDa7b669D6381D1F7ec523bfD83e2D7) |
+| **Deployed Module** | `0xD567149Cf3a2bd97d905408c87Cc8194eb246785` | [View on CeloScan](https://celoscan.io/address/0xD567149Cf3a2bd97d905408c87Cc8194eb246785) |
+| **Donate Module** | `0x76CA7FCBCdB46881c2715EBf351BCc1aAC7d70FA` | [View on CeloScan](https://celoscan.io/address/0x76CA7FCBCdB46881c2715EBf351BCc1aAC7d70FA) |
+| **Profile Module** | `0xb7574975e18b64d18886D03CCC710d62cdD7E743` | [View on CeloScan](https://celoscan.io/address/0xb7574975e18b64d18886D03CCC710d62cdD7E743) |
+| **Link Module** | `0x5ae32ab13f0458f4fb7a434120747e7e5944ce97` | [View on CeloScan](https://celoscan.io/address/0x5ae32ab13f0458f4fb7a434120747e7e5944ce97) |
+| **Governance Module** | `0xe71c701d66f8c27fba15f3b4a607c741ffedeed1` | [View on CeloScan](https://celoscan.io/address/0xe71c701d66f8c27fba15f3b4a607c741ffedeed1) |
+| **Badge Module** | `0xd11896d5ba8aa3ed906b37b941a27849e74fd300` | [View on CeloScan](https://celoscan.io/address/0xd11896d5ba8aa3ed906b37b941a27849e74fd300) |
+
+---
+
+## 🏗 System Architecture
+
+The project employs a **Dual-Entry Strategy** to maximize reach across both standard web browsers and the Farcaster ecosystem.
+
+### 1. The Web dApp (`index.html`)
+*   **Target:** Desktop and mobile web users.
+*   **Features:** Full connectivity (WalletConnect, MetaMask), comprehensive ecosystem exploration, and educational guides.
+*   **Entry Point:** `src/main.js`
+
+### 2. The Farcaster Mini App (`miniapp.html`)
+*   **Target:** Users within the Warpcast/Farcaster mobile client.
+*   **Features:** Streamlined UI, auto-injected wallet provider, removal of non-essential navigation to focus on core actions.
+*   **Entry Point:** `src/miniapp.js`
 
 ```mermaid
 graph TD
@@ -39,136 +60,85 @@ graph TD
     FC[Farcaster Client]
     Web[Web Browser]
 
-    subgraph "Frontend (Static)"
+    subgraph "Frontend"
         MA[Mini App (miniapp.html)]
         WA[Web App (index.html)]
-        SDK[@farcaster/miniapp-sdk]
-        Core[appCore.js]
-        Services[Services: Wallet, Contract, Identity]
+        Core[src/appCore.js]
     end
 
-    subgraph "Blockchain (Celo)"
-        RPC[JSON-RPC Provider]
-        Contracts[Smart Contracts]
+    subgraph "Services"
+        WS[Wallet Service]
+        CS[Contract Service]
     end
 
-    User -->|Opens Frame| FC
-    User -->|Visits URL| Web
-    FC -->|Loads| MA
-    Web -->|Loads| WA
-    MA -->|Uses| SDK
-    MA -->|Imports| Core
-    WA -->|Imports| Core
-    Core -->|Calls| Services
-    Services -->|Tx/Read| RPC
-    RPC -->|Interacts| Contracts
+    User -->|In-Frame| FC
+    User -->|Direct URL| Web
+    FC --> MA
+    Web --> WA
+    MA -->|Init| Core
+    WA -->|Init| Core
+    Core --> WS
+    Core --> CS
 ```
-
-### Key Components
-- **`miniapp.html`**: Specialized entry point for Farcaster. Initializes the SDK and handles the handshake.
-- **`src/appCore.js`**: The central controller that manages state, DOM updates, and event routing.
-- **`src/services/`**: Isolated modules for Blockchain interactions (`walletService`, `contractService`).
-- **`contracts/`**: Solidity contracts for on-chain identity verification.
-
----
-
-## 📜 Contract Addresses
-
-| Network | Contract Name | Address |
-| :--- | :--- | :--- |
-| **Celo Mainnet** | CeloEngageHub | `[INSERT ADDRESS]` |
-| **Alfajores** | CeloEngageHub | `[INSERT ADDRESS]` |
-
-> *Note: If addresses are not yet deployed, these are placeholders for the competition judging phase.*
 
 ---
 
 ## 🛠 Tech Stack
 
-- **Languages:** JavaScript (ES6+), Solidity (v0.8.20), HTML5, CSS3
-- **Frameworks:** Vanilla JS (Frontend), Express (Backend), Hardhat (Contracts)
-- **Libraries:**
-  - `ethers.js` (v5.7.2): Blockchain interaction
-  - `@farcaster/miniapp-sdk`: Farcaster Frame integration
-  - `@walletconnect/web3-provider`: Wallet connectivity
-- **Build Tools:** `esbuild` (Fast bundling)
-- **Design:** Custom CSS variables (Golden Theme), Mobile-first responsive grid.
+*   **Frontend:** Vanilla JavaScript (ES6+), HTML5, CSS3 (Variables-based theming)
+*   **Bundling:** `esbuild` (High-performance bundler)
+*   **Blockchain Integration:** `ethers.js` v5.7.2
+*   **Farcaster Integration:** `@farcaster/miniapp-sdk`
+*   **Identity:** `Siwe` (Sign-In with Ethereum) & Custom Verification Contracts
+*   **Backend (Optional):** Node.js / Express (for advanced verification logic)
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Installation & Usage
 
 ### Prerequisites
-- Node.js v18+
-- npm or yarn
+*   Node.js (v18 or higher)
+*   npm or yarn
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/tebberen/celo-engage-hubv2.git
-cd celo-engage-hubv2
-```
+### Setup
 
-### 2. Install Dependencies
-```bash
-npm install
-```
+1.  **Clone the Repository**
+    ```bash
+    git clone https://github.com/tebberen/celo-engage-hubv2.git
+    cd celo-engage-hubv2
+    ```
 
-### 3. Build the Project
-Generates the `dist/` folder containing the optimized bundles for Web and Mini App.
-```bash
-npm run build
-```
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-### 4. Run Local Development Server
-The application is static. You can serve it using any static file server.
-```bash
-# Example using python
-python3 -m http.server 8080
-# Or using a VS Code extension "Live Server"
-```
-Access the Web App at `http://localhost:8080/index.html` and the Mini App at `http://localhost:8080/miniapp.html`.
+3.  **Build the Project**
+    This compiles the source code into the `dist/` directory using `esbuild`.
+    ```bash
+    npm run build
+    ```
 
-### 5. (Optional) Run Backend Server
-For Self ID verification features:
-```bash
-npm run start:server
-```
-
----
-
-## 📱 Farcaster Mini App Integration
-
-The **Mini App** implementation represents the core "Proof of Ship" value.
-
-- **Entry Point:** `src/miniapp.js`
-- **Logic:**
-    1.  **Initialization:** The app waits for `DOMContentLoaded`.
-    2.  **SDK Handshake:** Calls `sdk.actions.ready()` to signal the Farcaster client that the frame is loaded.
-    3.  **Context Injection:** Injects specific Farcaster wallet providers via `getMiniAppProvider`.
-    4.  **UI Adaptation:** Hides standard web headers/footers to maximize screen real estate within the frame.
-
-### Debugging Mini Apps
-To debug the Mini App flow in a standard browser:
-1.  Open `miniapp.html` in your browser.
-2.  Open Developer Tools (F12) > Console.
-3.  Observe the `[MiniApp]` logs simulating the SDK handshake.
+4.  **Run Development Server**
+    You can use any static file server. For example:
+    ```bash
+    npx http-server .
+    ```
+    *   **Web App:** Visit `http://localhost:8080/index.html`
+    *   **Mini App:** Visit `http://localhost:8080/miniapp.html` (Use browser developer tools to simulate mobile view).
 
 ---
 
 ## 📂 Directory Structure
 
-- **`assets/`**: Static images and icons.
-- **`contracts/`**: Smart contract source code (Solidity).
-- **`dist/`**: Production build artifacts (generated).
-- **`server/`**: Node.js backend for verification.
-- **`src/`**: Source code for the frontend application.
-  - **`data/`**: JSON configuration for ecosystem links.
-  - **`services/`**: Blockchain and API service layers.
-  - **`styles/`**: CSS source files.
-  - **`utils/`**: Helper functions and constants.
+*   **`src/`**: Contains the core application logic. See [`src/README.md`](./src/README.md) for detailed documentation.
+*   **`contracts/`**: Solidity smart contracts.
+*   **`server/`**: Backend verification service.
+*   **`dist/`**: Compiled production assets.
+*   **`assets/`**: Images, logos, and static resources.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is open-source and licensed under the **MIT License**.
