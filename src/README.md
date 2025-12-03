@@ -1,71 +1,80 @@
-# Source Code Documentation
+# Frontend Source Code Documentation
 
-This directory contains the core logic for the Celo Engage Hub frontend. The application is designed as a hybrid Single Page Application (SPA) that supports both a standard Web environment and a Farcaster Mini App environment.
+This directory contains the source code for the Celo Engage Hub frontend. The application is architected as a modular, vanilla JavaScript Single Page Application (SPA) that dynamically adapts to its host environment (Standard Web vs. Farcaster Mini App).
 
-## 📂 Structure Overview
+## 🧠 Core Architecture
 
-- **`appCore.js`**: The central controller. It handles state management, UI rendering, event listeners, and dependency injection for environment-specific logic (Web vs. Mini App).
-- **`main.js`**: Entry point for the Standard Web App (`index.html`).
-- **`miniapp.js`**: Entry point for the Farcaster Mini App (`miniapp.html`).
-- **`miniapp-clean.js`**: A stripped-down version for minimal frame implementations.
+The frontend logic is centralized in `appCore.js`, which acts as the dependency injection container and state manager.
 
----
+### Key Components
 
-## 📱 Farcaster Mini App Logic
-
-The Mini App implementation is located in `miniapp.js`. It bridges the standard web application logic with the `@farcaster/miniapp-sdk`.
-
-### Key Implementation Details:
-
-1.  **SDK Initialization:**
-    It imports `sdk` from `@farcaster/miniapp-sdk` and initializes the app core with specific overrides for the Farcaster environment.
-
-    ```javascript
-    import { sdk } from "@farcaster/miniapp-sdk";
-    import { initApp } from "./appCore.js";
-    ```
-
-2.  **Provider Injection:**
-    The `getMiniAppProvider` function wraps the Farcaster SDK's wallet provider to make it compatible with `ethers.js`, ensuring that all blockchain transactions initiated within the frame use the user's Farcaster connected wallet.
-
-3.  **Ready Signal:**
-    Critically, the script calls `sdk.actions.ready()` once the DOM is fully loaded. This is a requirement for Farcaster Mini Apps to remove the loading splash screen.
-
-    ```javascript
-    async function markMiniAppReady() {
-      // ...
-      await sdk.actions.ready();
-      // ...
-    }
-    ```
+*   **`appCore.js`**: The heart of the application. It initializes the UI, sets up event listeners, and manages the transitions between different "tabs" (Home, GM, Deploy, Donate, Profile). It is designed to be environment-agnostic.
+*   **`main.js`**: The entry point for the **Web App**. It initializes `appCore` with standard web configurations (e.g., standard WalletConnect providers).
+*   **`miniapp.js`**: The entry point for the **Farcaster Mini App**. It initializes `appCore` with Farcaster-specific configurations (e.g., the Frame SDK provider).
+*   **`services/`**: Contains pure business logic modules. These modules are stateless where possible and handle all external interactions (Blockchain, API).
 
 ---
 
-## 🧩 App Core (`appCore.js`)
+## 📱 Farcaster Mini App Integration (`miniapp.js`)
 
-`appCore.js` is the "brain" of the application. It is environment-agnostic but accepts configuration during initialization.
+This file is critical for the "Proof of Ship: Mini Apps" track. It handles the specific lifecycle and requirements of a Farcaster Frame.
 
-### Responsibilities:
-- **Navigation:** Handles tab switching (Home, GM, Deploy, Donate, Profile).
-- **Dynamic Content:** Loads ecosystem data from `src/data/`.
-- **Modals:** Manages the visibility of "Connect Wallet", "Share", and "Success" modals.
-- **Language:** Basic i18n support via `lang.json`.
-
-### Dependency Injection Pattern
-To support both Web and Mini App with a single codebase, `initApp` accepts an `env` parameter:
+### 1. SDK Initialization
+We utilize the `@farcaster/miniapp-sdk` to bridge the gap between the Celo blockchain and the Farcaster client.
 
 ```javascript
-initApp({
-  root: document.getElementById('app'),
-  getProvider: ..., // Custom provider strategy (WalletConnect vs Farcaster)
-  env: 'miniapp',   // 'web' or 'miniapp'
-  onShare: ...      // Custom sharing logic (window.open vs sdk.actions.openUrl)
+import { sdk } from "@farcaster/miniapp-sdk";
+```
+
+### 2. Provider Injection Strategy
+Unlike standard dApps that rely on `window.ethereum`, the Mini App must explicitly retrieve the provider from the SDK.
+
+```javascript
+const provider = sdk.provider; // The injected Farcaster provider
+```
+
+This provider is then passed into `appCore.js` during initialization, ensuring that all subsequent transactions (in `walletService.js` and `contractService.js`) automatically use the user's Farcaster wallet without prompting for a connection.
+
+### 3. The "Ready" Signal
+To ensure a smooth user experience, the Mini App explicitly signals when it is ready to be displayed. This prevents the user from seeing unstyled content or a broken UI.
+
+```javascript
+// Inside src/miniapp.js
+window.addEventListener('DOMContentLoaded', async () => {
+    // ... app initialization ...
+    await sdk.actions.ready(); // Removes the loading splash screen
 });
 ```
 
-## 📦 Sub-modules
+---
 
-- **`services/`**: Contains the business logic for blockchain interactions (Wallet, Contracts).
-- **`data/`**: JSON files defining the content (Ecosystem links, Mini App directory).
-- **`styles/`**: CSS modules for styling.
-- **`utils/`**: Utility functions (formatting, constants).
+## 🧩 Services Layer (`src/services/`)
+
+The application logic is broken down into specialized services:
+
+*   **`walletService.js`**: Manages wallet connections, chain switching (handling Celo Mainnet enforcement), and account tracking. It abstracts the differences between standard Web3 providers and the Farcaster provider.
+*   **`contractService.js`**: Handles all smart contract interactions. It contains the logic for:
+    *   **GM Module:** Sending "GM" messages on-chain.
+    *   **Donate Module:** Sending CELO to the Engage Hub treasury.
+    *   **Deploy Module:** Deploying proxy contracts for user identity.
+    *   **Profile Module:** Managing on-chain profiles.
+*   **`divviReferral.js`**: Specific logic for handling referral tracking and rewards.
+
+---
+
+## 🎨 UI & UX Philosophy
+
+The source code reflects a "Mobile-First" and "One Action" philosophy:
+
+*   **No Framework Overhead:** We use Vanilla JS to keep the bundle size extremely small, ensuring instant load times on mobile networks.
+*   **CSS Variables:** Theming is handled entirely via CSS variables in `src/styles/`, allowing for easy "Golden Theme" updates without touching the JS logic.
+*   **DOM Manipulation:** UI updates are performed via efficient DOM manipulation in `appCore.js`, targeting specific IDs to minimize reflows.
+
+---
+
+## 🤝 Contribution Guide
+
+1.  **Modify Logic:** Edit files in `src/`.
+2.  **Test Locally:** Run the development server to see changes.
+3.  **Build:** Run `npm run build` to update the `dist/` folder.
+    *   *Note: Always rebuild before committing to ensure the production assets match the source.*

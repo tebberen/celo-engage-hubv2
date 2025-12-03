@@ -27671,6 +27671,24 @@ async function withButtonLoading(button, options, task) {
   }
 }
 async function init2() {
+  if (!document.getElementById("shareSuccessModal")) {
+    const modalHTML = `
+            <div id="shareSuccessModal" class="modal-layer share-success-modal" aria-hidden="true" style="z-index: 9999;">
+              <div class="modal-backdrop" id="closeShareSuccessBackdrop"></div>
+              <div class="modal-dialog" role="dialog" aria-modal="true">
+                <div class="modal-body" style="text-align: center; padding: 24px;">
+                  <div style="font-size: 48px; margin-bottom: 16px;">\u{1F389}</div>
+                  <h2 style="margin-bottom: 8px; color: #000;">Transaction Successful!</h2>
+                  <p style="color: #666; margin-bottom: 24px;">Spread the word on Farcaster.</p>
+                  <div class="modal-actions" style="justify-content: center; gap: 12px;">
+                    <button type="button" class="secondary-btn" id="closeShareSuccessBtn">Close</button>
+                    <button type="button" class="primary-btn" id="confirmShareBtn">Share on Farcaster \u{1F4E2}</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  }
   renderProfileSection();
   applyTheme();
   setupLanguage();
@@ -28852,6 +28870,14 @@ function setupToastBridge() {
   registerToastHandler(({ type, message, hash: hash3, explorer }) => {
     showToast(type, message, hash3, explorer);
     if (type === "success") {
+      console.log("\u2705 Success toast detected. Opening Share Modal...");
+      setTimeout(() => {
+        let shareText = "Just used Celo Engage Hub! \u{1F7E1}";
+        if (activeSectionId === "gm") shareText = "Just sent a GM on Celo Engage Hub! \u{1F305}";
+        if (activeSectionId === "deploy") shareText = "Just deployed a smart contract on Celo! \u{1F680}";
+        if (activeSectionId === "donate") shareText = "Just supported the Celo ecosystem! \u{1F49B}";
+        openShareSuccessModal(shareText);
+      }, 500);
       refreshAfterTransaction();
     }
   });
