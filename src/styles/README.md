@@ -1,17 +1,39 @@
-# `src/styles/` – Design System & Layout
+# Styles Documentation
 
-Global styles for the Celo Engage Hub. The stylesheet shapes the Celo-inspired color palette, layout grid, cards, modals, and responsive behavior used across all sections.
+The styling architecture for Celo Engage Hub v2 is built with vanilla CSS3, utilizing **CSS Variables** for theming and a **Mobile-First** approach.
 
-## Files
-- **`main.css`** – Single source of truth for typography, spacing, buttons, cards, badges, navigation, hero sections, and media queries. Loaded directly by `index.html`.
+## 📂 Key Files
 
-## Design guidance
-- **Color palette:** Celo gold/yellow accents paired with dark neutrals. Utility variables are defined near the top of `main.css` for quick updates.
-- **Spacing & typography:** Rem-based sizes and consistent margins/padding keep cards and sections balanced. Reuse existing heading and body styles before introducing new variants.
-- **Components:** Card, badge, CTA button, and pill styles are shared across mini app grids, ecosystem lists, and Profile widgets.
-- **Responsive layout:** Flex/grid breakpoints adapt navigation, card columns, and modals for mobile screens and Farcaster mini app viewports.
+### `main.css`
+The primary stylesheet containing all global styles, layout definitions, and component styles.
 
-## Extending styles safely
-- Reuse existing variables and utility classes to maintain visual consistency.
-- Keep class names aligned with those referenced in `src/main.js` (e.g., navigation buttons, modals) to avoid breaking selectors.
-- Group new section-specific rules with clear comments inside `main.css` so future contributors can trace behaviors quickly.
+## 🎨 Theme System
+
+The application uses a "Golden" theme defined via CSS variables on the `:root` element.
+
+```css
+:root {
+  --primary: #fbcc5c; /* Celo Gold */
+  --bg-app: #ffffff;
+  --text-main: #1a1a1a;
+  /* ... */
+}
+```
+
+## 📱 Mobile-First Design
+
+- **Grid Layout:** The `.page-wrapper` uses `grid-template-columns: 1fr` to ensure a single-column flow optimized for mobile devices (375px width).
+- **Responsive Breakpoints:** Media queries are used to adapt the layout for desktop screens, expanding the central container while maintaining the focus on the content.
+
+## 🧩 Components
+
+- **`.card`**: The fundamental building block for UI sections (Donate, GM, Profile).
+- **`.nav-btn`**: Pill-shaped navigation buttons used in the header.
+- **`.modal-layer`**: Styles for the popup modals (Connect Wallet, Share, Success).
+- **`.toast-container`**: Positioning for the notification toasts.
+
+## ⚠️ Mini App Considerations
+
+Special attention is given to the **Farcaster Mini App** environment:
+- **Header:** The `.compact-header` class reduces padding to maximize vertical space in the embedded frame.
+- **Scroll:** `overflow-x: auto` is applied to navigation to allow horizontal scrolling on narrow screens without breaking the layout.

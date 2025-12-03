@@ -1,14 +1,36 @@
-# `src/services/` – App & Web3 Services
+# Service Layer Documentation
 
-Service modules that connect the UI to wallets, smart contracts, and referral metadata. They provide promise-based helpers consumed by `src/main.js` to keep the UI declarative.
+The `services` directory isolates the business logic and external interactions of the application. It follows a modular design pattern to separate concerns between the UI (`appCore.js`) and the underlying data/blockchain layers.
 
-## Files
-- **`walletService.js`** – Manages MetaMask and WalletConnect v2 sessions, listens for account/network changes, and exposes provider/signer helpers for CELO and stable asset interactions.
-- **`contractService.js`** – Loads contract instances using values from `utils/constants.js`. Orchestrates GM, Deploy, Donate (CELO/cUSD/cEUR), governance create/vote flows, leaderboard/profile reads, link sharing, and donation withdrawals while delegating toast handling.
-- **`identityService.js`** – Stores and retrieves lightweight identity/verification state in local storage; coordinates with the optional Express backend when enabled.
-- **`divviReferral.js`** – Attaches Divvi referral metadata to transactions when available, safely degrading if the endpoint is unreachable.
+## 📂 Key Files
 
-## Extending services
-- Centralize new blockchain actions here to keep `main.js` focused on rendering and event handling.
-- Reuse constants (addresses, ABIs, thresholds, analytics) from `utils/constants.js` instead of hardcoding values.
-- Keep wallet event listeners single-sourced in `walletService.js` to avoid duplicated network/account handling across the app.
+### `walletService.js`
+Handles all wallet connection and network management logic.
+- **`connectWallet(providerType)`**: Connects to MetaMask or WalletConnect.
+- **`switchNetwork(targetChainId)`**: Handles chain switching (e.g., Celo Mainnet vs. Alfajores), including adding the chain if it doesn't exist in the user's wallet.
+- **`getSigner()`**: Returns the ethers.js signer for transaction execution.
+
+### `contractService.js`
+Manages interactions with Smart Contracts.
+- **`doGM()`**: Sends a "GM" transaction to the contract.
+- **`doDeploy()`**: Handles the deployment of new contracts (for the "Deploy" module).
+- **`doDonateCELO()`, `doDonateToken()`**: Executes donation transactions in native CELO or ERC-20 tokens (cUSD, cEUR).
+- **Tx Handling**: Implements optimistic UI updates—toasts are triggered on transaction hash generation to prevent UI hanging during long block times.
+
+### `identityService.js`
+Manages user identity and verification.
+- **`checkSelfVerification()`**: Checks if a user is verified via the backend API.
+- **`verifySelf()`**: Submits a cryptographic proof to the backend to verify identity.
+
+### `divviReferral.js`
+A specific service for handling referral logic within the Divvi wallet ecosystem or similar integration points.
+
+## 🔄 Interaction Flow
+
+1.  **User Action:** User clicks "Donate" in the UI.
+2.  **App Core:** `appCore.js` captures the event and calls `contractService.doDonateCELO()`.
+3.  **Contract Service:**
+    - Calls `walletService.ensureNetwork()` to verify the chain.
+    - Uses `walletService.getSigner()` to prepare the transaction.
+    - Sends the transaction via `ethers.js`.
+4.  **Feedback:** Returns the transaction hash to `appCore.js` to display the "Success" modal.

@@ -1,22 +1,34 @@
-# `src/data/` – Static Data Sets
+# Data Documentation
 
-Configuration and curated content that power the Celo Engage Hub cards and filters. These JSON files are loaded directly by `src/main.js` and rendered into the Home directory and ecosystem sections.
+This directory contains the static data used to populate the dynamic sections of the Celo Engage Hub. Using JSON files allowing for easy updates to the directory content without modifying the core application code.
 
-## Files
-- **`celoMiniApps.json`** – List of Farcaster mini apps highlighted on the Home page.
-  - `name` (string) – Display name shown on the card.
-  - `author` (string, optional) – Creator attribution.
-  - `description` (string) – Short summary rendered beneath the title.
-  - `category` (string) – One of the categories surfaced in the filter chips (e.g., Growth, Games, Identity, Finance).
-  - `farcasterUrl` (string) – Link opened when the card is clicked.
-  - `iconUrl` (string) – Relative path to the mini app icon. Defaults to `./assets/miniapps/default.png` when absent.
+## 📂 Files
 
-## Adding new entries
-1. Append a new object to `celoMiniApps.json` using the keys above.
-2. Keep `category` aligned with the filter list defined in `src/main.js` so chips recognize the new entry.
-3. Store any new icons in `assets/miniapps/` and reference them with a relative path from this JSON file.
-4. Validate URLs (especially Farcaster deep links) to ensure they open correctly from mobile and desktop contexts.
+### `celoMiniApps.json` (Hypothetical / Planned)
+*Note: While ecosystem links are currently managed via `src/utils/constants.js` or inline structures in some versions, this directory is intended to house the structured data for the "Celo Farcaster Mini Apps" directory.*
 
-## Maintenance tips
-- Keep descriptions concise (1–2 sentences) to preserve card layout.
-- When expanding to other dataset types (official links, bridges, social media), mirror the field naming conventions for consistency across cards and filters.
+**Structure:**
+```json
+[
+  {
+    "id": "app-id",
+    "name": "App Name",
+    "description": "Short description.",
+    "url": "https://...",
+    "icon": "assets/icons/app-icon.png",
+    "category": "DeFi"
+  }
+]
+```
+
+## 🔄 Data Flow
+
+1.  **Loading:** `appCore.js` imports or fetches these JSON files at initialization.
+2.  **Rendering:** The `renderEcosystem` or `renderMiniApps` functions iterate over this data to generate the grid of cards displayed in the "Home" tab.
+
+## ✍️ Contribution Guide
+
+To add a new Mini App or Ecosystem Link:
+1.  Open the relevant JSON file (or `src/utils/constants.js` if data is currently hardcoded there).
+2.  Add a new object following the existing schema.
+3.  Submit a Pull Request.

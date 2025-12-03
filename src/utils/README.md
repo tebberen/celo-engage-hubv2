@@ -1,13 +1,31 @@
-# `src/utils/` – Shared Constants & Helpers
+# Utils Documentation
 
-Utility modules that keep blockchain configuration, CDN imports, and formatting consistent across the hub. These files are imported by `src/main.js` and the service layer.
+This directory contains helper functions, constants, and polyfills used throughout the application.
 
-## Files
-- **`constants.js`** – Central registry for network metadata, contract addresses/ABIs, module definitions (GM/Donate/Deploy/Profile), analytics links, and UI message templates. Also stores donation minimums and chain IDs for Celo Mainnet and Alfajores.
-- **`cdn-modules.js`** – Re-exports browser-safe builds of `ethers` and WalletConnect directly from CDN endpoints so the app can run without a bundler.
-- **`formatters.js`** – Number/token formatting helpers for CELO and stable assets with compact display, localization, and fallback handling.
+## 📂 Key Files
 
-## Usage guidelines
-- Update `constants.js` whenever RPC endpoints, project IDs, ABIs, or module metadata change so services and UI stay synchronized.
-- Keep helpers pure and side-effect-free; avoid wrapping imports in `try/catch` so errors surface clearly during debugging.
-- When adding new utility modules, export functions explicitly and document expected shapes to keep the import surface predictable.
+### `constants.js`
+Defines application-wide constants to prevent magic strings and numbers.
+- **`CHAINS`**: Definitions for Celo Mainnet and Alfajores (Chain IDs, RPC URLs, Block Explorer URLs).
+- **`ECOSYSTEM_LINKS`**: Static data for the "Official Links", "Bridges", "DEX", "CEX", and "Social" modules.
+- **`CONTRACT_ADDRESSES`**: Centralized storage for smart contract addresses.
+
+### `formatting.js` (or similar helpers)
+Contains utility functions for:
+- **Address Truncation:** `0x1234...5678` for UI display.
+- **Number Formatting:** Parsing and formatting token amounts (WEI to Ether).
+
+### `env.js`
+Helpers to detect the current running environment (Web vs. Mini App) if not explicitly passed during initialization.
+
+---
+
+## 🛠 Usage
+
+Import these utilities into `appCore.js` or `services/` modules to ensure consistency.
+
+```javascript
+import { CHAINS } from './utils/constants.js';
+
+const targetChain = CHAINS.mainnet;
+```

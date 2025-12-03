@@ -1,21 +1,41 @@
-# `server/` – Optional Express Helper
+# Backend Server Documentation
 
-A lightweight Express server that previously powered Self ID verification checks for the hub. The front-end runs fully static; this service is only needed if you re-enable verification flows or want a simple health endpoint during development.
+This directory contains the optional backend server for the Celo Engage Hub. It is primarily used to support the **Self ID** verification flow, which requires server-side validation of cryptographic proofs.
 
-## Files
-- **`index.js`** – Boots Express with CORS + JSON middleware. Exposes:
-  - `GET /api/self/health` – Basic heartbeat for uptime monitors.
-  - `GET /api/self/check` – Returns the in-memory list of verified addresses.
-  - `POST /api/self/verify` – Verifies signatures with `ethers.utils.verifyMessage` and stores successful results in memory.
+## 📂 Key Files
 
-## Running locally
-From the repository root:
+### `index.js`
+The main entry point for the Express server.
+
+- **Stack:** Node.js, Express, Ethers.js.
+- **Port:** Defaults to `8787`.
+
+## 🚀 API Endpoints
+
+### `GET /api/self/check`
+Checks if a given wallet address is verified.
+- **Query Params:** `address`
+- **Response:** `{ verified: boolean }`
+
+### `POST /api/self/verify`
+Submits a verification payload to be validated.
+- **Body:** `{ signature, message, address }`
+- **Logic:**
+    1.  Recovers the signer address from the signature and message.
+    2.  Compares the recovered address with the claimed address.
+    3.  Stores the verification status in memory (`verifiedWallets` Map).
+- **Response:** `{ verified: boolean }`
+
+### `GET /api/self/health`
+Simple health check endpoint.
+- **Response:** `{ status: "ok" }`
+
+## ⚠️ Notes
+- **In-Memory Storage:** The current implementation uses a JavaScript `Map` to store verification status. This is non-persistent and will reset on server restart. For production, this should be replaced with a database (Redis, Postgres, etc.).
+
+## 🛠 Running the Server
+
 ```bash
+# From project root
 npm run start:server
 ```
-The server defaults to port **8787** (override with `PORT`). Because it uses in-memory storage, restart the process when you want a clean slate.
-
-## Integration notes
-- The front-end service layer (`src/services/identityService.js`) expects the endpoints above; coordinate any shape changes.
-- If you need persistence, swap the in-memory store for a database while keeping response payloads minimal for browser polling.
-- Keep responses CORS-friendly so they can be called from GitHub Pages or other static hosts.

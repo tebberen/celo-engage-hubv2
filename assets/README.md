@@ -1,18 +1,14 @@
-# `assets/` – Static Media
+# Assets Documentation
 
-This folder holds all branding and imagery used by the Celo Engage Hub experience. Assets are referenced by `index.html`, `src/main.js`, and the JSON data that powers the mini app directory.
+This directory contains static assets used by the frontend application.
 
-## Contents
-- **`logo-celo-engage-hub.svg` / `logo-celo-engage-hub.png`** – Primary logomark for headers, previews, and social embeds.
-- **`miniapps/` (expected)** – Optional folder for Farcaster mini app icons referenced from `src/data/celoMiniApps.json`. If an icon is missing, the UI falls back to `./assets/miniapps/default.png`.
-- Additional illustrations or badges can live alongside these files when needed for new sections.
+## 📂 Content
 
-## Naming & organization
-- Use descriptive, kebab-cased filenames (e.g., `logo-celo-engage-hub.svg`, `miniapps/celo-builder-rewards.png`).
-- Keep reusable icons in `miniapps/` so cards can reference consistent dimensions.
-- Maintain stable filenames once referenced in data or markup to prevent broken links in production.
+- **Logos:** Project branding files (e.g., `logo-celo-engage-hub.png`).
+- **Icons:** SVG or PNG icons used in the UI (e.g., wallet icons, external link icons).
+- **Mini App Icons:** Specific assets required for the Farcaster Mini App metadata (splash screen, icon).
 
-## Format & optimization
-- Prefer **SVG** for logos and line art; use **PNG** for detailed artwork or screenshots with transparent backgrounds.
-- Optimize images before committing to keep the GitHub Pages payload lightweight for MiniPay and mobile users.
-- Align new icons to a square canvas (e.g., 256×256 or 512×512) for best results in the card grid.
+## ⚠️ Requirements
+
+- **Farcaster Splash Image:** The image used in the `fc:miniapp` meta tag (splashImageUrl) must be served from here.
+- **Optimization:** Ensure images are optimized for web to maintain fast load times, especially for the mobile Mini App experience.
