@@ -29384,7 +29384,7 @@ async function refreshProfile() {
     renderProfile(profile);
     renderDeployments(deployments);
     if (!profile?.exists) {
-      openUsernameModal();
+      console.log("User not registered, continuing as guest.");
     } else {
       closeUsernameModal();
     }
@@ -29707,10 +29707,6 @@ function parseError(error) {
     return UI_MESSAGES.wrongNetwork;
   }
   return UI_MESSAGES.error;
-}
-function openUsernameModal(trigger) {
-  if (!elements.usernameModal) return;
-  openModalEl(elements.usernameModal, { focusTarget: elements.usernameInput, trigger });
 }
 function closeUsernameModal() {
   if (!elements.usernameModal) return;

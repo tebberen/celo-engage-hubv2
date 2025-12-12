@@ -3097,7 +3097,8 @@ async function refreshProfile() {
     renderProfile(profile);
     renderDeployments(deployments);
     if (!profile?.exists) {
-      openUsernameModal();
+      // openUsernameModal(); // Soft gate: do not force open
+      console.log("User not registered, continuing as guest.");
     } else {
       closeUsernameModal();
     }
